@@ -1,0 +1,15 @@
+sudo: false
+
+language: python
+
+python:
+  - "pypy3"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+
+install: pip install tox-travis coveralls
+
+script: tox
+
+after_success: coveralls

@@ -1,0 +1,5 @@
+[run]
+source = typeguard
+
+[report]
+show_missing = true
