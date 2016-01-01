@@ -232,6 +232,12 @@ def check_argument_types(func: Callable, args: tuple=None, kwargs: Dict[str, Any
         type_hints = _type_hints_map[func] = OrderedDict(
             (arg, hints[arg]) for arg in spec.args + ['return'] if arg in hints)
 
+        # If an argument has a default value, its type should be accepted as well
+        if spec.defaults:
+            for argname, default_value in zip(reversed(spec.args), reversed(spec.defaults)):
+                if argname in hints:
+                    type_hints[argname] = Union[hints[argname], type(default_value)]
+
     if args is None or kwargs is None:
         frame = inspect.currentframe().f_back
         argvalues = frame.f_locals

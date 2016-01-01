@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.0.2
+-----
+
+- Fixed types of default argument values not being considered as valid for the argument
+
+
 1.0.1
 -----
 

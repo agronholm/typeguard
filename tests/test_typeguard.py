@@ -333,6 +333,21 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == ('type of argument a must be test_typeguard.Child; '
                                   'got test_typeguard.Parent instead')
 
+    @pytest.mark.parametrize('values', [
+        ('x', 1.2, 'y'),
+        (2, 'x', None)
+    ], ids=['declared', 'default'])
+    def test_default_argument_type(self, values):
+        """
+        Checks that the type of the default argument is also accepted even if it does not match the
+        declared type of the argument.
+
+        """
+        def foo(a: str=1, b: float='x', c: str=None):
+            assert check_argument_types(foo)
+
+        foo(*values)
+
 
 class TestTypeChecked:
     def test_typechecked(self):
