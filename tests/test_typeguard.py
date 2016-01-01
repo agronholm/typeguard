@@ -1,3 +1,5 @@
+from functools import wraps
+
 from typing import Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence
 
 import pytest
@@ -315,6 +317,21 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, Parent(), Child())
         assert str(exc.value) == ('type of argument b must be test_typeguard.Parent or one of its '
                                   'superclasses; got test_typeguard.Child instead')
+
+    def test_wrapped_function(self):
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+            return wrapper
+
+        @decorator
+        def foo(a: 'Child'):
+            assert check_argument_types(foo)
+
+        exc = pytest.raises(TypeError, foo, Parent())
+        assert str(exc.value) == ('type of argument a must be test_typeguard.Child; '
+                                  'got test_typeguard.Parent instead')
 
 
 class TestTypeChecked:

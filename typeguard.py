@@ -206,8 +206,7 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, 
             format(argname, qualified_name(expected_type), qualified_name(type(value))))
 
 
-def check_argument_types(func: Callable, args: tuple=None,
-                         kwargs: Dict[str, Any]=None,
+def check_argument_types(func: Callable, args: tuple=None, kwargs: Dict[str, Any]=None,
                          typevars_memo: Dict[TypeVar, type]=None) -> bool:
     """
     Check that the argument values match the annotated types.
@@ -222,6 +221,10 @@ def check_argument_types(func: Callable, args: tuple=None,
     :raises TypeError: if there is an argument type mismatch
 
     """
+    # Unwrap the function
+    while hasattr(func, '__wrapped__'):
+        func = func.__wrapped__
+
     type_hints = _type_hints_map.get(func)
     if type_hints is None:
         spec = inspect.getfullargspec(func)
