@@ -78,6 +78,6 @@ Type         Notes
 Project links
 -------------
 
-* `Change log <https://github.com/agronholm/typeguard/master/CHANGELOG.rst>`_
+* `Change log <https://github.com/agronholm/typeguard/blob/master/CHANGELOG.rst>`_
 * `Source repository <https://github.com/agronholm/typeguard>`_
 * `Issue tracker <https://github.com/agronholm/typeguard/issues>`_
