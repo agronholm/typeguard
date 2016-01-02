@@ -1,6 +1,13 @@
 Version history
 ===============
 
+1.1.0
+-----
+
+- Eliminated the need to pass a reference to the currently executing function to
+  ``check_argument_types()``
+
+
 1.0.2
 -----
 

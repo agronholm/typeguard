@@ -15,7 +15,7 @@ Python 3) is supported. See below for details.
 
 There are two principal ways to use type checking, each with its pros and cons:
 
-#. calling ``check_type_arguments()`` from within the function body:
+#. calling ``check_argument_types()`` from within the function body:
     debugger friendly but cannot check the type of the return value
 #. decorating the function with ``@typechecked``:
     can check the type of the return value but adds an extra frame to the call stack for every call
@@ -30,14 +30,14 @@ Type checks can be fairly expensive so it is recommended to run Python in "optim
 type checks in production. The optimized mode will disable the type checks, by virtue of removing
 all ``assert`` statements and setting the ``__debug__`` constant to ``False``.
 
-Using ``check_type_arguments()``:
+Using ``check_argument_types()``:
 
 .. code-block:: python
 
     from typeguard import check_argument_types
 
     def some_function(a: int, b: float, c: str, *args: str):
-        assert check_argument_types(some_function)
+        assert check_argument_types()
         ...
 
 Using ``@typechecked``:

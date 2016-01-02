@@ -1,10 +1,11 @@
+from typing import Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints
 from collections import OrderedDict
 from warnings import warn
 from functools import partial, wraps
 from weakref import WeakKeyDictionary
-from typing import Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints
 import collections
 import inspect
+import gc
 
 __all__ = ('typechecked', 'check_argument_types')
 
@@ -206,7 +207,7 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, 
             format(argname, qualified_name(expected_type), qualified_name(type(value))))
 
 
-def check_argument_types(func: Callable, args: tuple=None, kwargs: Dict[str, Any]=None,
+def check_argument_types(func: Callable=None, args: tuple=None, kwargs: Dict[str, Any]=None,
                          typevars_memo: Dict[TypeVar, type]=None) -> bool:
     """
     Check that the argument values match the annotated types.
@@ -221,13 +222,21 @@ def check_argument_types(func: Callable, args: tuple=None, kwargs: Dict[str, Any
     :raises TypeError: if there is an argument type mismatch
 
     """
-    # Unwrap the function
-    while hasattr(func, '__wrapped__'):
-        func = func.__wrapped__
+    frame = inspect.currentframe().f_back
+    if func:
+        # Unwrap the function
+        while hasattr(func, '__wrapped__'):
+            func = func.__wrapped__
+    else:
+        # No callable provided, so fish it out of the garbage collector
+        for obj in gc.get_referrers(frame.f_code):
+            if inspect.isfunction(obj):
+                func = obj
+                break
 
+    spec = inspect.getfullargspec(func)
     type_hints = _type_hints_map.get(func)
     if type_hints is None:
-        spec = inspect.getfullargspec(func)
         hints = get_type_hints(func)
         type_hints = _type_hints_map[func] = OrderedDict(
             (arg, hints[arg]) for arg in spec.args + ['return'] if arg in hints)
@@ -239,11 +248,9 @@ def check_argument_types(func: Callable, args: tuple=None, kwargs: Dict[str, Any
                     type_hints[argname] = Union[hints[argname], type(default_value)]
 
     if args is None or kwargs is None:
-        frame = inspect.currentframe().f_back
         argvalues = frame.f_locals
     elif isinstance(args, tuple) and isinstance(kwargs, dict):
         argvalues = kwargs.copy()
-        spec = inspect.getfullargspec(func)
         pos_values = dict(zip(spec.args, args))
         argvalues.update(pos_values)
     else:

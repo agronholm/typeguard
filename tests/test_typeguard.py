@@ -38,13 +38,13 @@ class TestCheckArgumentTypes:
 
     def test_any_type(self):
         def foo(a: Any):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo('aa')
 
     def test_callable(self):
         def foo(a: Callable[..., int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         def some_callable() -> int:
             pass
@@ -53,7 +53,7 @@ class TestCheckArgumentTypes:
 
     def test_callable_exact_arg_count(self):
         def foo(a: Callable[[int, str], int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         def some_callable(x: int, y: str) -> int:
             pass
@@ -62,14 +62,14 @@ class TestCheckArgumentTypes:
 
     def test_callable_bad_type(self):
         def foo(a: Callable[..., int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == 'argument a must be a callable'
 
     def test_callable_too_few_arguments(self):
         def foo(a: Callable[[int, str], int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         def some_callable(x: int) -> int:
             pass
@@ -81,7 +81,7 @@ class TestCheckArgumentTypes:
 
     def test_callable_too_many_arguments(self):
         def foo(a: Callable[[int, str], int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         def some_callable(x: int, y: str, z: float) -> int:
             pass
@@ -93,13 +93,13 @@ class TestCheckArgumentTypes:
 
     def test_dict(self):
         def foo(a: Dict[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo({'x': 2})
 
     def test_dict_bad_type(self):
         def foo(a: Dict[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
@@ -107,27 +107,27 @@ class TestCheckArgumentTypes:
 
     def test_dict_bad_key_type(self):
         def foo(a: Dict[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, {1: 2})
         assert str(exc.value) == 'type of keys of argument a must be str; got int instead'
 
     def test_dict_bad_value_type(self):
         def foo(a: Dict[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, {'x': 'a'})
         assert str(exc.value) == "type of argument a['x'] must be int; got str instead"
 
     def test_list(self):
         def foo(a: List[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo([1, 2])
 
     def test_list_bad_type(self):
         def foo(a: List[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
@@ -135,7 +135,7 @@ class TestCheckArgumentTypes:
 
     def test_list_bad_element(self):
         def foo(a: List[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, [1, 2, 'bb'])
         assert str(exc.value) == (
@@ -145,13 +145,13 @@ class TestCheckArgumentTypes:
                              ids=['tuple', 'list', 'str'])
     def test_sequence(self, value):
         def foo(a: Sequence[str]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(value)
 
     def test_sequence_bad_type(self):
         def foo(a: Sequence[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
@@ -159,7 +159,7 @@ class TestCheckArgumentTypes:
 
     def test_sequence_bad_element(self):
         def foo(a: Sequence[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, [1, 2, 'bb'])
         assert str(exc.value) == (
@@ -168,20 +168,20 @@ class TestCheckArgumentTypes:
     @pytest.mark.parametrize('value', [set(), {6}])
     def test_set(self, value):
         def foo(a: Set[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(value)
 
     def test_set_bad_type(self):
         def foo(a: Set[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == 'type of argument a must be a set; got int instead'
 
     def test_set_bad_element(self):
         def foo(a: Set[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, {1, 2, 'bb'})
         assert str(exc.value) == (
@@ -189,13 +189,13 @@ class TestCheckArgumentTypes:
 
     def test_tuple(self):
         def foo(a: Tuple[int, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo((1, 2))
 
     def test_tuple_bad_type(self):
         def foo(a: Tuple[int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
@@ -203,7 +203,7 @@ class TestCheckArgumentTypes:
 
     def test_tuple_wrong_number_of_elements(self):
         def foo(a: Tuple[int, str]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, (1, 'aa', 2))
         assert str(exc.value) == ('argument a has wrong number of elements (expected 2, got 3 '
@@ -211,7 +211,7 @@ class TestCheckArgumentTypes:
 
     def test_tuple_bad_element(self):
         def foo(a: Tuple[int, str]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, (1, 2))
         assert str(exc.value) == (
@@ -220,14 +220,14 @@ class TestCheckArgumentTypes:
     @pytest.mark.parametrize('value', [6, 'aa'])
     def test_union(self, value):
         def foo(a: Union[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(value)
 
     @pytest.mark.parametrize('value', [6.5, b'aa'])
     def test_union_fail(self, value):
         def foo(a: Union[str, int]):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, value)
         assert str(exc.value) == (
@@ -242,7 +242,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', int, str)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(*values)
 
@@ -250,7 +250,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', int, str)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2.5, 'aa')
         assert str(exc.value) == 'type of argument a must be one of (int, str); got float instead'
@@ -259,7 +259,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', bound=Parent)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(Child(), Child())
 
@@ -267,7 +267,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', bound=Child)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Parent())
         assert str(exc.value) == ('argument a must be an instance of test_typeguard.Child; got '
@@ -277,7 +277,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', int, str)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2, 3.6)
         assert str(exc.value) == 'type of argument b must be exactly int; got float instead'
@@ -286,7 +286,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', covariant=True)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(Parent(), Child())
 
@@ -294,7 +294,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', covariant=True)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Child(), Parent())
         assert str(exc.value) == ('argument b must be an instance of test_typeguard.Child; got '
@@ -304,7 +304,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', contravariant=True)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(Child(), Parent())
 
@@ -312,7 +312,7 @@ class TestCheckArgumentTypes:
         T = TypeVar('T', contravariant=True)
 
         def foo(a: T, b: T):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Child())
         assert str(exc.value) == ('type of argument b must be test_typeguard.Parent or one of its '
@@ -344,7 +344,7 @@ class TestCheckArgumentTypes:
 
         """
         def foo(a: str=1, b: float='x', c: str=None):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         foo(*values)
 
