@@ -178,7 +178,8 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, 
     Ensure that ``value`` matches ``expected_type``.
 
     The types from the :mod:`typing` module do not support :func:`isinstance` or :func:`issubclass`
-    so
+    so a number of type specific checks are required. This function knows which checker to call
+    for which type.
 
     :param argname: name of the argument to check; used for error messages
     :param value: value to be checked against ``expected_type``
