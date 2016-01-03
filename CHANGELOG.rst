@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.1.1
+-----
+
+- Fixed improper argument counting with bound methods when typechecking callables
+
+
 1.1.0
 -----
 

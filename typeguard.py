@@ -41,16 +41,20 @@ def check_callable(argname: str, value, expected_type,
 
     if isinstance(expected_type.__args__, tuple):
         spec = inspect.getfullargspec(value)
-        if len(spec.args) > len(expected_type.__args__):
+
+        # Don't count the "self" argument for bound methods
+        num_args = len(spec.args) - 1 if inspect.ismethod(value) else len(spec.args)
+
+        if num_args > len(expected_type.__args__):
             raise TypeError(
                 'callable passed as {} has too many arguments in its declaration; expected {} '
                 'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     len(spec.args)))
-        elif not spec.varargs and len(spec.args) < len(expected_type.__args__):
+                                                     num_args))
+        elif not spec.varargs and num_args < len(expected_type.__args__):
             raise TypeError(
                 'callable passed as {} has too few arguments in its declaration; expected {} '
                 'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     len(spec.args)))
+                                                     num_args))
 
 
 def check_dict(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]):

@@ -12,7 +12,8 @@ class Parent:
 
 
 class Child(Parent):
-    pass
+    def method(self, a: int):
+        pass
 
 
 @pytest.mark.parametrize('inputval, expected', [
@@ -90,6 +91,13 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'callable passed as argument a has too many arguments in its declaration; expected '
             '2 but 3 argument(s) declared')
+
+    def test_callable_bound_method(self):
+        """Tests that argument count checking is done correctly for bound methods."""
+        def foo(callback: Callable[[int], Any]):
+            assert check_argument_types()
+
+        foo(Child().method)
 
     def test_dict(self):
         def foo(a: Dict[str, int]):
