@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.1.3
+-----
+
+- Gracefully exit if ``check_type_arguments`` can't find a reference to the current function
+
+
 1.1.2
 -----
 

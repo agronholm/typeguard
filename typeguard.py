@@ -244,6 +244,8 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
             if inspect.isfunction(obj):
                 func = obj
                 break
+        else:
+            return True
 
     spec = inspect.getfullargspec(func)
     type_hints = _type_hints_map.get(func)
