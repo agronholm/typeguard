@@ -93,11 +93,21 @@ class TestCheckArgumentTypes:
             '2 but 3 argument(s) declared')
 
     def test_callable_bound_method(self):
-        """Tests that argument count checking is done correctly for bound methods."""
+        """Test that argument count checking is done correctly for bound methods."""
         def foo(callback: Callable[[int], Any]):
             assert check_argument_types()
 
         foo(Child().method)
+
+    def test_callable_builtin(self):
+        """
+        Test that checking a Callable annotation against a builtin callable does not raise an error.
+
+        """
+        def foo(callback: Callable[[int], Any]):
+            assert check_argument_types()
+
+        foo([].append)
 
     def test_dict(self):
         def foo(a: Dict[str, int]):

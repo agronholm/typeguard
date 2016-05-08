@@ -34,13 +34,15 @@ def qualified_name(obj) -> str:
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
-def check_callable(argname: str, value, expected_type,
-                   typevars_memo: Dict[TypeVar, type]):
+def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]):
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
     if isinstance(expected_type.__args__, tuple):
-        spec = inspect.getfullargspec(value)
+        try:
+            spec = inspect.getfullargspec(value)
+        except (TypeError, ValueError):
+            return
 
         # Don't count the "self" argument for bound methods
         num_args = len(spec.args) - 1 if inspect.ismethod(value) else len(spec.args)

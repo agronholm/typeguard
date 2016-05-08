@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.1.2
+-----
+
+- Fixed TypeError when checking a builtin function against a parametrized Callable
+
+
 1.1.1
 -----
 
