@@ -4,9 +4,6 @@
 .. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/agronholm/typeguard?branch=master
   :alt: Code Coverage
-.. image:: https://codeclimate.com/github/agronholm/typeguard/badges/gpa.svg
-  :target: https://codeclimate.com/github/agronholm/typeguard
-  :alt: Code Climate
 
 This library provides run-time type checking for functions defined with argument type annotations.
 
