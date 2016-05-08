@@ -101,7 +101,8 @@ class TestCheckArgumentTypes:
 
     def test_callable_builtin(self):
         """
-        Test that checking a Callable annotation against a builtin callable does not raise an error.
+        Test that checking a Callable annotation against a builtin callable does not raise an
+        error.
 
         """
         def foo(callback: Callable[[int], Any]):
