@@ -58,7 +58,7 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeV
         if isinstance(value, partial):
             # Don't count the arguments passed in through partial()
             mandatory_args -= set(spec.args[:len(value.args)])
-            mandatory_args -= set(value.keywords)
+            mandatory_args -= set(value.keywords or ())
             if inspect.isclass(value.func):
                 # Don't count the "self" argument for class constructors
                 mandatory_args -= {spec.args[0]}
