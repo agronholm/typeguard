@@ -44,6 +44,14 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeV
         except (TypeError, ValueError):
             return
 
+        # The callable must not have keyword-only arguments without defaults
+        unfulfilled_kwonlyargs = [arg for arg in spec.kwonlyargs if
+                                  not spec.kwonlydefaults or arg not in spec.kwonlydefaults]
+        if unfulfilled_kwonlyargs:
+            raise TypeError(
+                'callable passed as {} has mandatory keyword-only arguments in its '
+                'declaration: {}'.format(argname, ', '.join(unfulfilled_kwonlyargs)))
+
         mandatory_args = set(spec.args)
         if spec.defaults:
             mandatory_args -= set(spec.args[-len(spec.defaults):])

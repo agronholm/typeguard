@@ -92,6 +92,18 @@ class TestCheckArgumentTypes:
             'callable passed as argument a has too many arguments in its declaration; expected '
             '2 but 3 argument(s) declared')
 
+    def test_callable_mandatory_kwonlyargs(self):
+        def foo(a: Callable[[int, str], int]):
+            assert check_argument_types()
+
+        def some_callable(x: int, y: str, *, z: float, bar: str) -> int:
+            pass
+
+        exc = pytest.raises(TypeError, foo, some_callable)
+        assert str(exc.value) == (
+            'callable passed as argument a has mandatory keyword-only arguments in its '
+            'declaration: z, bar')
+
     def test_callable_class(self):
         """
         Test that passing a class as a callable does not count the "self" argument against the ones
