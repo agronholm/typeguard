@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import wraps, partial
 
 from typing import Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence
 
@@ -91,6 +91,21 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'callable passed as argument a has too many arguments in its declaration; expected '
             '2 but 3 argument(s) declared')
+
+    def test_callable_class(self):
+        """
+        Test that passing a class as a callable does not count the "self" argument against the ones
+        declared in the Callable specification.
+
+        """
+        def foo(a: Callable[[int, str], Any]):
+            assert check_argument_types()
+
+        class SomeClass:
+            def __init__(self, x: int, y: str):
+                pass
+
+        foo(SomeClass)
 
     def test_callable_bound_method(self):
         """Test that argument count checking is done correctly for bound methods."""

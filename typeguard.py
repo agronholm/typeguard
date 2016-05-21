@@ -44,8 +44,10 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeV
         except (TypeError, ValueError):
             return
 
-        # Don't count the "self" argument for bound methods
-        num_args = len(spec.args) - 1 if inspect.ismethod(value) else len(spec.args)
+        num_args = len(spec.args)
+        if inspect.ismethod(value) or inspect.isclass(value):
+            # Don't count the "self" argument for bound methods or class constructors
+            num_args -= 1
 
         if num_args > len(expected_type.__args__):
             raise TypeError(

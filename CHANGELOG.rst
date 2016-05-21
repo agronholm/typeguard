@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.1.4
+-----
+
+- Fixed argument counting when a class is checked against a Callable specification
+
+
 1.1.3
 -----
 
