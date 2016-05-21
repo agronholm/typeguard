@@ -44,21 +44,30 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeV
         except (TypeError, ValueError):
             return
 
-        num_args = len(spec.args)
-        if inspect.ismethod(value) or inspect.isclass(value):
+        mandatory_args = set(spec.args)
+        if spec.defaults:
+            mandatory_args -= set(spec.args[-len(spec.defaults):])
+        if isinstance(value, partial):
+            # Don't count the arguments passed in through partial()
+            mandatory_args -= set(spec.args[:len(value.args)])
+            mandatory_args -= set(value.keywords)
+            if inspect.isclass(value.func):
+                # Don't count the "self" argument for class constructors
+                mandatory_args -= {spec.args[0]}
+        elif inspect.ismethod(value) or inspect.isclass(value):
             # Don't count the "self" argument for bound methods or class constructors
-            num_args -= 1
+            mandatory_args -= {spec.args[0]}
 
-        if num_args > len(expected_type.__args__):
+        if len(mandatory_args) > len(expected_type.__args__):
             raise TypeError(
                 'callable passed as {} has too many arguments in its declaration; expected {} '
                 'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     num_args))
-        elif not spec.varargs and num_args < len(expected_type.__args__):
+                                                     len(mandatory_args)))
+        elif not spec.varargs and len(mandatory_args) < len(expected_type.__args__):
             raise TypeError(
                 'callable passed as {} has too few arguments in its declaration; expected {} '
                 'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     num_args))
+                                                     len(mandatory_args)))
 
 
 def check_dict(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:

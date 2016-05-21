@@ -5,6 +5,8 @@ Version history
 -----
 
 - Fixed argument counting when a class is checked against a Callable specification
+- Fixed argument counting when a functools.partial object is checked against a Callable
+  specification
 
 
 1.1.3

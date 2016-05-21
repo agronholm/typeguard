@@ -107,12 +107,56 @@ class TestCheckArgumentTypes:
 
         foo(SomeClass)
 
+    def test_callable_partial_class(self):
+        """
+        Test that passing a bound method as a callable does not count the "self" argument against
+        the ones declared in the Callable specification.
+
+        """
+        def foo(a: Callable[[int], Any]):
+            assert check_argument_types()
+
+        class SomeClass:
+            def __init__(self, x: int, y: str):
+                pass
+
+        foo(partial(SomeClass, y='foo'))
+
     def test_callable_bound_method(self):
-        """Test that argument count checking is done correctly for bound methods."""
+        """
+        Test that passing a bound method as a callable does not count the "self" argument against
+        the ones declared in the Callable specification.
+
+        """
         def foo(callback: Callable[[int], Any]):
             assert check_argument_types()
 
         foo(Child().method)
+
+    def test_callable_partial_bound_method(self):
+        """
+        Test that passing a bound method as a callable does not count the "self" argument against
+        the ones declared in the Callable specification.
+
+        """
+        def foo(callback: Callable[[], Any]):
+            assert check_argument_types()
+
+        foo(partial(Child().method, 1))
+
+    def test_callable_defaults(self):
+        """
+        Test that a callable having "too many" arguments don't raise an error if the extra
+        arguments have default values.
+
+        """
+        def foo(callback: Callable[[int, str], Any]):
+            assert check_argument_types()
+
+        def some_callable(x: int, y: str, z: float = 1.2) -> int:
+            pass
+
+        foo(some_callable)
 
     def test_callable_builtin(self):
         """
