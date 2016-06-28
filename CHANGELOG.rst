@@ -5,6 +5,7 @@ Version history
 -----
 
 - Use ``backports.typing`` when possible to get new features on older Pythons
+- Fixed incompatibility with Python 3.5.2
 
 
 1.2.0

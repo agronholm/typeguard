@@ -40,7 +40,7 @@ def qualified_name(obj) -> str:
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
-def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
@@ -84,48 +84,51 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[TypeV
                                                      len(mandatory_args)))
 
 
-def check_dict(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_dict(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not isinstance(value, dict):
         raise TypeError('type of {} must be a dict; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    key_type, value_type = expected_type.__parameters__
+    key_type, value_type = getattr(expected_type, '__args__', expected_type.__parameters__)
     for k, v in value.items():
         check_type('keys of {}'.format(argname), k, key_type, typevars_memo)
         check_type('{}[{!r}]'.format(argname, k), v, value_type, typevars_memo)
 
 
-def check_list(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_list(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not isinstance(value, list):
         raise TypeError('type of {} must be a list; got {} instead'.
                         format(argname, qualified_name(value)))
-    if expected_type.__parameters__:
-        value_type = expected_type.__parameters__[0]
+
+    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
+    if value_type:
         for i, v in enumerate(value):
             check_type('{}[{}]'.format(argname, i), v, value_type, typevars_memo)
 
 
-def check_sequence(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_sequence(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not isinstance(value, collections.Sequence):
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
-    if expected_type.__parameters__:
-        value_type = expected_type.__parameters__[0]
+
+    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
+    if value_type:
         for i, v in enumerate(value):
             check_type('{}[{}]'.format(argname, i), v, value_type, typevars_memo)
 
 
-def check_set(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_set(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not isinstance(value, collections.Set):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
-    if expected_type.__parameters__:
-        value_type = expected_type.__parameters__[0]
+
+    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
+    if value_type:
         for v in value:
             check_type('elements of {}'.format(argname), v, value_type, typevars_memo)
 
 
-def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     if not isinstance(value, tuple):
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -136,7 +139,7 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[TypeVar,
         check_type('{}[{}]'.format(argname, i), element, expected_type, typevars_memo)
 
 
-def check_union(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     for type_ in expected_type.__union_params__:
         try:
             check_type(argname, value, type_, typevars_memo)
@@ -150,7 +153,7 @@ def check_union(argname: str, value, expected_type, typevars_memo: Dict[TypeVar,
 
 
 def check_typevar(argname: str, value, typevar: TypeVar,
-                  typevars_memo: Dict[TypeVar, type]) -> None:
+                  typevars_memo: Dict[Any, type]) -> None:
     bound_type = typevars_memo.get(typevar)
     value_type = type(value)
     if bound_type is not None:
@@ -205,7 +208,7 @@ subclass_type_checkers = {
 }
 
 
-def check_type(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, type]) -> None:
+def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -243,7 +246,7 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[TypeVar, 
 
 
 def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict[str, Any] = None,
-                         typevars_memo: Dict[TypeVar, type] = None) -> bool:
+                         typevars_memo: Dict[Any, type] = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -332,7 +335,7 @@ def typechecked(func: Callable = None, *, always: bool = False):
         warn('no type annotations present -- not typechecking {}'.format(func_name))
         return func
 
-    def check_return_value_type(retval, typevars_memo: Dict[TypeVar, type]):
+    def check_return_value_type(retval, typevars_memo: Dict[Any, type]):
         type_hints = _type_hints_map[func]
         expected_type = type_hints.get('return')
         if expected_type is not None:
