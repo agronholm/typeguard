@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.2.1
+-----
+
+- Use ``backports.typing`` when possible to get new features on older Pythons
+
+
 1.2.0
 -----
 

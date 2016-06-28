@@ -1,4 +1,3 @@
-from typing import Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints
 from collections import OrderedDict
 from warnings import warn
 from functools import partial, wraps
@@ -6,6 +5,13 @@ from weakref import WeakKeyDictionary
 import collections
 import inspect
 import gc
+
+try:
+    from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+                                  get_type_hints)
+except ImportError:
+    from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+                        get_type_hints)
 
 __all__ = ('typechecked', 'check_argument_types')
 
