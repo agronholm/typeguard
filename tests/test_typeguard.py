@@ -283,6 +283,12 @@ class TestCheckArgumentTypes:
 
         foo((1, 2))
 
+    def test_tuple_ellipsis(self):
+        def foo(a: Tuple[int, ...]):
+            assert check_argument_types()
+
+        foo((1, 2, 3, 4))
+
     def test_tuple_bad_type(self):
         def foo(a: Tuple[int]):
             assert check_argument_types()
@@ -291,12 +297,20 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument a must be a tuple; got int instead')
 
-    def test_tuple_wrong_number_of_elements(self):
+    def test_tuple_too_many_elements(self):
         def foo(a: Tuple[int, str]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, (1, 'aa', 2))
         assert str(exc.value) == ('argument a has wrong number of elements (expected 2, got 3 '
+                                  'instead)')
+
+    def test_tuple_too_few_elements(self):
+        def foo(a: Tuple[int, str]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, (1,))
+        assert str(exc.value) == ('argument a has wrong number of elements (expected 2, got 1 '
                                   'instead)')
 
     def test_tuple_bad_element(self):
@@ -306,6 +320,14 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, (1, 2))
         assert str(exc.value) == (
             'type of argument a[1] must be str; got int instead')
+
+    def test_tuple_ellipsis_bad_element(self):
+        def foo(a: Tuple[int, ...]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, (1, 2, 'blah'))
+        assert str(exc.value) == (
+            'type of argument a[2] must be int; got str instead')
 
     @pytest.mark.parametrize('value', [6, 'aa'])
     def test_union(self, value):

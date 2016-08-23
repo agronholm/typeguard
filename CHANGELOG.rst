@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.2.2
+-----
+
+- Fixed checking of homogenous Tuple declarations (``Tuple[bool, ...]``)
+
+
 1.2.1
 -----
 

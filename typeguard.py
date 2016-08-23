@@ -132,11 +132,18 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
     if not isinstance(value, tuple):
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
-    if len(value) != len(expected_type.__tuple_params__):
-        raise TypeError('{} has wrong number of elements (expected {}, got {} instead)'
-                        .format(argname, len(expected_type.__tuple_params__), len(value)))
-    for i, (element, expected_type) in enumerate(zip(value, expected_type.__tuple_params__)):
-        check_type('{}[{}]'.format(argname, i), element, expected_type, typevars_memo)
+
+    if expected_type.__tuple_use_ellipsis__:
+        element_type = expected_type.__tuple_params__[0]
+        for i, element in enumerate(value):
+            check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
+    else:
+        if len(value) != len(expected_type.__tuple_params__):
+            raise TypeError('{} has wrong number of elements (expected {}, got {} instead)'
+                            .format(argname, len(expected_type.__tuple_params__), len(value)))
+
+        for i, (element, element_type) in enumerate(zip(value, expected_type.__tuple_params__)):
+            check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
 
 
 def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
