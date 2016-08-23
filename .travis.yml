@@ -13,3 +13,13 @@ install: pip install tox-travis coveralls
 script: tox
 
 after_success: coveralls
+
+deploy:
+  provider: pypi
+  user: agronholm
+  password:
+    secure: VTyXmxicbSsS2h45uCFA1BdtRivYHi7rFc+nLYol+AVJUa9WgjrIWEsBPDAVa+43PagHxiGnYl76Ovy15twJqQ8wzGZohMF+vClNH9ZxBcg7ShE3LLLj3CyrxZCFx7+4OVHH8Uk16u/ZuP6KSHY/pu/0EAQrwfj2OF86mpmxkLAaCPO2kYoRdHRTOJqXRFxJcvSX3alnN61u5LWv2FCmplOIVaLj0AZQGI5eQk4Z+UnDxPLWQ9xe73kME9krjuso3tPh6MNQE1c8RkLj8mNS4hLKVzZB1Jbt8/14eakHUMGmNtgRXX1nziFrzjLF1n5FD5r5kL85lPHxF+yY8TYmz+nO3O1G8bhIIfg5VEZZzNVbfjIpwa1pu445iA+zMW0A3HWWU1w3K0Gz5QRGn7u+jPTqcoSlC2VMyDdae77rAh3CR8f3d2W4ENE3g6yLO0psZURtiQ30GbQn+64ulPVQCU87Jz5bBE8nfqRtKvmXM+yjYr4fcYaNjTa6TIOjmQwwc9JSOXrSo4ED8V0X1L8XKnAJLOR/z4hbJ6wQh8DUdbRLD2+kifvSB1P9AwWQPiCPReU122g+T+UYplxOZ6meh6SRYczx7g24vqwH/IqcjOnBZmgNVweopDmWP0NS2r9Y+sXEJj0Hp6ZvHwuLaXwU5z8Q39DxyPQE4ZDhQvmUt/c=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: agronholm/typeguard
