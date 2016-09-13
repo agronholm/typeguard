@@ -231,6 +231,8 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     """
     if expected_type is Any:
         return
+    elif expected_type is None:
+        expected_type = type(None)
 
     origin_type = getattr(expected_type, '__origin__', None)
     if origin_type is not None:
@@ -279,7 +281,7 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
             if inspect.isfunction(obj):
                 func = obj
                 break
-        else:
+        else:  # pragma: no cover
             return True
 
     spec = inspect.getfullargspec(func)
@@ -344,9 +346,8 @@ def typechecked(func: Callable = None, *, always: bool = False):
 
     def check_return_value_type(retval, typevars_memo: Dict[Any, type]):
         type_hints = _type_hints_map[func]
-        expected_type = type_hints.get('return')
-        if expected_type is not None:
-            check_type('the return value of {}()'.format(func_name), retval, expected_type,
+        if 'return' in type_hints:
+            check_type('the return value of {}()'.format(func_name), retval, type_hints['return'],
                        typevars_memo)
 
     @wraps(func)

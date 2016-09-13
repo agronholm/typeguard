@@ -1,6 +1,13 @@
 Version history
 ===============
 
+1.2.3
+-----
+
+- Fixed ``@typechecked`` skipping the check of return value type when the type annotation was
+  ``None``
+
+
 1.2.2
 -----
 

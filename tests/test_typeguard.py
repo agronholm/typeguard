@@ -517,3 +517,14 @@ class TestTypeChecked:
         assert len(recwarn) == 1
         assert str(recwarn[0].message) == (
             'no type annotations present -- not typechecking {}'.format(func_name))
+
+    def test_return_type_none(self):
+        """Check that a declared return type of None is respected."""
+        @typechecked
+        def foo() -> None:
+            return 'a'
+
+        exc = pytest.raises(TypeError, foo)
+        func_name = qualified_name(foo)
+        assert str(exc.value) == (
+            'type of the return value of {}() must be NoneType; got str instead'.format(func_name))
