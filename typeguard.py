@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from inspect import Parameter
 from warnings import warn
 from functools import partial, wraps
 from weakref import WeakKeyDictionary
@@ -12,6 +13,15 @@ try:
 except ImportError:
     from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
                         get_type_hints)
+
+try:
+    from inspect import unwrap
+except ImportError:
+    def unwrap(func):
+        while hasattr(func, '__wrapped__'):
+            func = func.__wrapped__
+
+        return func
 
 __all__ = ('typechecked', 'check_argument_types')
 
@@ -38,7 +48,7 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, 
 
     if isinstance(expected_type.__args__, tuple):
         try:
-            spec = inspect.getfullargspec(value)
+            signature = inspect.signature(value)
         except (TypeError, ValueError):
             return
 
@@ -53,37 +63,31 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, 
 
         if check_args:
             # The callable must not have keyword-only arguments without defaults
-            unfulfilled_kwonlyargs = [arg for arg in spec.kwonlyargs if
-                                      not spec.kwonlydefaults or arg not in spec.kwonlydefaults]
+            unfulfilled_kwonlyargs = [
+                param.name for param in signature.parameters.values() if
+                param.kind == Parameter.KEYWORD_ONLY and param.default == Parameter.empty]
             if unfulfilled_kwonlyargs:
                 raise TypeError(
                     'callable passed as {} has mandatory keyword-only arguments in its '
                     'declaration: {}'.format(argname, ', '.join(unfulfilled_kwonlyargs)))
 
-            mandatory_args = set(spec.args)
-            if spec.defaults:
-                mandatory_args -= set(spec.args[-len(spec.defaults):])
-            if isinstance(value, partial):
-                # Don't count the arguments passed in through partial()
-                mandatory_args -= set(spec.args[:len(value.args)])
-                mandatory_args -= set(value.keywords or ())
-                if inspect.isclass(value.func):
-                    # Don't count the "self" argument for class constructors
-                    mandatory_args -= {spec.args[0]}
-            elif inspect.ismethod(value) or inspect.isclass(value):
-                # Don't count the "self" argument for bound methods or class constructors
-                mandatory_args -= {spec.args[0]}
+            num_mandatory_args = len([
+                param.name for param in signature.parameters.values()
+                if param.kind in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD) and
+                param.default is Parameter.empty])
+            has_varargs = any(param for param in signature.parameters.values()
+                              if param.kind == Parameter.VAR_POSITIONAL)
 
-            if len(mandatory_args) > len(argument_types):
+            if num_mandatory_args > len(argument_types):
                 raise TypeError(
                     'callable passed as {} has too many arguments in its declaration; expected {} '
                     'but {} argument(s) declared'.format(argname, len(argument_types),
-                                                         len(mandatory_args)))
-            elif not spec.varargs and len(mandatory_args) < len(argument_types):
+                                                         num_mandatory_args))
+            elif not has_varargs and num_mandatory_args < len(argument_types):
                 raise TypeError(
                     'callable passed as {} has too few arguments in its declaration; expected {} '
                     'but {} argument(s) declared'.format(argname, len(argument_types),
-                                                         len(mandatory_args)))
+                                                         num_mandatory_args))
 
 
 def check_dict(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
@@ -217,6 +221,7 @@ def check_typevar(argname: str, value, typevar: TypeVar,
         # Bind the type variable to a concrete type
         typevars_memo[typevar] = value_type
 
+
 # Equality checks are applied to these
 origin_type_checkers = {
     Dict: check_dict,
@@ -295,9 +300,7 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
     """
     frame = inspect.currentframe().f_back
     if func:
-        # Unwrap the function
-        while hasattr(func, '__wrapped__'):
-            func = func.__wrapped__
+        func = unwrap(func)
     else:
         # No callable provided, so fish it out of the garbage collector
         for obj in gc.get_referrers(frame.f_code):
@@ -307,25 +310,23 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
         else:  # pragma: no cover
             return True
 
-    spec = inspect.getfullargspec(func)
+    signature = inspect.signature(func)
     type_hints = _type_hints_map.get(func)
     if type_hints is None:
         hints = get_type_hints(func)
         type_hints = _type_hints_map[func] = OrderedDict(
-            (arg, hints[arg]) for arg in spec.args + ['return'] if arg in hints)
+            (name, hints[name]) for name in tuple(signature.parameters) + ('return',)
+            if name in hints)
 
         # If an argument has a default value, its type should be accepted as well
-        if spec.defaults:
-            for argname, default_value in zip(reversed(spec.args), reversed(spec.defaults)):
-                if argname in hints:
-                    type_hints[argname] = Union[hints[argname], type(default_value)]
+        for param in signature.parameters.values():
+            if param.default is not Parameter.empty and param.name in hints:
+                type_hints[param.name] = Union[hints[param.name], type(param.default)]
 
     if args is None or kwargs is None:
         argvalues = frame.f_locals
     elif isinstance(args, tuple) and isinstance(kwargs, dict):
-        argvalues = kwargs.copy()
-        pos_values = dict(zip(spec.args, args))
-        argvalues.update(pos_values)
+        argvalues = signature.bind(*args, **kwargs).arguments
     else:
         raise TypeError('args must be a tuple and kwargs must be a dict')
 
@@ -334,7 +335,7 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
 
     func_name = qualified_name(func)
     for argname, expected_type in type_hints.items():
-        if argname != 'return':
+        if argname != 'return' and argname in argvalues:
             value = argvalues[argname]
             argname = 'argument {}'.format(argname, func_name)
             check_type(argname, value, expected_type, typevars_memo)
