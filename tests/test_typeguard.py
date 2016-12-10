@@ -344,8 +344,8 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         pytest.raises(TypeError, foo, ('bob', 1)).\
-            match('type of argument bar must be a named tuple of type test_typeguard.Employee; '
-                  'got tuple instead')
+            match('type of argument bar must be a named tuple of type '
+                  '(test_typeguard\.)?Employee; got tuple instead')
 
     def test_namedtuple_wrong_field_type(self):
         Employee = NamedTuple('Employee', [('name', str), ('id', int)])
