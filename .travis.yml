@@ -24,4 +24,5 @@ deploy:
   distributions: sdist bdist_wheel
   on:
     tags: true
+    python: "3.5.2"
     repo: agronholm/typeguard
