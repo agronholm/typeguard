@@ -1,8 +1,11 @@
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial
+from io import StringIO
 
 import pytest
 
-from typeguard import typechecked, check_argument_types, qualified_name
+from typeguard import typechecked, check_argument_types, qualified_name, TypeChecker
 
 try:
     from backports.typing import (
@@ -555,6 +558,17 @@ class TestCheckArgumentTypes:
 
         foo(*values)
 
+    def test_generator(self):
+        """Test that argument type checking works in a generator function too."""
+
+        def generate(a: int):
+            assert check_argument_types()
+            yield a
+            yield a + 1
+
+        gen = generate(1)
+        next(gen)
+
 
 class TestTypeChecked:
     def test_typechecked(self):
@@ -623,3 +637,112 @@ class TestTypeChecked:
         func_name = qualified_name(foo)
         assert str(exc.value) == (
             'type of the return value of {}() must be NoneType; got str instead'.format(func_name))
+
+
+class TestTypeChecker:
+    @pytest.fixture
+    def executor(self):
+        executor = ThreadPoolExecutor(1)
+        yield executor
+        executor.shutdown()
+
+    @pytest.fixture
+    def checker(self):
+        return TypeChecker(__name__)
+
+    def test_check_call_args(self, checker: TypeChecker):
+        def foo(a: int):
+            pass
+
+        with checker:
+            assert checker.active
+            foo(1)
+            foo('x')
+
+        assert not checker.active
+        foo('x')
+
+        assert len(checker.violations) == 1
+        assert checker.violations[0].message == 'type of argument a must be int; got str instead'
+        assert checker.violations[0].func is foo
+        assert isinstance(checker.violations[0].stack, list)
+        buffer = StringIO()
+        checker.violations[0].print_stack(buffer)
+        assert len(buffer.getvalue()) > 100
+
+    def test_check_return_value(self, checker: TypeChecker):
+        def foo() -> int:
+            return 'x'
+
+        with checker:
+            foo()
+
+        assert len(checker.violations) == 1
+        assert checker.violations[0].message == (
+            'type of the return value of '
+            'test_typeguard.TestTypeChecker.test_check_return_value.<locals>.foo() must be int; '
+            'got str instead')
+
+    def test_threaded_check_call_args(self, checker: TypeChecker, executor):
+        def foo(a: int):
+            pass
+
+        with checker:
+            executor.submit(foo, 1).result()
+            executor.submit(foo, 'x').result()
+
+        executor.submit(foo, 'x').result()
+
+        assert len(checker.violations) == 1
+        assert checker.violations[0].message == 'type of argument a must be int; got str instead'
+        assert checker.violations[0].func is foo
+
+    def test_double_start(self, checker: TypeChecker):
+        """Test that the same type checker can't be started twice while running."""
+        with checker:
+            pytest.raises(RuntimeError, checker.start).match('type checker already running')
+
+    def test_nested(self):
+        """Test that nesting of type checker context managers works as expected."""
+        def foo(a: int):
+            pass
+
+        with TypeChecker(__name__) as outer:
+            foo('x')
+            with TypeChecker(__name__) as inner:
+                foo('x')
+
+        assert len(outer.violations) == 2
+        assert len(inner.violations) == 1
+
+    def test_existing_profiler(self, checker: TypeChecker):
+        """
+        Test that an existing profiler function is chained with the type checker and restored after
+        the block is exited.
+
+        """
+        def foo(a: int):
+            pass
+
+        def profiler(frame, event, arg):
+            nonlocal profiler_run_count
+            if event in ('call', 'return'):
+                profiler_run_count += 1
+
+            if old_profiler:
+                old_profiler(frame, event, arg)
+
+        profiler_run_count = 0
+        old_profiler = sys.getprofile()
+        sys.setprofile(profiler)
+        try:
+            with checker:
+                foo(1)
+                foo('x')
+
+            assert sys.getprofile() is profiler
+        finally:
+            sys.setprofile(old_profiler)
+
+        assert profiler_run_count
+        assert len(checker.violations) == 1

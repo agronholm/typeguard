@@ -1,18 +1,22 @@
-from collections import OrderedDict
-from inspect import Parameter, isclass
-from warnings import warn
-from functools import partial, wraps
-from weakref import WeakKeyDictionary
 import collections
-import inspect
 import gc
+import inspect
+import sys
+import threading
+from collections import OrderedDict
+from functools import wraps, partial
+from inspect import Parameter, isclass, BoundArguments  # noqa
+from traceback import extract_stack, print_stack
+from types import CodeType, FunctionType  # noqa
+from warnings import warn
+from weakref import WeakKeyDictionary
 
 try:
     from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                                  get_type_hints, Type)
+                                  get_type_hints, TextIO, Optional, Type)
 except ImportError:
     from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                        get_type_hints)
+                        get_type_hints, TextIO, Optional)
 
     try:
         from typing import Type
@@ -28,21 +32,17 @@ except ImportError:
 
         return func
 
-__all__ = ('typechecked', 'check_argument_types')
+__all__ = ('typechecked', 'check_argument_types', 'TypeViolation', 'TypeChecker')
+_type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
+_functions_map = WeakKeyDictionary()  # type: Dict[CodeType, FunctionType]
 
 
 class _CallMemo:
-    type_hints_map = WeakKeyDictionary()  # type: Dict[Callable, Dict[str, type]]
+    __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints')
 
-    def __init__(self, frame=None, func=None, args: tuple = None, kwargs: Dict[str, Any] = None):
-        if func is None:
-            # No callable provided, so fish it out of the garbage collector
-            assert frame, 'frame must be specified if func is None'
-            for obj in gc.get_referrers(frame.f_code):
-                if inspect.isfunction(obj):
-                    func = obj
-                    break
-
+    def __init__(self, func: Callable, frame=None, args: tuple = None,
+                 kwargs: Dict[str, Any] = None):
+        self.func = func
         self.func_name = qualified_name(func)
         self.signature = inspect.signature(func)
         self.typevars = {}  # type: Dict[Any, type]
@@ -51,12 +51,12 @@ class _CallMemo:
             self.arguments = self.signature.bind(*args, **kwargs).arguments
         else:
             assert frame, 'frame must be specified if args or kwargs is None'
-            self.arguments = frame.f_locals
+            self.arguments = frame.f_locals.copy()
 
-        self.type_hints = self.type_hints_map.get(func)
+        self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
             hints = get_type_hints(func)
-            self.type_hints = self.type_hints_map[func] = OrderedDict(
+            self.type_hints = _type_hints_map[func] = OrderedDict(
                 (name, hints[name]) for name in tuple(self.signature.parameters) + ('return',)
                 if name in hints)
 
@@ -64,6 +64,36 @@ class _CallMemo:
             for param in self.signature.parameters.values():
                 if param.default is not Parameter.empty and param.name in hints:
                     self.type_hints[param.name] = Union[hints[param.name], type(param.default)]
+
+
+def find_function(frame) -> Optional[Callable]:
+    """
+    Return a function object from the garbage collector that matches the frame's code object.
+
+    This process is unreliable as several function objects could use the same code object.
+    Fortunately the likelihood of this happening with the combination of the function objects
+    having different type annotations is a very rare occurrence.
+
+    :param frame: a frame object
+    :return: a function object if one was found, ``None`` if not
+
+    """
+    func = _functions_map.get(frame.f_code)
+    if func is None:
+        for obj in gc.get_referrers(frame.f_code):
+            if inspect.isfunction(obj):
+                if func is None:
+                    # The first match was found
+                    func = obj
+                else:
+                    # A second match was found
+                    return None
+
+        # Cache the result for future lookups
+        if func is not None:
+            _functions_map[frame.f_code] = func
+
+    return func
 
 
 def qualified_name(obj) -> str:
@@ -367,7 +397,8 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
     """
     if memo is None:
         frame = inspect.currentframe().f_back
-        memo = _CallMemo(frame)
+        func = find_function(frame)
+        memo = _CallMemo(func, frame)
 
     for argname, expected_type in memo.type_hints.items():
         if argname != 'return' and argname in memo.arguments:
@@ -403,10 +434,165 @@ def typechecked(func: Callable = None, *, always: bool = False):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(func=func, args=args, kwargs=kwargs)
+        memo = _CallMemo(func, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
         return retval
 
     return wrapper
+
+
+class TypeViolation:
+    """
+    Represents a type checking violation.
+
+    :ivar str event: ``call`` or ``return``
+    :ivar Callable func: the function in which the violation occurred (the called function if event
+        is ``call``, or the function where a value of the wrong type was returned from if event is
+        ``return``)
+    :ivar BoundArguments arguments: the arguments with the ``func`` was called
+    :ivar str message: the error message
+    :ivar frame: the frame in which the violation occurred
+    :ivar Thread thread: the thread in which the violation occurred
+    """
+
+    __slots__ = ('func', 'arguments', 'event', 'message', 'frame', 'thread_name')
+
+    def __init__(self, memo: _CallMemo, event: str, frame,
+                 exception: TypeError):  # pragma: no cover
+        self.func = memo.func
+        self.arguments = memo.arguments
+        self.event = event
+        self.message = str(exception)
+        self.frame = frame
+        self.thread_name = threading.current_thread().name
+
+    @property
+    def stack(self):
+        """Return the stack where the last frame is from the target function."""
+        return extract_stack(self.frame)
+
+    def print_stack(self, file: TextIO = None, limit: int = None) -> None:
+        """
+        Print the traceback from the stack frame where the target function was ran.
+
+        :param file: an open file to print to (prints to stdout if omitted)
+        :param limit: the maximum number of stack frames to print
+
+        """
+        print_stack(self.frame, limit, file)
+
+    def __str__(self):
+        return '[{self.thread_name}] {self.message}'.format(self=self)
+
+
+class TypeChecker:
+    """
+    A type checker that collects type violations by hooking into ``sys.setprofile()``.
+
+    :param all_threads: ``True`` to check types in all threads created while the checker is
+        running, ``False`` to only check in the current one
+
+    :ivar violations: list of TypeViolation instances
+    :vartype violations: List[TypeViolation]
+    """
+
+    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True):
+        assert check_argument_types()
+        self.all_threads = all_threads
+        self.violations = []  # type: List[TypeViolation]
+        self._call_memos = {}  # type: Dict[Any, _CallMemo]
+        self._previous_profiler = None
+        self._previous_thread_profiler = None
+        self._active = False
+
+        if isinstance(packages, str):
+            self._packages = (packages,)
+        else:
+            self._packages = tuple(packages)
+
+    @property
+    def active(self) -> bool:
+        """Return ``True`` if currently collecting type violations."""
+        return self._active
+
+    def should_check_type(self, func: Callable) -> bool:
+        if not func.__annotations__:
+            # No point in checking if there are no type hints
+            return False
+        else:
+            # Check types if the module matches any of the package prefixes
+            return any(func.__module__ == package or func.__module__.startswith(package + '.')
+                       for package in self._packages)
+
+    def start(self):
+        if self._active:
+            raise RuntimeError('type checker already running')
+
+        self._active = True
+
+        # Install this instance as the current profiler
+        self._previous_profiler = sys.getprofile()
+        sys.setprofile(self)
+
+        # If requested, set this instance as the default profiler for all future threads
+        # (does not affect existing threads)
+        if self.all_threads:
+            self._previous_thread_profiler = threading._profile_hook
+            threading.setprofile(self)
+
+    def stop(self):
+        if self._active:
+            if sys.getprofile() is self:
+                sys.setprofile(self._previous_profiler)
+            else:  # pragma: no cover
+                warn('the system profiling hook has changed unexpectedly')
+
+            if self.all_threads:
+                if threading._profile_hook is self:
+                    threading.setprofile(self._previous_thread_profiler)
+                else:  # pragma: no cover
+                    warn('the threading profiling hook has changed unexpectedly')
+
+            self._active = False
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+    def __call__(self, frame, event: str, arg) -> None:  # pragma: no cover
+        if not self._active:
+            # This happens if all_threads was enabled and a thread was created when the checker was
+            # running but was then stopped. The thread's profiler callback can't be reset any other
+            # way but this.
+            sys.setprofile(self._previous_thread_profiler)
+            return
+
+        # If an actual profiler is running, don't include the type checking times in its results
+        if event == 'call':
+            func = find_function(frame)
+            if func is not None and self.should_check_type(func):
+                memo = self._call_memos[frame] = _CallMemo(func, frame)
+                try:
+                    check_argument_types(memo)
+                except TypeError as exc:
+                    self.violations.append(TypeViolation(memo, event, frame, exc))
+
+            if self._previous_profiler is not None:
+                self._previous_profiler(frame, event, arg)
+        elif event == 'return':
+            if self._previous_profiler is not None:
+                self._previous_profiler(frame, event, arg)
+
+            memo = self._call_memos.pop(frame, None)
+            if memo is not None:
+                try:
+                    check_return_type(arg, memo)
+                except TypeError as exc:
+                    self.violations.append(TypeViolation(memo, event, frame, exc))
+        elif self._previous_profiler is not None:
+            self._previous_profiler(frame, event, arg)
