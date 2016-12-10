@@ -30,7 +30,40 @@ except ImportError:
 
 __all__ = ('typechecked', 'check_argument_types')
 
-_type_hints_map = WeakKeyDictionary()  # type: Dict[Callable, Dict[str, type]]
+
+class _CallMemo:
+    type_hints_map = WeakKeyDictionary()  # type: Dict[Callable, Dict[str, type]]
+
+    def __init__(self, frame=None, func=None, args: tuple = None, kwargs: Dict[str, Any] = None):
+        if func is None:
+            # No callable provided, so fish it out of the garbage collector
+            assert frame, 'frame must be specified if func is None'
+            for obj in gc.get_referrers(frame.f_code):
+                if inspect.isfunction(obj):
+                    func = obj
+                    break
+
+        self.func_name = qualified_name(func)
+        self.signature = inspect.signature(func)
+        self.typevars = {}  # type: Dict[Any, type]
+
+        if args is not None and kwargs is not None:
+            self.arguments = self.signature.bind(*args, **kwargs).arguments
+        else:
+            assert frame, 'frame must be specified if args or kwargs is None'
+            self.arguments = frame.f_locals
+
+        self.type_hints = self.type_hints_map.get(func)
+        if self.type_hints is None:
+            hints = get_type_hints(func)
+            self.type_hints = self.type_hints_map[func] = OrderedDict(
+                (name, hints[name]) for name in tuple(self.signature.parameters) + ('return',)
+                if name in hints)
+
+            # If an argument has a default value, its type should be accepted as well
+            for param in self.signature.parameters.values():
+                if param.default is not Parameter.empty and param.name in hints:
+                    self.type_hints[param.name] = Union[hints[param.name], type(param.default)]
 
 
 def qualified_name(obj) -> str:
@@ -47,7 +80,7 @@ def qualified_name(obj) -> str:
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
-def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
@@ -95,18 +128,18 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, 
                                                          num_mandatory_args))
 
 
-def check_dict(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_dict(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not isinstance(value, dict):
         raise TypeError('type of {} must be a dict; got {} instead'.
                         format(argname, qualified_name(value)))
 
     key_type, value_type = getattr(expected_type, '__args__', expected_type.__parameters__)
     for k, v in value.items():
-        check_type('keys of {}'.format(argname), k, key_type, typevars_memo)
-        check_type('{}[{!r}]'.format(argname, k), v, value_type, typevars_memo)
+        check_type('keys of {}'.format(argname), k, key_type, memo)
+        check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
 
 
-def check_list(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_list(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not isinstance(value, list):
         raise TypeError('type of {} must be a list; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -114,10 +147,10 @@ def check_list(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
     if value_type:
         for i, v in enumerate(value):
-            check_type('{}[{}]'.format(argname, i), v, value_type, typevars_memo)
+            check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_sequence(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_sequence(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not isinstance(value, collections.Sequence):
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -125,10 +158,10 @@ def check_sequence(argname: str, value, expected_type, typevars_memo: Dict[Any, 
     value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
     if value_type:
         for i, v in enumerate(value):
-            check_type('{}[{}]'.format(argname, i), v, value_type, typevars_memo)
+            check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_set(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_set(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not isinstance(value, collections.Set):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -136,10 +169,10 @@ def check_set(argname: str, value, expected_type, typevars_memo: Dict[Any, type]
     value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
     if value_type:
         for v in value:
-            check_type('elements of {}'.format(argname), v, value_type, typevars_memo)
+            check_type('elements of {}'.format(argname), v, value_type, memo)
 
 
-def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_tuple(argname: str, value, expected_type, memo: _CallMemo) -> None:
     # Specialized check for NamedTuples
     if hasattr(expected_type, '_field_types'):
         if not isinstance(value, expected_type):
@@ -147,8 +180,7 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
                             format(argname, qualified_name(expected_type), qualified_name(value)))
 
         for name, field_type in expected_type._field_types.items():
-            check_type('{}.{}'.format(argname, name), getattr(value, name), field_type,
-                       typevars_memo)
+            check_type('{}.{}'.format(argname, name), getattr(value, name), field_type, memo)
 
         return
     elif not isinstance(value, tuple):
@@ -170,17 +202,17 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
     if use_ellipsis:
         element_type = tuple_params[0]
         for i, element in enumerate(value):
-            check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
+            check_type('{}[{}]'.format(argname, i), element, element_type, memo)
     else:
         if len(value) != len(tuple_params):
             raise TypeError('{} has wrong number of elements (expected {}, got {} instead)'
                             .format(argname, len(tuple_params), len(value)))
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
-            check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
+            check_type('{}[{}]'.format(argname, i), element, element_type, memo)
 
 
-def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if hasattr(expected_type, '__union_params__'):
         # Python 3.5
         union_params = expected_type.__union_params__
@@ -190,7 +222,7 @@ def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
 
     for type_ in union_params:
         try:
-            check_type(argname, value, type_, typevars_memo)
+            check_type(argname, value, type_, memo)
             return
         except TypeError:
             pass
@@ -210,8 +242,8 @@ def check_class(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
             argname, qualified_name(expected_class), qualified_name(value)))
 
 
-def check_typevar(argname: str, value, typevar: TypeVar, typevars_memo: Dict[Any, type]) -> None:
-    bound_type = typevars_memo.get(typevar)
+def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo) -> None:
+    bound_type = memo.typevars.get(typevar)
     value_type = type(value)
     if bound_type is not None:
         # The type variable has been bound to a concrete type -- check that the value matches
@@ -247,7 +279,7 @@ def check_typevar(argname: str, value, typevar: TypeVar, typevars_memo: Dict[Any
                            qualified_name(value_type)))
 
         # Bind the type variable to a concrete type
-        typevars_memo[typevar] = value_type
+        memo.typevars[typevar] = value_type
 
 
 # Equality checks are applied to these
@@ -263,7 +295,7 @@ if Type is not None:
     origin_type_checkers[Type] = check_class
 
 
-def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -274,7 +306,6 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     :param argname: name of the argument to check; used for error messages
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
-    :param typevars_memo: dictionary of type variables and their bound types
 
     """
     if expected_type is Any:
@@ -289,17 +320,17 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
         if origin_type is not None:
             checker_func = origin_type_checkers.get(origin_type)
             if checker_func:
-                checker_func(argname, value, expected_type, typevars_memo)
+                checker_func(argname, value, expected_type, memo)
                 return
 
         if issubclass(expected_type, Tuple):
-            check_tuple(argname, value, expected_type, typevars_memo)
+            check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
-            check_callable(argname, value, expected_type, typevars_memo)
+            check_callable(argname, value, expected_type, memo)
         elif _subclass_check_unions and issubclass(expected_type, Union):
-            check_union(argname, value, expected_type, typevars_memo)
+            check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
-            check_typevar(argname, value, expected_type, typevars_memo)
+            check_typevar(argname, value, expected_type, memo)
         else:
             expected_type = getattr(expected_type, '__extra__', expected_type)
             if not isinstance(value, expected_type):
@@ -308,14 +339,21 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
                     format(argname, qualified_name(expected_type), qualified_name(type(value))))
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
-        check_typevar(argname, value, expected_type, typevars_memo)
+        check_typevar(argname, value, expected_type, memo)
     elif getattr(expected_type, '__origin__', None) is Union:
         # Only happens on 3.6+
-        check_union(argname, value, expected_type, typevars_memo)
+        check_union(argname, value, expected_type, memo)
 
 
-def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict[str, Any] = None,
-                         typevars_memo: Dict[Any, type] = None) -> bool:
+def check_return_type(retval, memo: _CallMemo) -> bool:
+    if 'return' in memo.type_hints:
+        check_type('the return value of {}()'.format(memo.func_name), retval,
+                   memo.type_hints['return'], memo)
+
+    return True
+
+
+def check_argument_types(memo: _CallMemo = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -323,54 +361,19 @@ def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict
     the previous stack frame (ie. from the function that called this).
 
     :param func: the callable to check the arguments against
-    :param args: positional arguments the callable was called with
-    :param kwargs: keyword arguments the callable was called with
-    :param typevars_memo: dictionary of type variables and their bound types (for internal use)
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
 
     """
-    frame = inspect.currentframe().f_back
-    if func:
-        func = unwrap(func)
-    else:
-        # No callable provided, so fish it out of the garbage collector
-        for obj in gc.get_referrers(frame.f_code):
-            if inspect.isfunction(obj):
-                func = obj
-                break
-        else:  # pragma: no cover
-            return True
+    if memo is None:
+        frame = inspect.currentframe().f_back
+        memo = _CallMemo(frame)
 
-    signature = inspect.signature(func)
-    type_hints = _type_hints_map.get(func)
-    if type_hints is None:
-        hints = get_type_hints(func)
-        type_hints = _type_hints_map[func] = OrderedDict(
-            (name, hints[name]) for name in tuple(signature.parameters) + ('return',)
-            if name in hints)
-
-        # If an argument has a default value, its type should be accepted as well
-        for param in signature.parameters.values():
-            if param.default is not Parameter.empty and param.name in hints:
-                type_hints[param.name] = Union[hints[param.name], type(param.default)]
-
-    if args is None or kwargs is None:
-        argvalues = frame.f_locals
-    elif isinstance(args, tuple) and isinstance(kwargs, dict):
-        argvalues = signature.bind(*args, **kwargs).arguments
-    else:
-        raise TypeError('args must be a tuple and kwargs must be a dict')
-
-    if typevars_memo is None:
-        typevars_memo = {}
-
-    func_name = qualified_name(func)
-    for argname, expected_type in type_hints.items():
-        if argname != 'return' and argname in argvalues:
-            value = argvalues[argname]
-            argname = 'argument {}'.format(argname, func_name)
-            check_type(argname, value, expected_type, typevars_memo)
+    for argname, expected_type in memo.type_hints.items():
+        if argname != 'return' and argname in memo.arguments:
+            value = memo.arguments[argname]
+            description = 'argument {}'.format(argname, memo.func_name)
+            check_type(description, value, expected_type, memo)
 
     return True
 
@@ -394,24 +397,16 @@ def typechecked(func: Callable = None, *, always: bool = False):
     if func is None:
         return partial(typechecked, always=always)
 
-    func_name = qualified_name(func)
-    annotations = getattr(func, '__annotations__', {})
-    if not annotations:
-        warn('no type annotations present -- not typechecking {}'.format(func_name))
+    if not getattr(func, '__annotations__', None):
+        warn('no type annotations present -- not typechecking {}'.format(qualified_name(func)))
         return func
-
-    def check_return_value_type(retval, typevars_memo: Dict[Any, type]):
-        type_hints = _type_hints_map[func]
-        if 'return' in type_hints:
-            check_type('the return value of {}()'.format(func_name), retval, type_hints['return'],
-                       typevars_memo)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        typevars_memo = {}  # type: Dict[TypeVar, type]
-        check_argument_types(func, args, kwargs, typevars_memo)
+        memo = _CallMemo(func=func, args=args, kwargs=kwargs)
+        check_argument_types(memo)
         retval = func(*args, **kwargs)
-        check_return_value_type(retval, typevars_memo)
+        check_return_type(retval, memo)
         return retval
 
     return wrapper

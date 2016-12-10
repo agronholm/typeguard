@@ -38,17 +38,6 @@ def test_qualified_name(inputval, expected):
 
 
 class TestCheckArgumentTypes:
-    @pytest.mark.parametrize('args, kwargs', [
-        ((), {1, 2}),
-        ([1, 2], {})
-    ])
-    def test_wrong_arg_types(self, args, kwargs):
-        def foo(a: int):
-            pass
-
-        exc = pytest.raises(TypeError, check_argument_types, foo, args, kwargs)
-        assert str(exc.value) == 'args must be a tuple and kwargs must be a dict'
-
     def test_any_type(self):
         def foo(a: Any):
             assert check_argument_types()
@@ -545,7 +534,7 @@ class TestCheckArgumentTypes:
 
         @decorator
         def foo(a: 'Child'):
-            assert check_argument_types(foo)
+            assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent())
         assert str(exc.value) == ('type of argument a must be test_typeguard.Child; '
