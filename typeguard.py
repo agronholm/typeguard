@@ -25,13 +25,10 @@ def qualified_name(obj) -> str:
     Builtins and types from the :mod:`typing` package get special treatment by having the module
     name stripped from the generated name.
 
-    On Python 3.2, generated names may be less accurate due to the absence of the ``__qualname__``
-    attribute.
-
     """
     type_ = obj if inspect.isclass(obj) or inspect.isroutine(obj) else type(obj)
     module = type_.__module__
-    qualname = getattr(type_, '__qualname__', type_.__name__)
+    qualname = type_.__qualname__
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 

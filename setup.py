@@ -22,7 +22,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5'
@@ -30,11 +29,11 @@ setup(
     license='MIT',
     zip_safe=True,
     py_modules=['typeguard'],
+    python_requires='>= 3.3',
     setup_requires=[
         'setuptools_scm >= 1.7.0'
     ],
     extras_require={
-        ':python_version == "3.2"': 'typing >= 3.5',
         ':python_version == "3.3"': 'typing >= 3.5',
         ':python_version == "3.4"': 'typing >= 3.5'
     }
