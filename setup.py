@@ -35,6 +35,7 @@ setup(
     ],
     extras_require={
         ':python_version == "3.3"': 'typing >= 3.5',
-        ':python_version == "3.4"': 'typing >= 3.5'
+        ':python_version == "3.4"': 'typing >= 3.5',
+        'testing': ['pytest', 'pytest-cov']
     }
 )
