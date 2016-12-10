@@ -1,6 +1,12 @@
 Version history
 ===============
 
+1.2.4
+-----
+
+- Fixed incompatibility with Python 3.6
+
+
 1.2.3
 -----
 

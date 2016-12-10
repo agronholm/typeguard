@@ -29,14 +29,9 @@ def qualified_name(obj) -> str:
     attribute.
 
     """
-    try:
-        module = obj.__module__
-        qualname = getattr(obj, '__qualname__', obj.__name__)
-    except AttributeError:
-        type_ = type(obj)
-        module = type_.__module__
-        qualname = getattr(type_, '__qualname__', type_.__name__)
-
+    type_ = obj if inspect.isclass(obj) or inspect.isroutine(obj) else type(obj)
+    module = type_.__module__
+    qualname = getattr(type_, '__qualname__', type_.__name__)
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
@@ -50,38 +45,48 @@ def check_callable(argname: str, value, expected_type, typevars_memo: Dict[Any, 
         except (TypeError, ValueError):
             return
 
-        # The callable must not have keyword-only arguments without defaults
-        unfulfilled_kwonlyargs = [arg for arg in spec.kwonlyargs if
-                                  not spec.kwonlydefaults or arg not in spec.kwonlydefaults]
-        if unfulfilled_kwonlyargs:
-            raise TypeError(
-                'callable passed as {} has mandatory keyword-only arguments in its '
-                'declaration: {}'.format(argname, ', '.join(unfulfilled_kwonlyargs)))
+        if hasattr(expected_type, '__result__'):
+            # Python 3.5
+            argument_types = expected_type.__args__
+            check_args = argument_types is not Ellipsis
+        else:
+            # Python 3.6
+            argument_types = expected_type.__args__[:-1]
+            check_args = argument_types != (Ellipsis,)
 
-        mandatory_args = set(spec.args)
-        if spec.defaults:
-            mandatory_args -= set(spec.args[-len(spec.defaults):])
-        if isinstance(value, partial):
-            # Don't count the arguments passed in through partial()
-            mandatory_args -= set(spec.args[:len(value.args)])
-            mandatory_args -= set(value.keywords or ())
-            if inspect.isclass(value.func):
-                # Don't count the "self" argument for class constructors
+        if check_args:
+            # The callable must not have keyword-only arguments without defaults
+            unfulfilled_kwonlyargs = [arg for arg in spec.kwonlyargs if
+                                      not spec.kwonlydefaults or arg not in spec.kwonlydefaults]
+            if unfulfilled_kwonlyargs:
+                raise TypeError(
+                    'callable passed as {} has mandatory keyword-only arguments in its '
+                    'declaration: {}'.format(argname, ', '.join(unfulfilled_kwonlyargs)))
+
+            mandatory_args = set(spec.args)
+            if spec.defaults:
+                mandatory_args -= set(spec.args[-len(spec.defaults):])
+            if isinstance(value, partial):
+                # Don't count the arguments passed in through partial()
+                mandatory_args -= set(spec.args[:len(value.args)])
+                mandatory_args -= set(value.keywords or ())
+                if inspect.isclass(value.func):
+                    # Don't count the "self" argument for class constructors
+                    mandatory_args -= {spec.args[0]}
+            elif inspect.ismethod(value) or inspect.isclass(value):
+                # Don't count the "self" argument for bound methods or class constructors
                 mandatory_args -= {spec.args[0]}
-        elif inspect.ismethod(value) or inspect.isclass(value):
-            # Don't count the "self" argument for bound methods or class constructors
-            mandatory_args -= {spec.args[0]}
 
-        if len(mandatory_args) > len(expected_type.__args__):
-            raise TypeError(
-                'callable passed as {} has too many arguments in its declaration; expected {} '
-                'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     len(mandatory_args)))
-        elif not spec.varargs and len(mandatory_args) < len(expected_type.__args__):
-            raise TypeError(
-                'callable passed as {} has too few arguments in its declaration; expected {} '
-                'but {} argument(s) declared'.format(argname, len(expected_type.__args__),
-                                                     len(mandatory_args)))
+            if len(mandatory_args) > len(argument_types):
+                raise TypeError(
+                    'callable passed as {} has too many arguments in its declaration; expected {} '
+                    'but {} argument(s) declared'.format(argname, len(argument_types),
+                                                         len(mandatory_args)))
+            elif not spec.varargs and len(mandatory_args) < len(argument_types):
+                raise TypeError(
+                    'callable passed as {} has too few arguments in its declaration; expected {} '
+                    'but {} argument(s) declared'.format(argname, len(argument_types),
+                                                         len(mandatory_args)))
 
 
 def check_dict(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
@@ -133,28 +138,44 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    if expected_type.__tuple_use_ellipsis__:
-        element_type = expected_type.__tuple_params__[0]
+    if hasattr(expected_type, '__tuple_use_ellipsis__'):
+        # Python 3.5
+        use_ellipsis = expected_type.__tuple_use_ellipsis__
+        tuple_params = expected_type.__tuple_params__
+    else:
+        # Python 3.6+
+        use_ellipsis = expected_type.__args__[-1] is Ellipsis
+        tuple_params = expected_type.__args__[:-1 if use_ellipsis else None]
+
+    if use_ellipsis:
+        element_type = tuple_params[0]
         for i, element in enumerate(value):
             check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
     else:
-        if len(value) != len(expected_type.__tuple_params__):
+        if len(value) != len(tuple_params):
             raise TypeError('{} has wrong number of elements (expected {}, got {} instead)'
-                            .format(argname, len(expected_type.__tuple_params__), len(value)))
+                            .format(argname, len(tuple_params), len(value)))
 
-        for i, (element, element_type) in enumerate(zip(value, expected_type.__tuple_params__)):
+        for i, (element, element_type) in enumerate(zip(value, tuple_params)):
             check_type('{}[{}]'.format(argname, i), element, element_type, typevars_memo)
 
 
 def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
-    for type_ in expected_type.__union_params__:
+    if hasattr(expected_type, '__union_params__'):
+        # Python 3.5
+        union_params = expected_type.__union_params__
+    else:
+        # Python 3.6+
+        union_params = expected_type.__args__
+
+    for type_ in union_params:
         try:
             check_type(argname, value, type_, typevars_memo)
             return
         except TypeError:
             pass
 
-    typelist = ', '.join(t.__name__ for t in expected_type.__union_params__)
+    typelist = ', '.join(t.__name__ for t in union_params)
     raise TypeError('type of {} must be one of ({}); got {} instead'.
                     format(argname, typelist, qualified_name(value)))
 
@@ -204,15 +225,17 @@ origin_type_checkers = {
     Dict: check_dict,
     List: check_list,
     Sequence: check_sequence,
-    Set: check_set
+    Set: check_set,
+    Union: check_union
 }
 
 # issubclass() checks are applied to these
 subclass_type_checkers = {
     Callable: check_callable,
-    Tuple: check_tuple,
-    Union: check_union
+    Tuple: check_tuple
 }
+if hasattr(Union, '__union_set_params__'):
+    subclass_type_checkers[Union] = check_union
 
 
 def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
@@ -232,6 +255,7 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     if expected_type is Any:
         return
     elif expected_type is None:
+        # Only happens on < 3.6
         expected_type = type(None)
 
     origin_type = getattr(expected_type, '__origin__', None)
@@ -241,14 +265,16 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
             checker_func(argname, value, expected_type, typevars_memo)
             return
 
+    if isinstance(expected_type, TypeVar):
+        check_typevar(argname, value, expected_type, typevars_memo)
+        return
+
     for type_, checker_func in subclass_type_checkers.items():
         if issubclass(expected_type, type_):
             checker_func(argname, value, expected_type, typevars_memo)
             return
 
-    if isinstance(expected_type, TypeVar):
-        check_typevar(argname, value, expected_type, typevars_memo)
-    elif not isinstance(value, expected_type):
+    if not isinstance(value, expected_type):
         raise TypeError(
             'type of {} must be {}; got {} instead'.
             format(argname, qualified_name(expected_type), qualified_name(type(value))))
