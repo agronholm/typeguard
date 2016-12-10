@@ -8,6 +8,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 - **BACKWARD INCOMPATIBLE** Dropped Python 3.2 support
 - Fixed incompatibility with Python 3.6
 - Use ``inspect.signature()`` in place of ``inspect.getfullargspec``
+- Added support for ``typing.NamedTuple``
 
 
 **1.2.3** (2016-09-13)

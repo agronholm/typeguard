@@ -58,18 +58,19 @@ To enable type checks even in optimized mode:
 
 The following types from the ``typing`` package have specialized support:
 
-============ ============================================================
-Type         Notes
-============ ============================================================
-``Dict``     Keys and values are typechecked
-``List``     Contents are typechecked
-``Set``      Contents are typechecked
-``Tuple``    Contents are typechecked
-``Callable`` Argument count is checked but types are not (yet)
-``TypeVar``  Constraints, bound types and co/contravariance are supported
-             but custom generic types are not (due to type erasure)
+============== ============================================================
+Type           Notes
+============== ============================================================
+``Dict``       Keys and values are typechecked
+``List``       Contents are typechecked
+``Set``        Contents are typechecked
+``Tuple``      Contents are typechecked
+``NamedTuple`` Field values are typechecked
+``Callable``   Argument count is checked but types are not (yet)
+``TypeVar``    Constraints, bound types and co/contravariance are supported
+               but custom generic types are not (due to type erasure)
 ``Union``
-============ ============================================================
+============== ============================================================
 
 
 Project links

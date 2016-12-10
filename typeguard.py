@@ -135,9 +135,21 @@ def check_set(argname: str, value, expected_type, typevars_memo: Dict[Any, type]
 
 
 def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
-    if not isinstance(value, tuple):
-        raise TypeError('type of {} must be a tuple; got {} instead'.
-                        format(argname, qualified_name(value)))
+    # Specialized check for NamedTuples
+    if hasattr(expected_type, '_field_types'):
+        if not isinstance(value, expected_type):
+            raise TypeError('type of {} must be a named tuple of type {}; got {} instead'.
+                            format(argname, qualified_name(expected_type), qualified_name(value)))
+
+        for name, field_type in expected_type._field_types.items():
+            check_type('{}.{}'.format(argname, name), getattr(value, name), field_type,
+                       typevars_memo)
+
+        return
+    else:
+        if not isinstance(value, tuple):
+            raise TypeError('type of {} must be a tuple; got {} instead'.
+                            format(argname, qualified_name(value)))
 
     if hasattr(expected_type, '__tuple_use_ellipsis__'):
         # Python 3.5
@@ -232,12 +244,12 @@ origin_type_checkers = {
 }
 
 # issubclass() checks are applied to these
-subclass_type_checkers = {
-    Callable: check_callable,
-    Tuple: check_tuple
-}
+subclass_type_checkers = [
+    (Callable, check_callable),
+    (Tuple, check_tuple)
+]
 if hasattr(Union, '__union_set_params__'):
-    subclass_type_checkers[Union] = check_union
+    subclass_type_checkers.append((Union, check_union))
 
 
 def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
@@ -271,7 +283,7 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
         check_typevar(argname, value, expected_type, typevars_memo)
         return
 
-    for type_, checker_func in subclass_type_checkers.items():
+    for type_, checker_func in subclass_type_checkers:
         if issubclass(expected_type, type_):
             checker_func(argname, value, expected_type, typevars_memo)
             return

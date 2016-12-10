@@ -1,6 +1,6 @@
 from functools import wraps, partial
 
-from typing import Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence
+from typing import Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple
 
 import pytest
 
@@ -328,6 +328,33 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, (1, 2, 'blah'))
         assert str(exc.value) == (
             'type of argument a[2] must be int; got str instead')
+
+    def test_namedtuple(self):
+        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
+
+        def foo(bar: Employee):
+            assert check_argument_types()
+
+        foo(Employee('bob', 1))
+
+    def test_namedtuple_type_mismatch(self):
+        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
+
+        def foo(bar: Employee):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, ('bob', 1)).\
+            match('type of argument bar must be a named tuple of type test_typeguard.Employee; '
+                  'got tuple instead')
+
+    def test_namedtuple_wrong_field_type(self):
+        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
+
+        def foo(bar: Employee):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, Employee(2, 1)).\
+            match('type of argument bar.name must be str; got int instead')
 
     @pytest.mark.parametrize('value', [6, 'aa'])
     def test_union(self, value):
