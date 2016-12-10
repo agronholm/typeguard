@@ -329,6 +329,12 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument a[2] must be int; got str instead')
 
+    def test_raw_tuple(self):
+        def foo(a: tuple):
+            assert check_argument_types()
+
+        foo((1, 2))
+
     def test_namedtuple(self):
         Employee = NamedTuple('Employee', [('name', str), ('id', int)])
 
@@ -486,6 +492,13 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo(*values)
+
+    def test_type(self):
+        """Test that a class passes when the requested type is "type"."""
+        def foo(cls: type):
+            assert check_argument_types()
+
+        foo(Parent)
 
 
 class TestTypeChecked:

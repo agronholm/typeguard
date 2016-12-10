@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.0.1** (2016-12-10)
+
+- Fixed additional Python 3.6 compatibility issues
+
 **2.0.0** (2016-12-10)
 
 - **BACKWARD INCOMPATIBLE** Dropped Python 3.2 support

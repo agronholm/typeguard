@@ -146,19 +146,20 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
                        typevars_memo)
 
         return
-    else:
-        if not isinstance(value, tuple):
-            raise TypeError('type of {} must be a tuple; got {} instead'.
-                            format(argname, qualified_name(value)))
+    elif not isinstance(value, tuple):
+        raise TypeError('type of {} must be a tuple; got {} instead'.
+                        format(argname, qualified_name(value)))
 
     if hasattr(expected_type, '__tuple_use_ellipsis__'):
         # Python 3.5
         use_ellipsis = expected_type.__tuple_use_ellipsis__
         tuple_params = expected_type.__tuple_params__
-    else:
+    elif hasattr(expected_type, '__args__'):
         # Python 3.6+
         use_ellipsis = expected_type.__args__[-1] is Ellipsis
         tuple_params = expected_type.__args__[:-1 if use_ellipsis else None]
+    else:
+        return
 
     if use_ellipsis:
         element_type = tuple_params[0]
@@ -242,14 +243,7 @@ origin_type_checkers = {
     Set: check_set,
     Union: check_union
 }
-
-# issubclass() checks are applied to these
-subclass_type_checkers = [
-    (Callable, check_callable),
-    (Tuple, check_tuple)
-]
-if hasattr(Union, '__union_set_params__'):
-    subclass_type_checkers.append((Union, check_union))
+_subclass_check_unions = hasattr(Union, '__union_set_params__')
 
 
 def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
@@ -282,13 +276,13 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     if isinstance(expected_type, TypeVar):
         check_typevar(argname, value, expected_type, typevars_memo)
         return
-
-    for type_, checker_func in subclass_type_checkers:
-        if issubclass(expected_type, type_):
-            checker_func(argname, value, expected_type, typevars_memo)
-            return
-
-    if not isinstance(value, expected_type):
+    elif issubclass(expected_type, Tuple):
+        check_tuple(argname, value, expected_type, typevars_memo)
+    elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
+        check_callable(argname, value, expected_type, typevars_memo)
+    elif _subclass_check_unions and issubclass(expected_type, Union):
+        check_union(argname, value, expected_type, typevars_memo)
+    elif not isinstance(value, expected_type):
         raise TypeError(
             'type of {} must be {}; got {} instead'.
             format(argname, qualified_name(expected_type), qualified_name(type(value))))
