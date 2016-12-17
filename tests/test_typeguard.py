@@ -79,7 +79,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
-        assert str(exc.value) == 'argument a must be a callable'
+        assert str(exc.value) == 'argument "a" must be a callable'
 
     def test_callable_too_few_arguments(self):
         def foo(a: Callable[[int, str], int]):
@@ -90,7 +90,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, some_callable)
         assert str(exc.value) == (
-            'callable passed as argument a has too few arguments in its declaration; expected 2 '
+            'callable passed as argument "a" has too few arguments in its declaration; expected 2 '
             'but 1 argument(s) declared')
 
     def test_callable_too_many_arguments(self):
@@ -102,7 +102,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, some_callable)
         assert str(exc.value) == (
-            'callable passed as argument a has too many arguments in its declaration; expected '
+            'callable passed as argument "a" has too many arguments in its declaration; expected '
             '2 but 3 argument(s) declared')
 
     def test_callable_mandatory_kwonlyargs(self):
@@ -114,13 +114,13 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, some_callable)
         assert str(exc.value) == (
-            'callable passed as argument a has mandatory keyword-only arguments in its '
+            'callable passed as argument "a" has mandatory keyword-only arguments in its '
             'declaration: z, bar')
 
     def test_callable_class(self):
         """
-        Test that passing a class as a callable does not count the "self" argument against the ones
-        declared in the Callable specification.
+        Test that passing a class as a callable does not count the "self" argument "a"gainst the
+        ones declared in the Callable specification.
 
         """
         def foo(a: Callable[[int, str], Any]):
@@ -134,7 +134,7 @@ class TestCheckArgumentTypes:
 
     def test_callable_partial_class(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument against
+        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
         the ones declared in the Callable specification.
 
         """
@@ -149,7 +149,7 @@ class TestCheckArgumentTypes:
 
     def test_callable_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument against
+        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
         the ones declared in the Callable specification.
 
         """
@@ -160,7 +160,7 @@ class TestCheckArgumentTypes:
 
     def test_callable_partial_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument against
+        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
         the ones declared in the Callable specification.
 
         """
@@ -211,21 +211,21 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
-            'type of argument a must be a dict; got int instead')
+            'type of argument "a" must be a dict; got int instead')
 
     def test_dict_bad_key_type(self):
         def foo(a: Dict[str, int]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, {1: 2})
-        assert str(exc.value) == 'type of keys of argument a must be str; got int instead'
+        assert str(exc.value) == 'type of keys of argument "a" must be str; got int instead'
 
     def test_dict_bad_value_type(self):
         def foo(a: Dict[str, int]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, {'x': 'a'})
-        assert str(exc.value) == "type of argument a['x'] must be int; got str instead"
+        assert str(exc.value) == "type of argument \"a\"['x'] must be int; got str instead"
 
     @pytest.mark.parametrize('typehint', [
         List[int],
@@ -244,7 +244,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
-            'type of argument a must be a list; got int instead')
+            'type of argument "a" must be a list; got int instead')
 
     def test_list_bad_element(self):
         def foo(a: List[int]):
@@ -252,7 +252,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, [1, 2, 'bb'])
         assert str(exc.value) == (
-            'type of argument a[2] must be int; got str instead')
+            'type of argument "a"[2] must be int; got str instead')
 
     @pytest.mark.parametrize('typehint', [
         Sequence[str],
@@ -272,7 +272,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
-            'type of argument a must be a sequence; got int instead')
+            'type of argument "a" must be a sequence; got int instead')
 
     def test_sequence_bad_element(self):
         def foo(a: Sequence[int]):
@@ -280,7 +280,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, [1, 2, 'bb'])
         assert str(exc.value) == (
-            'type of argument a[2] must be int; got str instead')
+            'type of argument "a"[2] must be int; got str instead')
 
     @pytest.mark.parametrize('typehint', [
         Iterable[str],
@@ -323,7 +323,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
-        assert str(exc.value) == 'type of argument a must be a set; got int instead'
+        assert str(exc.value) == 'type of argument "a" must be a set; got int instead'
 
     def test_set_bad_element(self):
         def foo(a: Set[int]):
@@ -331,7 +331,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, {1, 2, 'bb'})
         assert str(exc.value) == (
-            'type of elements of argument a must be int; got str instead')
+            'type of elements of argument "a" must be int; got str instead')
 
     @pytest.mark.parametrize('typehint', [
         Tuple[int, int],
@@ -351,14 +351,14 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == (
-            'type of argument a must be a tuple; got int instead')
+            'type of argument "a" must be a tuple; got int instead')
 
     def test_tuple_too_many_elements(self):
         def foo(a: Tuple[int, str]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, (1, 'aa', 2))
-        assert str(exc.value) == ('argument a has wrong number of elements (expected 2, got 3 '
+        assert str(exc.value) == ('argument "a" has wrong number of elements (expected 2, got 3 '
                                   'instead)')
 
     def test_tuple_too_few_elements(self):
@@ -366,7 +366,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, (1,))
-        assert str(exc.value) == ('argument a has wrong number of elements (expected 2, got 1 '
+        assert str(exc.value) == ('argument "a" has wrong number of elements (expected 2, got 1 '
                                   'instead)')
 
     def test_tuple_bad_element(self):
@@ -375,7 +375,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, (1, 2))
         assert str(exc.value) == (
-            'type of argument a[1] must be str; got int instead')
+            'type of argument "a"[1] must be str; got int instead')
 
     def test_tuple_ellipsis_bad_element(self):
         def foo(a: Tuple[int, ...]):
@@ -383,7 +383,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, (1, 2, 'blah'))
         assert str(exc.value) == (
-            'type of argument a[2] must be int; got str instead')
+            'type of argument "a"[2] must be int; got str instead')
 
     def test_namedtuple(self):
         Employee = NamedTuple('Employee', [('name', str), ('id', int)])
@@ -400,7 +400,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         pytest.raises(TypeError, foo, ('bob', 1)).\
-            match('type of argument bar must be a named tuple of type '
+            match('type of argument "bar" must be a named tuple of type '
                   '(test_typeguard\.)?Employee; got tuple instead')
 
     def test_namedtuple_wrong_field_type(self):
@@ -410,7 +410,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         pytest.raises(TypeError, foo, Employee(2, 1)).\
-            match('type of argument bar.name must be str; got int instead')
+            match('type of argument "bar".name must be str; got int instead')
 
     @pytest.mark.parametrize('value', [6, 'aa'])
     def test_union(self, value):
@@ -426,7 +426,7 @@ class TestCheckArgumentTypes:
 
         exc = pytest.raises(TypeError, foo, value)
         assert str(exc.value) == (
-            'type of argument a must be one of (str, int); got {} instead'.
+            'type of argument "a" must be one of (str, int); got {} instead'.
             format(value.__class__.__name__))
 
     @pytest.mark.parametrize('values', [
@@ -448,7 +448,8 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2.5, 'aa')
-        assert str(exc.value) == 'type of argument a must be one of (int, str); got float instead'
+        assert str(exc.value) == ('type of argument "a" must be one of (int, str); got float '
+                                  'instead')
 
     def test_typevar_bound(self):
         T = TypeVar('T', bound=Parent)
@@ -465,7 +466,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Parent())
-        assert str(exc.value) == ('argument a must be an instance of test_typeguard.Child; got '
+        assert str(exc.value) == ('argument "a" must be an instance of test_typeguard.Child; got '
                                   'test_typeguard.Parent instead')
 
     def test_typevar_invariant_fail(self):
@@ -475,7 +476,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2, 3.6)
-        assert str(exc.value) == 'type of argument b must be exactly int; got float instead'
+        assert str(exc.value) == 'type of argument "b" must be exactly int; got float instead'
 
     def test_typevar_covariant(self):
         T = TypeVar('T', covariant=True)
@@ -492,7 +493,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Child(), Parent())
-        assert str(exc.value) == ('argument b must be an instance of test_typeguard.Child; got '
+        assert str(exc.value) == ('argument "b" must be an instance of test_typeguard.Child; got '
                                   'test_typeguard.Parent instead')
 
     def test_typevar_contravariant(self):
@@ -510,8 +511,8 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Child())
-        assert str(exc.value) == ('type of argument b must be test_typeguard.Parent or one of its '
-                                  'superclasses; got test_typeguard.Child instead')
+        assert str(exc.value) == ('type of argument "b" must be test_typeguard.Parent or one of '
+                                  'its superclasses; got test_typeguard.Child instead')
 
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
@@ -531,7 +532,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         pytest.raises(TypeError, foo, Parent).match(
-            'a must be a subclass of test_typeguard.Child; got test_typeguard.Parent instead')
+            '"a" must be a subclass of test_typeguard.Child; got test_typeguard.Parent instead')
 
     def test_wrapped_function(self):
         def decorator(func):
@@ -545,7 +546,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent())
-        assert str(exc.value) == ('type of argument a must be test_typeguard.Child; '
+        assert str(exc.value) == ('type of argument "a" must be test_typeguard.Child; '
                                   'got test_typeguard.Parent instead')
 
     @pytest.mark.parametrize('values', [
@@ -596,7 +597,7 @@ class TestTypeChecked:
             return 'abc'
 
         exc = pytest.raises(TypeError, foo, 4, 5)
-        assert str(exc.value) == 'type of argument b must be str; got int instead'
+        assert str(exc.value) == 'type of argument "b" must be str; got int instead'
 
     def test_typechecked_return_type_fail(self):
         @typechecked
@@ -604,9 +605,7 @@ class TestTypeChecked:
             return 6
 
         exc = pytest.raises(TypeError, foo, 4, 'abc')
-        func_name = function_name(foo)
-        assert str(exc.value) == (
-            'type of the return value of {}() must be str; got int instead'.format(func_name))
+        assert str(exc.value) == 'type of the return value must be str; got int instead'
 
     def test_typechecked_return_typevar_fail(self):
         T = TypeVar('T', int, float)
@@ -616,10 +615,7 @@ class TestTypeChecked:
             return 'a'
 
         exc = pytest.raises(TypeError, foo, 4, 2)
-        func_name = function_name(foo)
-        assert str(exc.value) == (
-            'type of the return value of {}() must be exactly int; got str instead'.
-            format(func_name))
+        assert str(exc.value) == 'type of the return value must be exactly int; got str instead'
 
     def test_typechecked_no_annotations(self, recwarn):
         def foo(a, b):
@@ -639,9 +635,7 @@ class TestTypeChecked:
             return 'a'
 
         exc = pytest.raises(TypeError, foo)
-        func_name = function_name(foo)
-        assert str(exc.value) == (
-            'type of the return value of {}() must be NoneType; got str instead'.format(func_name))
+        assert str(exc.value) == 'type of the return value must be NoneType; got str instead'
 
 
 class TestTypeChecker:
@@ -669,7 +663,7 @@ class TestTypeChecker:
 
         assert len(record) == 1
         warning = record[0].message
-        assert warning.error == 'type of argument a must be int; got str instead'
+        assert warning.error == 'type of argument "a" must be int; got str instead'
         assert warning.func is foo
         assert isinstance(warning.stack, list)
         buffer = StringIO()
@@ -684,10 +678,7 @@ class TestTypeChecker:
             foo()
 
         assert len(record) == 1
-        assert record[0].message.error == (
-            'type of the return value of '
-            'test_typeguard.TestTypeChecker.test_check_return_value.<locals>.foo() must be int; '
-            'got str instead')
+        assert record[0].message.error == 'type of the return value must be int; got str instead'
 
     def test_threaded_check_call_args(self, checker: TypeChecker, executor):
         def foo(a: int):
@@ -701,7 +692,7 @@ class TestTypeChecker:
 
         assert len(record) == 1
         warning = record[0].message
-        assert warning.error == 'type of argument a must be int; got str instead'
+        assert warning.error == 'type of argument "a" must be int; got str instead'
         assert warning.func is foo
 
     def test_double_start(self, checker: TypeChecker):
