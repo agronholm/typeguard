@@ -43,7 +43,7 @@ class _CallMemo:
     def __init__(self, func: Callable, frame=None, args: tuple = None,
                  kwargs: Dict[str, Any] = None):
         self.func = func
-        self.func_name = qualified_name(func)
+        self.func_name = function_name(func)
         self.signature = inspect.signature(func)
         self.typevars = {}  # type: Dict[Any, type]
 
@@ -104,10 +104,23 @@ def qualified_name(obj) -> str:
     name stripped from the generated name.
 
     """
-    type_ = obj if inspect.isclass(obj) or inspect.isroutine(obj) else type(obj)
+    type_ = obj if inspect.isclass(obj) else type(obj)
     module = type_.__module__
     qualname = type_.__qualname__
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
+
+
+def function_name(func: FunctionType) -> str:
+    """
+    Return the qualified name of the given function.
+
+    Builtins and types from the :mod:`typing` package get special treatment by having the module
+    name stripped from the generated name.
+
+    """
+    module = func.__module__
+    qualname = func.__qualname__
+    return qualname if module == 'builtins' else '{}.{}'.format(module, qualname)
 
 
 def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
@@ -366,7 +379,7 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
             if not isinstance(value, expected_type):
                 raise TypeError(
                     'type of {} must be {}; got {} instead'.
-                    format(argname, qualified_name(expected_type), qualified_name(type(value))))
+                    format(argname, qualified_name(expected_type), qualified_name(value)))
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
@@ -429,7 +442,7 @@ def typechecked(func: Callable = None, *, always: bool = False):
         return partial(typechecked, always=always)
 
     if not getattr(func, '__annotations__', None):
-        warn('no type annotations present -- not typechecking {}'.format(qualified_name(func)))
+        warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
     @wraps(func)
@@ -467,10 +480,10 @@ class TypeWarning(UserWarning):
         if self.event == 'call':
             caller_frame = self.frame.f_back
             event = 'call to {}() from {}:{}'.format(
-                qualified_name(self.func), caller_frame.f_code.co_filename, caller_frame.f_lineno)
+                function_name(self.func), caller_frame.f_code.co_filename, caller_frame.f_lineno)
         else:
             event = 'return from {}() at {}:{}'.format(
-                qualified_name(self.func), self.frame.f_code.co_filename, self.frame.f_lineno)
+                function_name(self.func), self.frame.f_code.co_filename, self.frame.f_lineno)
 
         super().__init__('[{thread_name}] {event}: {self.error}'.format(
             thread_name=threading.current_thread().name, event=event, self=self))

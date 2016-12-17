@@ -5,7 +5,8 @@ from io import StringIO
 
 import pytest
 
-from typeguard import typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning
+from typeguard import (
+    typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name)
 
 try:
     from backports.typing import (
@@ -32,12 +33,16 @@ class Child(Parent):
 
 
 @pytest.mark.parametrize('inputval, expected', [
-    (qualified_name, 'typeguard.qualified_name'),
+    (qualified_name, 'function'),
     (Child(), 'test_typeguard.Child'),
     (int, 'int')
 ], ids=['func', 'instance', 'builtintype'])
 def test_qualified_name(inputval, expected):
     assert qualified_name(inputval) == expected
+
+
+def test_function_name():
+    assert function_name(function_name) == 'typeguard.function_name'
 
 
 class TestCheckArgumentTypes:
@@ -599,7 +604,7 @@ class TestTypeChecked:
             return 6
 
         exc = pytest.raises(TypeError, foo, 4, 'abc')
-        func_name = qualified_name(foo)
+        func_name = function_name(foo)
         assert str(exc.value) == (
             'type of the return value of {}() must be str; got int instead'.format(func_name))
 
@@ -611,7 +616,7 @@ class TestTypeChecked:
             return 'a'
 
         exc = pytest.raises(TypeError, foo, 4, 2)
-        func_name = qualified_name(foo)
+        func_name = function_name(foo)
         assert str(exc.value) == (
             'type of the return value of {}() must be exactly int; got str instead'.
             format(func_name))
@@ -622,7 +627,7 @@ class TestTypeChecked:
 
         typechecked(foo)
 
-        func_name = qualified_name(foo)
+        func_name = function_name(foo)
         assert len(recwarn) == 1
         assert str(recwarn[0].message) == (
             'no type annotations present -- not typechecking {}'.format(func_name))
@@ -634,7 +639,7 @@ class TestTypeChecked:
             return 'a'
 
         exc = pytest.raises(TypeError, foo)
-        func_name = qualified_name(foo)
+        func_name = function_name(foo)
         assert str(exc.value) == (
             'type of the return value of {}() must be NoneType; got str instead'.format(func_name))
 

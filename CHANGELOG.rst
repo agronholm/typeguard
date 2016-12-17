@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
 - Added support for ``typings.Type`` (available in Python 3.5.2+)
 - Added a third, ``sys.setprofile()`` based type checking approach (``typeguard.TypeChecker``)
+- Changed certain type error messages to display "function" instead of the function's qualified
+  name
 
 **2.0.2** (2016-12-17)
 
