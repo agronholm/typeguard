@@ -5,7 +5,7 @@ from io import StringIO
 
 import pytest
 
-from typeguard import typechecked, check_argument_types, qualified_name, TypeChecker
+from typeguard import typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning
 
 try:
     from backports.typing import (
@@ -654,7 +654,7 @@ class TestTypeChecker:
         def foo(a: int):
             pass
 
-        with checker:
+        with checker, pytest.warns(TypeWarning) as record:
             assert checker.active
             foo(1)
             foo('x')
@@ -662,23 +662,24 @@ class TestTypeChecker:
         assert not checker.active
         foo('x')
 
-        assert len(checker.violations) == 1
-        assert checker.violations[0].message == 'type of argument a must be int; got str instead'
-        assert checker.violations[0].func is foo
-        assert isinstance(checker.violations[0].stack, list)
+        assert len(record) == 1
+        warning = record[0].message
+        assert warning.error == 'type of argument a must be int; got str instead'
+        assert warning.func is foo
+        assert isinstance(warning.stack, list)
         buffer = StringIO()
-        checker.violations[0].print_stack(buffer)
+        warning.print_stack(buffer)
         assert len(buffer.getvalue()) > 100
 
     def test_check_return_value(self, checker: TypeChecker):
         def foo() -> int:
             return 'x'
 
-        with checker:
+        with checker, pytest.warns(TypeWarning) as record:
             foo()
 
-        assert len(checker.violations) == 1
-        assert checker.violations[0].message == (
+        assert len(record) == 1
+        assert record[0].message.error == (
             'type of the return value of '
             'test_typeguard.TestTypeChecker.test_check_return_value.<locals>.foo() must be int; '
             'got str instead')
@@ -687,15 +688,16 @@ class TestTypeChecker:
         def foo(a: int):
             pass
 
-        with checker:
+        with checker, pytest.warns(TypeWarning) as record:
             executor.submit(foo, 1).result()
             executor.submit(foo, 'x').result()
 
         executor.submit(foo, 'x').result()
 
-        assert len(checker.violations) == 1
-        assert checker.violations[0].message == 'type of argument a must be int; got str instead'
-        assert checker.violations[0].func is foo
+        assert len(record) == 1
+        warning = record[0].message
+        assert warning.error == 'type of argument a must be int; got str instead'
+        assert warning.func is foo
 
     def test_double_start(self, checker: TypeChecker):
         """Test that the same type checker can't be started twice while running."""
@@ -707,13 +709,12 @@ class TestTypeChecker:
         def foo(a: int):
             pass
 
-        with TypeChecker(__name__) as outer:
+        with TypeChecker(__name__), pytest.warns(TypeWarning) as record:
             foo('x')
-            with TypeChecker(__name__) as inner:
+            with TypeChecker(__name__):
                 foo('x')
 
-        assert len(outer.violations) == 2
-        assert len(inner.violations) == 1
+        assert len(record) == 3
 
     def test_existing_profiler(self, checker: TypeChecker):
         """
@@ -736,7 +737,7 @@ class TestTypeChecker:
         old_profiler = sys.getprofile()
         sys.setprofile(profiler)
         try:
-            with checker:
+            with checker, pytest.warns(TypeWarning) as record:
                 foo(1)
                 foo('x')
 
@@ -745,4 +746,4 @@ class TestTypeChecker:
             sys.setprofile(old_profiler)
 
         assert profiler_run_count
-        assert len(checker.violations) == 1
+        assert len(record) == 1

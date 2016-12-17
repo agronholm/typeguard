@@ -25,8 +25,9 @@ There are three principal ways to use type checking, each with its pros and cons
    * adds an extra frame to the call stack for every call to a decorated function
 #. using ``with TypeChecker() as checker:``:
 
+   * emits warnings instead of raising ``TypeError``
    * eliminates boilerplate
-   * can be stacked/nested
+   * multiple TypeCheckers can be stacked/nested
    * noninvasive (only records type violations; does not raise exceptions)
    * does not work reliably with dynamically defined type hints (e.g. in nested functions)
    * may cause problems with badly behaving debuggers or profilers
@@ -62,21 +63,29 @@ To enable type checks even in optimized mode::
     def foo(a: str, b: int, c: Union[str, int]) -> bool:
         ...
 
-Using ``with typechecking():``::
+Using ``TypeChecker``::
 
-    # All calls are checked everywhere until the context block is exited
-    with typechecking():
-        run_my_application()
+    from warnings import filterwarnings
 
-Using TypeChecker::
+    from typeguard import TypeChecker, TypeWarning
 
-    from typeguard import TypeChecker
+    # Display all TypeWarnings, not just the first one
+    filterwarnings('always', category=TypeWarning)
 
-    with TypeChecker(['mypackage', 'otherpackage']) as checker:
-        foo(1, 2, 'a', 'b')
+    # Run your entire application inside this context block
+    with TypeChecker(['mypackage', 'otherpackage']):
+        mypackage.run_app()
 
-    for violation in checker.violations:
-        print(violation)
+    # Alternatively, manually start (and stop) the checker:
+    checker = TypeChecker('mypackage')
+    checker.start()
+    mypackage.start_app()
+
+.. hint:: Some other things you can do with ``TypeChecker``:
+   * display all warnings from the start with ``python -W always::typeguard.TypeWarning``
+   * redirect them to logging using ``logging.captureWarnings()``
+   * record warnings in your pytest test suite and fail test(s) if you get any
+     (see the `pytest documentation <http://doc.pytest.org/en/latest/recwarn.html>`_ about that)
 
 The following types from the ``typing`` package have specialized support:
 

@@ -32,7 +32,7 @@ except ImportError:
 
         return func
 
-__all__ = ('typechecked', 'check_argument_types', 'TypeViolation', 'TypeChecker')
+__all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakKeyDictionary()  # type: Dict[CodeType, FunctionType]
 
@@ -443,30 +443,37 @@ def typechecked(func: Callable = None, *, always: bool = False):
     return wrapper
 
 
-class TypeViolation:
+class TypeWarning(UserWarning):
     """
-    Represents a type checking violation.
+    A warning that is emitted when a type check fails.
 
     :ivar str event: ``call`` or ``return``
     :ivar Callable func: the function in which the violation occurred (the called function if event
         is ``call``, or the function where a value of the wrong type was returned from if event is
         ``return``)
-    :ivar BoundArguments arguments: the arguments with the ``func`` was called
-    :ivar str message: the error message
+    :ivar str error: the error message contained by the caught :cls:`TypeError`
     :ivar frame: the frame in which the violation occurred
-    :ivar Thread thread: the thread in which the violation occurred
     """
 
-    __slots__ = ('func', 'arguments', 'event', 'message', 'frame', 'thread_name')
+    __slots__ = ('func', 'event', 'message', 'frame')
 
     def __init__(self, memo: _CallMemo, event: str, frame,
                  exception: TypeError):  # pragma: no cover
         self.func = memo.func
-        self.arguments = memo.arguments
         self.event = event
-        self.message = str(exception)
+        self.error = str(exception)
         self.frame = frame
-        self.thread_name = threading.current_thread().name
+
+        if self.event == 'call':
+            caller_frame = self.frame.f_back
+            event = 'call to {}() from {}:{}'.format(
+                qualified_name(self.func), caller_frame.f_code.co_filename, caller_frame.f_lineno)
+        else:
+            event = 'return from {}() at {}:{}'.format(
+                qualified_name(self.func), self.frame.f_code.co_filename, self.frame.f_lineno)
+
+        super().__init__('[{thread_name}] {event}: {self.error}'.format(
+            thread_name=threading.current_thread().name, event=event, self=self))
 
     @property
     def stack(self):
@@ -483,9 +490,6 @@ class TypeViolation:
         """
         print_stack(self.frame, limit, file)
 
-    def __str__(self):
-        return '[{self.thread_name}] {self.message}'.format(self=self)
-
 
 class TypeChecker:
     """
@@ -493,15 +497,11 @@ class TypeChecker:
 
     :param all_threads: ``True`` to check types in all threads created while the checker is
         running, ``False`` to only check in the current one
-
-    :ivar violations: list of TypeViolation instances
-    :vartype violations: List[TypeViolation]
     """
 
     def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True):
         assert check_argument_types()
         self.all_threads = all_threads
-        self.violations = []  # type: List[TypeViolation]
         self._call_memos = {}  # type: Dict[Any, _CallMemo]
         self._previous_profiler = None
         self._previous_thread_profiler = None
@@ -580,7 +580,7 @@ class TypeChecker:
                 try:
                     check_argument_types(memo)
                 except TypeError as exc:
-                    self.violations.append(TypeViolation(memo, event, frame, exc))
+                    warn(TypeWarning(memo, event, frame, exc))
 
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
@@ -593,6 +593,6 @@ class TypeChecker:
                 try:
                     check_return_type(arg, memo)
                 except TypeError as exc:
-                    self.violations.append(TypeViolation(memo, event, frame, exc))
+                    warn(TypeWarning(memo, event, frame, exc))
         elif self._previous_profiler is not None:
             self._previous_profiler(frame, event, arg)
