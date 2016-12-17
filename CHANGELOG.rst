@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
-**2.1.0**
+**2.1.0** (2016-12-17)
 
 - Added support for ``typings.Type`` (available in Python 3.5.2+)
 - Added a third, ``sys.setprofile()`` based type checking approach (``typeguard.TypeChecker``)
