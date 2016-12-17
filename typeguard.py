@@ -195,8 +195,11 @@ def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
                     format(argname, typelist, qualified_name(value)))
 
 
-def check_typevar(argname: str, value, typevar: TypeVar,
-                  typevars_memo: Dict[Any, type]) -> None:
+def check_class(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+    pass
+
+
+def check_typevar(argname: str, value, typevar: TypeVar, typevars_memo: Dict[Any, type]) -> None:
     bound_type = typevars_memo.get(typevar)
     value_type = type(value)
     if bound_type is not None:

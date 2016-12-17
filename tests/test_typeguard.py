@@ -1,12 +1,22 @@
 from functools import wraps, partial
 
-from typing import (
-    Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Type)
-
 import pytest
 
 from typeguard import typechecked, check_argument_types, qualified_name
+
+try:
+    from backports.typing import (
+        Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
+        Container, Type)
+except ImportError:
+    from typing import (
+        Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
+        Container)
+
+    try:
+        from typing import Type
+    except ImportError:
+        Type = List  # don't worry, Type is not actually used if this happens!
 
 
 class Parent:
@@ -506,6 +516,7 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == ('type of argument b must be test_typeguard.Parent or one of its '
                                   'superclasses; got test_typeguard.Child instead')
 
+    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
         Type[Parent],
         Type,
