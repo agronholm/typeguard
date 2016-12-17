@@ -9,10 +9,15 @@ import gc
 
 try:
     from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                                  get_type_hints)
+                                  get_type_hints, Type)
 except ImportError:
     from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
                         get_type_hints)
+
+    try:
+        from typing import Type
+    except ImportError:
+        Type = None
 
 try:
     from inspect import unwrap
@@ -196,7 +201,13 @@ def check_union(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
 
 
 def check_class(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
-    pass
+    if not isclass(value):
+        raise TypeError('{} must be a type; got {} instead'.format(argname, qualified_name(value)))
+
+    expected_class = expected_type.__args__[0] if expected_type.__args__ else None
+    if expected_class and not issubclass(value, expected_class):
+        raise TypeError('{} must be a subclass of {}; got {} instead'.format(
+            argname, qualified_name(expected_class), qualified_name(value)))
 
 
 def check_typevar(argname: str, value, typevar: TypeVar, typevars_memo: Dict[Any, type]) -> None:
@@ -248,6 +259,8 @@ origin_type_checkers = {
     Union: check_union
 }
 _subclass_check_unions = hasattr(Union, '__union_set_params__')
+if Type is not None:
+    origin_type_checkers[Type] = check_class
 
 
 def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:

@@ -522,11 +522,19 @@ class TestCheckArgumentTypes:
         Type,
         type
     ], ids=['parametrized', 'unparametrized', 'plain'])
-    def test_type(self, typehint):
+    def test_class(self, typehint):
         def foo(a: typehint):
             assert check_argument_types()
 
         foo(Child)
+
+    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
+    def test_class_bad_subclass(self):
+        def foo(a: Type[Child]):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, Parent).match(
+            'a must be a subclass of test_typeguard.Child; got test_typeguard.Parent instead')
 
     def test_wrapped_function(self):
         def decorator(func):

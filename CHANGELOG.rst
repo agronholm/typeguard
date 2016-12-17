@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.1.0**
+
+- Added support for ``typings.Type`` (available in Python 3.5.2+)
+
 **2.0.2** (2016-12-17)
 
 - More Python 3.6 compatibility fixes (along with a broader test suite)
