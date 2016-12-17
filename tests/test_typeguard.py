@@ -1,6 +1,8 @@
 from functools import wraps, partial
 
-from typing import Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple
+from typing import (
+    Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
+    Container, Type)
 
 import pytest
 
@@ -43,8 +45,12 @@ class TestCheckArgumentTypes:
 
         foo('aa')
 
-    def test_callable(self):
-        def foo(a: Callable[..., int]):
+    @pytest.mark.parametrize('typehint', [
+        Callable[..., int],
+        Callable
+    ], ids=['parametrized', 'unparametrized'])
+    def test_callable(self, typehint):
+        def foo(a: typehint):
             assert check_argument_types()
 
         def some_callable() -> int:
@@ -181,8 +187,13 @@ class TestCheckArgumentTypes:
 
         foo([].append)
 
-    def test_dict(self):
-        def foo(a: Dict[str, int]):
+    @pytest.mark.parametrize('typehint', [
+        Dict[str, int],
+        Dict,
+        dict
+    ], ids=['parametrized', 'unparametrized', 'plain'])
+    def test_dict(self, typehint):
+        def foo(a: typehint):
             assert check_argument_types()
 
         foo({'x': 2})
@@ -209,8 +220,13 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, {'x': 'a'})
         assert str(exc.value) == "type of argument a['x'] must be int; got str instead"
 
-    def test_list(self):
-        def foo(a: List[int]):
+    @pytest.mark.parametrize('typehint', [
+        List[int],
+        List,
+        list,
+    ], ids=['parametrized', 'unparametrized', 'plain'])
+    def test_list(self, typehint):
+        def foo(a: typehint):
             assert check_argument_types()
 
         foo([1, 2])
@@ -231,10 +247,14 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument a[2] must be int; got str instead')
 
+    @pytest.mark.parametrize('typehint', [
+        Sequence[str],
+        Sequence
+    ], ids=['parametrized', 'unparametrized'])
     @pytest.mark.parametrize('value', [('a', 'b'), ['a', 'b'], 'abc'],
                              ids=['tuple', 'list', 'str'])
-    def test_sequence(self, value):
-        def foo(a: Sequence[str]):
+    def test_sequence(self, typehint, value):
+        def foo(a: typehint):
             assert check_argument_types()
 
         foo(value)
@@ -255,9 +275,38 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument a[2] must be int; got str instead')
 
+    @pytest.mark.parametrize('typehint', [
+        Iterable[str],
+        Iterable
+    ], ids=['parametrized', 'unparametrized'])
+    @pytest.mark.parametrize('value', [('a', 'b'), ['a', 'b'], 'abc'],
+                             ids=['tuple', 'list', 'str'])
+    def test_iterable(self, typehint, value):
+        def foo(a: typehint):
+            assert check_argument_types()
+
+        foo(value)
+
+    @pytest.mark.parametrize('typehint', [
+        Container[str],
+        Container
+    ], ids=['parametrized', 'unparametrized'])
+    @pytest.mark.parametrize('value', [('a', 'b'), ['a', 'b'], 'abc'],
+                             ids=['tuple', 'list', 'str'])
+    def test_container(self, typehint, value):
+        def foo(a: typehint):
+            assert check_argument_types()
+
+        foo(value)
+
+    @pytest.mark.parametrize('typehint', [
+        Set[int],
+        Set,
+        set
+    ], ids=['parametrized', 'unparametrized', 'plain'])
     @pytest.mark.parametrize('value', [set(), {6}])
-    def test_set(self, value):
-        def foo(a: Set[int]):
+    def test_set(self, typehint, value):
+        def foo(a: typehint):
             assert check_argument_types()
 
         foo(value)
@@ -277,17 +326,17 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of elements of argument a must be int; got str instead')
 
-    def test_tuple(self):
-        def foo(a: Tuple[int, int]):
+    @pytest.mark.parametrize('typehint', [
+        Tuple[int, int],
+        Tuple[int, ...],
+        Tuple,
+        tuple
+    ], ids=['parametrized', 'ellipsis', 'unparametrized', 'plain'])
+    def test_tuple(self, typehint):
+        def foo(a: typehint):
             assert check_argument_types()
 
         foo((1, 2))
-
-    def test_tuple_ellipsis(self):
-        def foo(a: Tuple[int, ...]):
-            assert check_argument_types()
-
-        foo((1, 2, 3, 4))
 
     def test_tuple_bad_type(self):
         def foo(a: Tuple[int]):
@@ -328,12 +377,6 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, (1, 2, 'blah'))
         assert str(exc.value) == (
             'type of argument a[2] must be int; got str instead')
-
-    def test_raw_tuple(self):
-        def foo(a: tuple):
-            assert check_argument_types()
-
-        foo((1, 2))
 
     def test_namedtuple(self):
         Employee = NamedTuple('Employee', [('name', str), ('id', int)])
@@ -463,6 +506,17 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == ('type of argument b must be test_typeguard.Parent or one of its '
                                   'superclasses; got test_typeguard.Child instead')
 
+    @pytest.mark.parametrize('typehint', [
+        Type[Parent],
+        Type,
+        type
+    ], ids=['parametrized', 'unparametrized', 'plain'])
+    def test_type(self, typehint):
+        def foo(a: typehint):
+            assert check_argument_types()
+
+        foo(Child)
+
     def test_wrapped_function(self):
         def decorator(func):
             @wraps(func)
@@ -492,13 +546,6 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo(*values)
-
-    def test_type(self):
-        """Test that a class passes when the requested type is "type"."""
-        def foo(cls: type):
-            assert check_argument_types()
-
-        foo(Parent)
 
 
 class TestTypeChecked:

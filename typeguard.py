@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from inspect import Parameter
+from inspect import Parameter, isclass
 from warnings import warn
 from functools import partial, wraps
 from weakref import WeakKeyDictionary
@@ -150,15 +150,16 @@ def check_tuple(argname: str, value, expected_type, typevars_memo: Dict[Any, typ
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    if hasattr(expected_type, '__tuple_use_ellipsis__'):
+    if getattr(expected_type, '__tuple_params__', None):
         # Python 3.5
         use_ellipsis = expected_type.__tuple_use_ellipsis__
         tuple_params = expected_type.__tuple_params__
-    elif hasattr(expected_type, '__args__'):
+    elif getattr(expected_type, '__args__', None):
         # Python 3.6+
         use_ellipsis = expected_type.__args__[-1] is Ellipsis
         tuple_params = expected_type.__args__[:-1 if use_ellipsis else None]
     else:
+        # Unparametrized Tuple or plain tuple
         return
 
     if use_ellipsis:
@@ -262,30 +263,39 @@ def check_type(argname: str, value, expected_type, typevars_memo: Dict[Any, type
     """
     if expected_type is Any:
         return
-    elif expected_type is None:
+
+    if expected_type is None:
         # Only happens on < 3.6
         expected_type = type(None)
 
-    origin_type = getattr(expected_type, '__origin__', None)
-    if origin_type is not None:
-        checker_func = origin_type_checkers.get(origin_type)
-        if checker_func:
-            checker_func(argname, value, expected_type, typevars_memo)
-            return
+    if isclass(expected_type):
+        origin_type = getattr(expected_type, '__origin__', None)
+        if origin_type is not None:
+            checker_func = origin_type_checkers.get(origin_type)
+            if checker_func:
+                checker_func(argname, value, expected_type, typevars_memo)
+                return
 
-    if isinstance(expected_type, TypeVar):
+        if issubclass(expected_type, Tuple):
+            check_tuple(argname, value, expected_type, typevars_memo)
+        elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
+            check_callable(argname, value, expected_type, typevars_memo)
+        elif _subclass_check_unions and issubclass(expected_type, Union):
+            check_union(argname, value, expected_type, typevars_memo)
+        elif isinstance(expected_type, TypeVar):
+            check_typevar(argname, value, expected_type, typevars_memo)
+        else:
+            expected_type = getattr(expected_type, '__extra__', expected_type)
+            if not isinstance(value, expected_type):
+                raise TypeError(
+                    'type of {} must be {}; got {} instead'.
+                    format(argname, qualified_name(expected_type), qualified_name(type(value))))
+    elif isinstance(expected_type, TypeVar):
+        # Only happens on < 3.6
         check_typevar(argname, value, expected_type, typevars_memo)
-        return
-    elif issubclass(expected_type, Tuple):
-        check_tuple(argname, value, expected_type, typevars_memo)
-    elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
-        check_callable(argname, value, expected_type, typevars_memo)
-    elif _subclass_check_unions and issubclass(expected_type, Union):
+    elif getattr(expected_type, '__origin__', None) is Union:
+        # Only happens on 3.6+
         check_union(argname, value, expected_type, typevars_memo)
-    elif not isinstance(value, expected_type):
-        raise TypeError(
-            'type of {} must be {}; got {} instead'.
-            format(argname, qualified_name(expected_type), qualified_name(type(value))))
 
 
 def check_argument_types(func: Callable = None, args: tuple = None, kwargs: Dict[str, Any] = None,
