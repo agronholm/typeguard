@@ -5,8 +5,6 @@
   :target: https://coveralls.io/github/agronholm/typeguard?branch=master
   :alt: Code Coverage
 
-.. highlight:: python
-
 This library provides run-time type checking for functions defined with argument type annotations.
 
 The ``typing`` module introduced in Python 3.5 (and available on PyPI for older versions of
@@ -23,7 +21,7 @@ There are three principal ways to use type checking, each with its pros and cons
 
    * can check the type of the return value
    * adds an extra frame to the call stack for every call to a decorated function
-#. using ``with TypeChecker() as checker:``:
+#. using ``with TypeChecker('packagename'):``:
 
    * emits warnings instead of raising ``TypeError``
    * eliminates boilerplate
@@ -41,7 +39,9 @@ Type checks can be fairly expensive so it is recommended to run Python in "optim
 type checks in production. The optimized mode will disable the type checks, by virtue of removing
 all ``assert`` statements and setting the ``__debug__`` constant to ``False``.
 
-Using ``check_argument_types()``::
+Using ``check_argument_types()``:
+
+.. code-block:: python3
 
     from typeguard import check_argument_types
 
@@ -49,7 +49,9 @@ Using ``check_argument_types()``::
         assert check_argument_types()
         ...
 
-Using ``@typechecked``::
+Using ``@typechecked``:
+
+.. code-block:: python3
 
     from typeguard import typechecked
 
@@ -57,13 +59,17 @@ Using ``@typechecked``::
     def some_function(a: int, b: float, c: str, *args: str) -> bool:
         ...
 
-To enable type checks even in optimized mode::
+To enable type checks even in optimized mode:
+
+.. code-block:: python3
 
     @typechecked(always=True)
     def foo(a: str, b: int, c: Union[str, int]) -> bool:
         ...
 
-Using ``TypeChecker``::
+Using ``TypeChecker``:
+
+.. code-block:: python3
 
     from warnings import filterwarnings
 
@@ -82,10 +88,12 @@ Using ``TypeChecker``::
     mypackage.start_app()
 
 .. hint:: Some other things you can do with ``TypeChecker``:
+
    * display all warnings from the start with ``python -W always::typeguard.TypeWarning``
    * redirect them to logging using ``logging.captureWarnings()``
    * record warnings in your pytest test suite and fail test(s) if you get any
      (see the `pytest documentation <http://doc.pytest.org/en/latest/recwarn.html>`_ about that)
+
 
 The following types from the ``typing`` package have specialized support:
 
