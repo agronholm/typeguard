@@ -586,7 +586,11 @@ class TypeChecker:
 
         # If an actual profiler is running, don't include the type checking times in its results
         if event == 'call':
-            func = find_function(frame)
+            try:
+                func = find_function(frame)
+            except Exception:
+                func = None
+
             if func is not None and self.should_check_type(func):
                 memo = self._call_memos[frame] = _CallMemo(func, frame)
                 try:

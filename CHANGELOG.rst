@@ -7,6 +7,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
 - Fixed leak of function objects (should've used a ``WeakValueDictionary`` instead of
   ``WeakKeyDictionary``)
+- Fixed obscure failure of TypeChecker when it's unable to find the function object
 
 **2.1.1** (2016-12-20)
 
