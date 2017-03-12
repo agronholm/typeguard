@@ -9,6 +9,7 @@ readme = open(readme_path).read()
 setup(
     name='typeguard',
     use_scm_version={
+        'version_scheme': 'post-release',
         'local_scheme': 'dirty-tag'
     },
     description='Run-time type checker for Python',
