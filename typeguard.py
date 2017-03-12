@@ -5,11 +5,11 @@ import sys
 import threading
 from collections import OrderedDict
 from functools import wraps, partial
-from inspect import Parameter, isclass, BoundArguments  # noqa
+from inspect import Parameter, isclass
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from warnings import warn
-from weakref import WeakKeyDictionary
+from weakref import WeakKeyDictionary, WeakValueDictionary
 
 try:
     from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
@@ -34,7 +34,7 @@ except ImportError:
 
 __all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
-_functions_map = WeakKeyDictionary()  # type: Dict[CodeType, FunctionType]
+_functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
 
 class _CallMemo:

@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.1.2**
+
+- Fixed leak of function objects (should've used a ``WeakValueDictionary`` instead of
+  ``WeakKeyDictionary``)
+
 **2.1.1** (2016-12-20)
 
 - Fixed formatting of README.rst so it renders properly on PyPI
