@@ -543,7 +543,7 @@ class TestCheckArgumentTypes:
     ], ids=['declared', 'default'])
     def test_default_argument_type(self, values):
         """
-        Checks that the type of the default argument is also accepted even if it does not match the
+        Test that the type of the default argument is also accepted even if it does not match the
         declared type of the argument.
 
         """
@@ -554,7 +554,6 @@ class TestCheckArgumentTypes:
 
     def test_generator(self):
         """Test that argument type checking works in a generator function too."""
-
         def generate(a: int):
             assert check_argument_types()
             yield a
@@ -562,6 +561,32 @@ class TestCheckArgumentTypes:
 
         gen = generate(1)
         next(gen)
+
+    def test_varargs(self):
+        def foo(*args: int):
+            assert check_argument_types()
+
+        foo(1, 2)
+
+    def test_varargs_fail(self):
+        def foo(*args: int):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, 1, 'a')
+        exc.match('type of argument "args"\[1\] must be int; got str instead')
+
+    def test_kwargs(self):
+        def foo(**kwargs: int):
+            assert check_argument_types()
+
+        foo(a=1, b=2)
+
+    def test_kwargs_fail(self):
+        def foo(**kwargs: int):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, a=1, b='a')
+        exc.match('type of argument "kwargs"\[\'b\'\] must be int; got str instead')
 
 
 class TestTypeChecked:

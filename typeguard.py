@@ -56,14 +56,23 @@ class _CallMemo:
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
             hints = get_type_hints(func)
-            self.type_hints = _type_hints_map[func] = OrderedDict(
-                (name, hints[name]) for name in tuple(self.signature.parameters) + ('return',)
-                if name in hints)
+            self.type_hints = _type_hints_map[func] = OrderedDict()
+            for name, parameter in self.signature.parameters.items():
+                if name in hints:
+                    # If an argument has a default value, its type should be accepted as well
+                    annotated_type = hints[name]
+                    if parameter.default is not Parameter.empty:
+                        annotated_type = Union[annotated_type, type(parameter.default)]
 
-            # If an argument has a default value, its type should be accepted as well
-            for param in self.signature.parameters.values():
-                if param.default is not Parameter.empty and param.name in hints:
-                    self.type_hints[param.name] = Union[hints[param.name], type(param.default)]
+                    if parameter.kind == Parameter.VAR_POSITIONAL:
+                        self.type_hints[name] = Tuple[annotated_type, ...]
+                    elif parameter.kind == Parameter.VAR_KEYWORD:
+                        self.type_hints[name] = Dict[str, annotated_type]
+                    else:
+                        self.type_hints[name] = annotated_type
+
+            if 'return' in hints:
+                self.type_hints['return'] = hints['return']
 
 
 def find_function(frame) -> Optional[Callable]:

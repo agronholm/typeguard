@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
   ``WeakKeyDictionary``)
 - Fixed obscure failure of TypeChecker when it's unable to find the function object
 - Fixed parametrized ``Type`` not working with type variables
+- Fixed type checks against variable positional and keyword arguments
 
 **2.1.1** (2016-12-20)
 
