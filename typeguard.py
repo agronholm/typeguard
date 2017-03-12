@@ -275,52 +275,50 @@ def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
                     format(argname, typelist, qualified_name(value)))
 
 
-def check_class(argname: str, value, expected_type, typevars_memo: Dict[Any, type]) -> None:
+def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if not isclass(value):
-        raise TypeError('{} must be a type; got {} instead'.format(argname, qualified_name(value)))
+        raise TypeError('type of {} must be a type; got {} instead'.format(
+            argname, qualified_name(value)))
 
     expected_class = expected_type.__args__[0] if expected_type.__args__ else None
-    if expected_class and not issubclass(value, expected_class):
-        raise TypeError('{} must be a subclass of {}; got {} instead'.format(
-            argname, qualified_name(expected_class), qualified_name(value)))
+    if expected_class:
+        if isinstance(expected_class, TypeVar):
+            check_typevar(argname, value, expected_class, memo, True)
+        elif not issubclass(value, expected_class):
+            raise TypeError('{} must be a subclass of {}; got {} instead'.format(
+                argname, qualified_name(expected_class), qualified_name(value)))
 
 
-def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo) -> None:
-    bound_type = memo.typevars.get(typevar)
-    value_type = type(value)
-    if bound_type is not None:
-        # The type variable has been bound to a concrete type -- check that the value matches
-        # the bound type according to the type variable's rules
-        if typevar.__covariant__:
-            if not isinstance(value, bound_type):
-                raise TypeError(
-                    '{} must be an instance of {}; got {} instead'.
-                    format(argname, qualified_name(bound_type), qualified_name(value_type)))
-        elif typevar.__contravariant__:
-            if not issubclass(bound_type, value_type):
-                raise TypeError(
-                    'type of {} must be {} or one of its superclasses; got {} instead'.
-                    format(argname, qualified_name(bound_type), qualified_name(value_type)))
-        else:  # invariant
-            if value_type is not bound_type:
-                raise TypeError(
-                    'type of {} must be exactly {}; got {} instead'.
-                    format(argname, qualified_name(bound_type), qualified_name(value_type)))
-    else:
+def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
+                  subclass_check: bool = False) -> None:
+    bound_type = memo.typevars.get(typevar, typevar.__bound__)
+    value_type = value if subclass_check else type(value)
+    subject = argname if subclass_check else 'type of ' + argname
+    if bound_type is None:
         # The type variable hasn't been bound yet -- check that the given value matches the
         # constraints of the type variable, if any
         if typevar.__constraints__ and value_type not in typevar.__constraints__:
             typelist = ', '.join(t.__name__ for t in typevar.__constraints__
                                  if t is not object)
-            raise TypeError('type of {} must be one of ({}); got {} instead'.
-                            format(argname, typelist, qualified_name(value_type)))
-        elif typevar.__bound__:
-            if not isinstance(value, typevar.__bound__):
-                raise TypeError(
-                    '{} must be an instance of {}; got {} instead'.
-                    format(argname, qualified_name(typevar.__bound__),
-                           qualified_name(value_type)))
+            raise TypeError('{} must be one of ({}); got {} instead'.
+                            format(subject, typelist, qualified_name(value_type)))
+    elif typevar.__covariant__ or typevar.__bound__:
+        if not issubclass(value_type, bound_type):
+            raise TypeError(
+                '{} must be {} or one of its subclasses; got {} instead'.
+                format(subject, qualified_name(bound_type), qualified_name(value_type)))
+    elif typevar.__contravariant__:
+        if not issubclass(bound_type, value_type):
+            raise TypeError(
+                '{} must be {} or one of its superclasses; got {} instead'.
+                format(subject, qualified_name(bound_type), qualified_name(value_type)))
+    else:  # invariant
+        if value_type is not bound_type:
+            raise TypeError(
+                '{} must be exactly {}; got {} instead'.
+                format(subject, qualified_name(bound_type), qualified_name(value_type)))
 
+    if typevar not in memo.typevars:
         # Bind the type variable to a concrete type
         memo.typevars[typevar] = value_type
 

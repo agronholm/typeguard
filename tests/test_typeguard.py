@@ -466,8 +466,8 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Parent())
-        assert str(exc.value) == ('argument "a" must be an instance of test_typeguard.Child; got '
-                                  'test_typeguard.Parent instead')
+        assert str(exc.value) == ('type of argument "a" must be test_typeguard.Child or one of '
+                                  'its subclasses; got test_typeguard.Parent instead')
 
     def test_typevar_invariant_fail(self):
         T = TypeVar('T', int, str)
@@ -493,8 +493,8 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Child(), Parent())
-        assert str(exc.value) == ('argument "b" must be an instance of test_typeguard.Child; got '
-                                  'test_typeguard.Parent instead')
+        assert str(exc.value) == ('type of argument "b" must be test_typeguard.Child or one of '
+                                  'its subclasses; got test_typeguard.Parent instead')
 
     def test_typevar_contravariant(self):
         T = TypeVar('T', contravariant=True)
@@ -513,18 +513,6 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, Parent(), Child())
         assert str(exc.value) == ('type of argument "b" must be test_typeguard.Parent or one of '
                                   'its superclasses; got test_typeguard.Child instead')
-
-    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
-    @pytest.mark.parametrize('typehint', [
-        Type[Parent],
-        Type,
-        type
-    ], ids=['parametrized', 'unparametrized', 'plain'])
-    def test_class(self, typehint):
-        def foo(a: typehint):
-            assert check_argument_types()
-
-        foo(Child)
 
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     def test_class_bad_subclass(self):
@@ -636,6 +624,29 @@ class TestTypeChecked:
 
         exc = pytest.raises(TypeError, foo)
         assert str(exc.value) == 'type of the return value must be NoneType; got str instead'
+
+    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
+    @pytest.mark.parametrize('typehint', [
+        Type[Parent],
+        Type[TypeVar('UnboundType')],
+        Type[TypeVar('BoundType', bound=Parent)],
+        Type,
+        type
+    ], ids=['parametrized', 'unbound-typevar', 'bound-typevar', 'unparametrized', 'plain'])
+    def test_class(self, typehint):
+        @typechecked
+        def foo(a: typehint):
+            pass
+
+        foo(Child)
+
+    def test_class_not_a_class(self):
+        @typechecked
+        def foo(a: Type[dict]):
+            pass
+
+        exc = pytest.raises(TypeError, foo, 1)
+        exc.match('type of argument "a" must be a type; got int instead')
 
 
 class TestTypeChecker:
