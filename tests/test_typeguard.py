@@ -673,6 +673,7 @@ class TestTypeChecked:
 
         foo(Child)
 
+    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     def test_class_not_a_class(self):
         @typechecked
         def foo(a: Type[dict]):
