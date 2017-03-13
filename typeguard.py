@@ -382,7 +382,8 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
         elif isinstance(expected_type, TypeVar):
             check_typevar(argname, value, expected_type, memo)
         else:
-            expected_type = getattr(expected_type, '__extra__', expected_type)
+            expected_type = (getattr(expected_type, '__extra__', None) or origin_type or
+                             expected_type)
             if not isinstance(value, expected_type):
                 raise TypeError(
                     'type of {} must be {}; got {} instead'.
