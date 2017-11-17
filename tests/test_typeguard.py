@@ -189,6 +189,17 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument "a" must be a dict; got int instead')
 
+    def test_exclude_types_param_skips_checks_for_those_types(self):
+        def foo(a: Dict[str, int]):
+            assert check_argument_types(exclude_types=(dict,))
+
+        @typechecked(exclude_types=[dict])
+        def barr(a: Dict[str, int]):
+            return None
+
+        foo({'some': 'dict'})
+        barr({'some': 'dict'})
+
     def test_dict_bad_key_type(self):
         def foo(a: Dict[str, int]):
             assert check_argument_types()

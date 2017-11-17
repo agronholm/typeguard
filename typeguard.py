@@ -345,7 +345,9 @@ if Type is not None:
     origin_type_checkers[Type] = check_class
 
 
-def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_type(
+    argname: str, value, expected_type, memo: _CallMemo, exclude_types=()
+) -> None:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -360,6 +362,10 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     """
     if expected_type is Any:
         return
+
+    for excluded_type in exclude_types:
+        if isinstance(value, excluded_type):
+            return
 
     if expected_type is None:
         # Only happens on < 3.6
@@ -403,7 +409,7 @@ def check_return_type(retval, memo: _CallMemo) -> bool:
     return True
 
 
-def check_argument_types(memo: _CallMemo = None) -> bool:
+def check_argument_types(memo: _CallMemo = None, exclude_types=()) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -411,6 +417,7 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
     the previous stack frame (ie. from the function that called this).
 
     :param func: the callable to check the arguments against
+    :param exclude_types: types to exclude from type checking
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
 
@@ -424,12 +431,14 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
         if argname != 'return' and argname in memo.arguments:
             value = memo.arguments[argname]
             description = 'argument "{}"'.format(argname, memo.func_name)
-            check_type(description, value, expected_type, memo)
+            check_type(description, value, expected_type, memo, exclude_types)
 
     return True
 
 
-def typechecked(func: Callable = None, *, always: bool = False):
+def typechecked(
+    func: Callable = None, *, always: bool = False, exclude_types=()
+):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 
@@ -440,13 +449,14 @@ def typechecked(func: Callable = None, *, always: bool = False):
 
     :param func: the function to enable type checking for
     :param always: ``True`` to enable type checks even in optimized mode
+    :param exclude_types: types to exclude from type checking
 
     """
     if not __debug__ and not always:  # pragma: no cover
         return func
 
     if func is None:
-        return partial(typechecked, always=always)
+        return partial(typechecked, always=always, exclude_types=exclude_types)
 
     if not getattr(func, '__annotations__', None):
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
@@ -455,7 +465,7 @@ def typechecked(func: Callable = None, *, always: bool = False):
     @wraps(func)
     def wrapper(*args, **kwargs):
         memo = _CallMemo(func, args=args, kwargs=kwargs)
-        check_argument_types(memo)
+        check_argument_types(memo, exclude_types=exclude_types)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
         return retval
