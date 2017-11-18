@@ -8,20 +8,15 @@ from functools import wraps, partial
 from inspect import Parameter, isclass
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
+from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+                    get_type_hints, TextIO, Optional)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 try:
-    from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                                  get_type_hints, TextIO, Optional, Type)
+    from typing import Type
 except ImportError:
-    from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                        get_type_hints, TextIO, Optional)
-
-    try:
-        from typing import Type
-    except ImportError:
-        Type = None
+    Type = None
 
 try:
     from inspect import unwrap

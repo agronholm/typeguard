@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.1.4**
+
+- Removed support for backports.typing, as it has been removed from PyPI
+
 **2.1.3** (2017-03-13)
 
 - Fixed type checks against generic classes
