@@ -693,6 +693,20 @@ class TestTypeChecked:
         exc = pytest.raises(TypeError, foo, 1)
         exc.match('type of argument "a" must be a type; got int instead')
 
+    @pytest.mark.parametrize('typehint, value', [
+        (complex, complex(1, 5)),
+        (complex, 1.0),
+        (complex, 1),
+        (float, 1.0),
+        (float, 1)
+    ], ids=['complex-complex', 'complex-float', 'complex-int', 'float-float', 'float-int'])
+    def test_numbers(self, typehint, value):
+        @typechecked
+        def foo(a: typehint):
+            pass
+
+        foo(value)
+
 
 class TestTypeChecker:
     @pytest.fixture

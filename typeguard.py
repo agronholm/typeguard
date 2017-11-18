@@ -327,6 +327,15 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
         memo.typevars[typevar] = value_type
 
 
+def check_number(argname: str, value, expected_type):
+    if expected_type is complex and not isinstance(value, (complex, float, int)):
+        raise TypeError('type of {} must be either complex, float or int; got {} instead'.
+                        format(argname, qualified_name(value.__class__)))
+    elif expected_type is float and not isinstance(value, (float, int)):
+        raise TypeError('type of {} must be either float or int; got {} instead'.
+                        format(argname, qualified_name(value.__class__)))
+
+
 # Equality checks are applied to these
 origin_type_checkers = {
     Dict: check_dict,
@@ -372,6 +381,8 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
             check_callable(argname, value, expected_type, memo)
+        elif issubclass(expected_type, (float, complex)):
+            check_number(argname, value, expected_type)
         elif _subclass_check_unions and issubclass(expected_type, Union):
             check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
