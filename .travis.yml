@@ -2,8 +2,9 @@ language: python
 sudo: false
 
 stages:
+  - name: test
   - name: deploy to pypi
-    if: type = push AND tag =~ ^v\d+\.\d+\.\d+
+    if: type = push AND tag =~ ^\d+\.\d+\.\d+
 
 jobs:
   fast_finish: true
@@ -47,6 +48,8 @@ jobs:
         password:
           secure: gRSVobMY46ku8LMU/CkbhoawxDKZK0bQge2jBZwMt6UNK8X/Cu/mYHS7pihWRqGWacURLp7WZGeUB9ouHfGVIqlc8KQvdS4IgTHgo/CyZVG6AytyRPj+by9tmmYGh58J6DBstTD8c3h6pVytV4f0GcPJh+Cqfgfa6TKLF9dstxZELl5U4W46Po1Rk6Jk0GmhA7qKUd6/Y9fNRPntuEABFNGca8zTDinYTBzhQ6FbbuXfaF4FQkx3EvPm72ruagNkjCBkKXeqSr80Zxl0pPK5imW9VxhumnCm+DwStZ1dISQhEoJzK3b9GIllcFFWF4vUkTlEv9T+yZMhVyrJ+BBqPfKq1eNOALyWSVBTwWmjTez1AD0nNC4s5HegvKf2PF8F7y3EGUm+TLyKN3gC3LX14MHDJz4GJXY7n9gPW8syXU3npc1+bmaf1yfnR1BxncJQmru8nlmrpjG86w9qBH4BBSlkpTF7M82vcFKQ2w9BGZwoQ9vvzduMGRXCwgONfor+UPaRVarLyc+0j6HLXsC+EI9JN1PcDWF7WTj+PizYERB+U9PpjgniAKffGvhUUxjJvVnD9f/6CIKq4qjlTLv8C7PMwx1MVbE+p1JTxq530rQ55RMXicJCvhkn9mM0ytz/JUrDryOGDqmKiWVp53F+yLJHsUy8sN/zT3s6n8tf/Zg=
         distributions: sdist bdist_wheel
+        on:
+          tags: true
 
 install: pip install tox
 
