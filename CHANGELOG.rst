@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
-**2.1.4**
+**2.1.4** (2018-01-07)
 
 - Removed support for backports.typing, as it has been removed from PyPI
 - Fixed checking of the numeric tower (complex -> float -> int) according to PEP 484
