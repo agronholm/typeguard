@@ -10,7 +10,6 @@ jobs:
   fast_finish: true
   include:
     - env: TOXENV=flake8
-      python: "3.3"
 
     - env: TOXENV=pypy3
       cache: pip
@@ -49,6 +48,8 @@ jobs:
         distributions: sdist bdist_wheel
         on:
           tags: true
+
+python: "3.3"
 
 install: pip install tox
 
