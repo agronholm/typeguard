@@ -8,20 +8,15 @@ from functools import wraps, partial
 from inspect import Parameter, isclass
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
+from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+                    get_type_hints, TextIO, Optional)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 try:
-    from backports.typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                                  get_type_hints, TextIO, Optional, Type)
+    from typing import Type
 except ImportError:
-    from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                        get_type_hints, TextIO, Optional)
-
-    try:
-        from typing import Type
-    except ImportError:
-        Type = None
+    Type = None
 
 try:
     from inspect import unwrap
@@ -332,6 +327,15 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
         memo.typevars[typevar] = value_type
 
 
+def check_number(argname: str, value, expected_type):
+    if expected_type is complex and not isinstance(value, (complex, float, int)):
+        raise TypeError('type of {} must be either complex, float or int; got {} instead'.
+                        format(argname, qualified_name(value.__class__)))
+    elif expected_type is float and not isinstance(value, (float, int)):
+        raise TypeError('type of {} must be either float or int; got {} instead'.
+                        format(argname, qualified_name(value.__class__)))
+
+
 # Equality checks are applied to these
 origin_type_checkers = {
     Dict: check_dict,
@@ -383,6 +387,8 @@ def check_type(
             check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
             check_callable(argname, value, expected_type, memo)
+        elif issubclass(expected_type, (float, complex)):
+            check_number(argname, value, expected_type)
         elif _subclass_check_unions and issubclass(expected_type, Union):
             check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
