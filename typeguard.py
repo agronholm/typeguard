@@ -508,7 +508,7 @@ class TypeWarning(UserWarning):
 
     def print_stack(self, file: TextIO = None, limit: int = None) -> None:
         """
-        Print the traceback from the stack frame where the target function was ran.
+        Print the traceback from the stack frame where the target function was run.
 
         :param file: an open file to print to (prints to stdout if omitted)
         :param limit: the maximum number of stack frames to print
