@@ -11,11 +11,11 @@ from typeguard import (
 try:
     from backports.typing import (
         Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Type, Generic, NewType)
+        Container, Type, Generic)
 except ImportError:
     from typing import (
         Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Generic, NewType)
+        Container, Generic)
 
     try:
         from typing import Type
@@ -504,7 +504,17 @@ class TestCheckArgumentTypes:
 
         foo(FooGeneric[str]())
 
+    @pytest.mark.skipif("sys.version_info < (3,4)")
+    @pytest.mark.skipif("(3.5) <= sys.version_info < (3,5,2)")
     def test_newtype(self):
+        try:
+            from backports.typing import NewType
+        except ImportError:
+            from typing import NewType
+        except ImportError:
+            pytest.skip("Skipping newtype test since no NewType in current "
+                        "typing library")
+
         myint = NewType("myint", int)
 
         def foo(a: myint) -> int:
