@@ -11,11 +11,11 @@ from typeguard import (
 try:
     from backports.typing import (
         Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Type, Generic)
+        Container, Type, Generic, NewType)
 except ImportError:
     from typing import (
         Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Generic)
+        Container, Generic, NewType)
 
     try:
         from typing import Type
@@ -503,6 +503,17 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo(FooGeneric[str]())
+
+    def test_newtype(self):
+        myint = NewType("myint", int)
+
+        def foo(a: myint) -> int:
+            assert check_argument_types()
+            return 42
+
+        assert foo(1) == 42
+        exc = pytest.raises(TypeError, foo, "a")
+        assert str(exc.value) == 'type of argument "a" must be int; got str instead'
 
 
 class TestTypeChecked:

@@ -5,7 +5,7 @@ import sys
 import threading
 from collections import OrderedDict
 from functools import wraps, partial
-from inspect import Parameter, isclass
+from inspect import Parameter, isclass, isfunction
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
@@ -335,7 +335,6 @@ def check_number(argname: str, value, expected_type):
         raise TypeError('type of {} must be either float or int; got {} instead'.
                         format(argname, qualified_name(value.__class__)))
 
-
 # Equality checks are applied to these
 origin_type_checkers = {
     Dict: check_dict,
@@ -368,6 +367,13 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     if expected_type is None:
         # Only happens on < 3.6
         expected_type = type(None)
+
+    if isfunction(expected_type) and \
+            getattr(expected_type, "__module__", None) == "typing" and \
+            getattr(expected_type, "__qualname__", None).startswith("NewType.") and \
+            hasattr(expected_type, "__supertype__"):
+        # typing.NewType, should check again supertype
+        return check_type(argname, value, expected_type.__supertype__, memo)
 
     if isclass(expected_type):
         origin_type = getattr(expected_type, '__origin__', None)
