@@ -372,7 +372,7 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
             getattr(expected_type, "__module__", None) == "typing" and \
             getattr(expected_type, "__qualname__", None).startswith("NewType.") and \
             hasattr(expected_type, "__supertype__"):
-        # typing.NewType, should check again supertype
+        # typing.NewType, should check against supertype (recursively)
         return check_type(argname, value, expected_type.__supertype__, memo)
 
     if isclass(expected_type):
