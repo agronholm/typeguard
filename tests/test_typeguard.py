@@ -505,7 +505,7 @@ class TestCheckArgumentTypes:
         foo(FooGeneric[str]())
 
     @pytest.mark.skipif("sys.version_info < (3,4)")
-    @pytest.mark.skipif("(3.5) <= sys.version_info < (3,5,2)")
+    @pytest.mark.skipif("(3,5) <= sys.version_info < (3,5,2)")
     def test_newtype(self):
         try:
             from backports.typing import NewType
