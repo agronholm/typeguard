@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.2.0**
+
+- Fixed compatibility with Python 3.7
+- Removed support for Python 3.3
+
 **2.1.4** (2018-01-07)
 
 - Removed support for backports.typing, as it has been removed from PyPI

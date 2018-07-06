@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import gc
 import inspect
 import sys
@@ -284,6 +284,10 @@ def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
         raise TypeError('type of {} must be a type; got {} instead'.format(
             argname, qualified_name(value)))
 
+    # Needed on Python 3.7+
+    if expected_type is Type:
+        return
+
     expected_class = expected_type.__args__[0] if expected_type.__args__ else None
     if expected_class:
         if isinstance(expected_class, TypeVar):
@@ -338,10 +342,19 @@ def check_number(argname: str, value, expected_type):
 
 # Equality checks are applied to these
 origin_type_checkers = {
+    Callable: check_callable,
+    collections.abc.Callable: check_callable,
+    dict: check_dict,
     Dict: check_dict,
+    list: check_list,
     List: check_list,
     Sequence: check_sequence,
+    collections.abc.Sequence: check_sequence,
+    set: check_set,
     Set: check_set,
+    tuple: check_tuple,
+    Tuple: check_tuple,
+    type: check_class,
     Union: check_union
 }
 _subclass_check_unions = hasattr(Union, '__union_set_params__')
@@ -369,18 +382,14 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
         # Only happens on < 3.6
         expected_type = type(None)
 
-    if isclass(expected_type):
-        origin_type = getattr(expected_type, '__origin__', None)
-        if origin_type is not None:
-            checker_func = origin_type_checkers.get(origin_type)
-            if checker_func:
-                checker_func(argname, value, expected_type, memo)
-                return
-
+    origin_type = getattr(expected_type, '__origin__', None)
+    if origin_type is not None:
+        checker_func = origin_type_checkers.get(origin_type)
+        if checker_func:
+            checker_func(argname, value, expected_type, memo)
+    elif isclass(expected_type):
         if issubclass(expected_type, Tuple):
             check_tuple(argname, value, expected_type, memo)
-        elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
-            check_callable(argname, value, expected_type, memo)
         elif issubclass(expected_type, (float, complex)):
             check_number(argname, value, expected_type)
         elif _subclass_check_unions and issubclass(expected_type, Union):
@@ -397,9 +406,6 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
-    elif getattr(expected_type, '__origin__', None) is Union:
-        # Only happens on 3.6+
-        check_union(argname, value, expected_type, memo)
 
 
 def check_return_type(retval, memo: _CallMemo) -> bool:
