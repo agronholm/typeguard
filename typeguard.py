@@ -1,3 +1,5 @@
+__all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
+
 import collections.abc
 import gc
 import inspect
@@ -18,16 +20,6 @@ try:
 except ImportError:
     Type = None
 
-try:
-    from inspect import unwrap
-except ImportError:
-    def unwrap(func):
-        while hasattr(func, '__wrapped__'):
-            func = func.__wrapped__
-
-        return func
-
-__all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
