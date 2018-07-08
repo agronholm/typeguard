@@ -498,6 +498,22 @@ class TestCheckArgumentTypes:
 
         foo(FooGeneric[str]())
 
+    def test_newtype(self):
+        try:
+            from typing import NewType
+        except ImportError:
+            pytest.skip('Skipping newtype test since no NewType in current typing library')
+
+        myint = NewType("myint", int)
+
+        def foo(a: myint) -> int:
+            assert check_argument_types()
+            return 42
+
+        assert foo(1) == 42
+        exc = pytest.raises(TypeError, foo, "a")
+        assert str(exc.value) == 'type of argument "a" must be int; got str instead'
+
 
 class TestTypeChecked:
     def test_typechecked(self):

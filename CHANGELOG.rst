@@ -7,6 +7,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
 - Fixed compatibility with Python 3.7
 - Removed support for Python 3.3
+- Added support for ``typing.NewType`` (contributed by reinhrst)
 
 **2.1.4** (2018-01-07)
 

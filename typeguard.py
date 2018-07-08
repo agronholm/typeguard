@@ -7,7 +7,7 @@ import sys
 import threading
 from collections import OrderedDict
 from functools import wraps, partial
-from inspect import Parameter, isclass
+from inspect import Parameter, isclass, isfunction
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
@@ -398,6 +398,12 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
+    elif (isfunction(expected_type) and
+            getattr(expected_type, "__module__", None) == "typing" and
+            getattr(expected_type, "__qualname__", None).startswith("NewType.") and
+            hasattr(expected_type, "__supertype__")):
+        # typing.NewType, should check against supertype (recursively)
+        return check_type(argname, value, expected_type.__supertype__, memo)
 
 
 def check_return_type(retval, memo: _CallMemo) -> bool:
