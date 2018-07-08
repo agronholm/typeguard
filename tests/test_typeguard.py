@@ -2,6 +2,9 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial
 from io import StringIO
+from typing import (
+    Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
+    Container, Generic)
 
 import pytest
 
@@ -9,18 +12,9 @@ from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name)
 
 try:
-    from backports.typing import (
-        Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Type, Generic)
+    from typing import Type
 except ImportError:
-    from typing import (
-        Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-        Container, Generic)
-
-    try:
-        from typing import Type
-    except ImportError:
-        Type = List  # don't worry, Type is not actually used if this happens!
+    Type = List  # don't worry, Type is not actually used if this happens!
 
 
 class Parent:
