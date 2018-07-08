@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
-**2.2.0**
+**2.2.0** (2018-07-08)
 
 - Fixed compatibility with Python 3.7
 - Removed support for Python 3.3
