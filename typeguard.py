@@ -46,10 +46,11 @@ class _CallMemo:
             self.type_hints = _type_hints_map[func] = OrderedDict()
             for name, parameter in self.signature.parameters.items():
                 if name in hints:
-                    # If an argument has a default value, its type should be accepted as well
                     annotated_type = hints[name]
-                    if parameter.default is not Parameter.empty:
-                        annotated_type = Union[annotated_type, type(parameter.default)]
+
+                    # PEP 428 discourages it by MyPy does not complain
+                    if parameter.default is None:
+                        annotated_type = Optional[annotated_type]
 
                     if parameter.kind == Parameter.VAR_POSITIONAL:
                         self.type_hints[name] = Tuple[annotated_type, ...]

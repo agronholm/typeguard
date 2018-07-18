@@ -436,20 +436,21 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == ('type of argument "a" must be test_typeguard.Child; '
                                   'got test_typeguard.Parent instead')
 
-    @pytest.mark.parametrize('values', [
-        ('x', 1.2, 'y'),
-        (2, 'x', None)
-    ], ids=['declared', 'default'])
-    def test_default_argument_type(self, values):
-        """
-        Test that the type of the default argument is also accepted even if it does not match the
-        declared type of the argument.
-
-        """
-        def foo(a: str=1, b: float='x', c: str=None):
+    def test_mismatching_default_type(self):
+        def foo(a: str = 1):
             assert check_argument_types()
 
-        foo(*values)
+        pytest.raises(TypeError, foo).match('type of argument "a" must be str; got int instead')
+
+    def test_implicit_default_none(self):
+        """
+        Test that if the default value is ``None``, a ``None`` argument can be passed.
+
+        """
+        def foo(a: str=None):
+            assert check_argument_types()
+
+        foo()
 
     def test_generator(self):
         """Test that argument type checking works in a generator function too."""
