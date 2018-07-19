@@ -1,4 +1,4 @@
-__all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
+__all__ = ('typechecked', 'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
 
 import collections.abc
 import gc
