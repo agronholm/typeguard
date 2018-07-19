@@ -10,6 +10,8 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 - Fixed some generic types (``typing.Collection`` among others) producing false negatives on
   Python 3.7
 - Shortened unnecessarily long tracebacks by raising a new ``TypeError`` based on the old one
+- Allowed type checking against arbitrary types by removing the requirement to supply a call memo
+  to ``check_type()``
 
 **2.2.0** (2018-07-08)
 

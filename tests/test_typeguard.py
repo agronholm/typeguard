@@ -9,7 +9,8 @@ from typing import (
 import pytest
 
 from typeguard import (
-    typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name)
+    typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
+    check_type)
 
 try:
     from typing import Type
@@ -42,6 +43,15 @@ def test_qualified_name(inputval, expected):
 
 def test_function_name():
     assert function_name(function_name) == 'typeguard.function_name'
+
+
+def test_check_type_no_memo():
+    check_type('foo', [1], List[int])
+
+
+def test_check_type_no_memo_fail():
+    pytest.raises(TypeError, check_type, 'foo', ['a'], List[int]).\
+        match('type of foo\[0\] must be int; got str instead')
 
 
 class TestCheckArgumentTypes:

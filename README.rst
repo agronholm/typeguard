@@ -94,6 +94,14 @@ Using ``TypeChecker``:
    * record warnings in your pytest test suite and fail test(s) if you get any
      (see the `pytest documentation <http://doc.pytest.org/en/latest/recwarn.html>`_ about that)
 
+To directly check a value against the specified type:
+
+.. code-block:: python3
+
+    from typeguard import check_type
+
+    check_type('variablename', [1234], List[int])
+
 
 The following types from the ``typing`` package have specialized support:
 

@@ -120,7 +120,7 @@ def function_name(func: FunctionType) -> str:
     return qualname if module == 'builtins' else '{}.{}'.format(module, qualname)
 
 
-def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_callable(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
@@ -168,7 +168,7 @@ def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
                                                          num_mandatory_args))
 
 
-def check_dict(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not isinstance(value, dict):
         raise TypeError('type of {} must be a dict; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -179,7 +179,7 @@ def check_dict(argname: str, value, expected_type, memo: _CallMemo) -> None:
         check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
 
 
-def check_list(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not isinstance(value, list):
         raise TypeError('type of {} must be a list; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -190,7 +190,7 @@ def check_list(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_sequence(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not isinstance(value, collections.Sequence):
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -201,7 +201,7 @@ def check_sequence(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_set(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_set(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not isinstance(value, collections.Set):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -212,7 +212,7 @@ def check_set(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('elements of {}'.format(argname), v, value_type, memo)
 
 
-def check_tuple(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_tuple(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     # Specialized check for NamedTuples
     if hasattr(expected_type, '_field_types'):
         if not isinstance(value, expected_type):
@@ -252,7 +252,7 @@ def check_tuple(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), element, element_type, memo)
 
 
-def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if hasattr(expected_type, '__union_params__'):
         # Python 3.5
         union_params = expected_type.__union_params__
@@ -272,7 +272,7 @@ def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
                     format(argname, typelist, qualified_name(value)))
 
 
-def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_class(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if not isclass(value):
         raise TypeError('type of {} must be a type; got {} instead'.format(
             argname, qualified_name(value)))
@@ -290,8 +290,11 @@ def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
                 argname, qualified_name(expected_class), qualified_name(value)))
 
 
-def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
+def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMemo],
                   subclass_check: bool = False) -> None:
+    if memo is None:
+        raise TypeError('encountered a TypeVar but a call memo was not provided')
+
     bound_type = memo.typevars.get(typevar, typevar.__bound__)
     value_type = value if subclass_check else type(value)
     subject = argname if subclass_check else 'type of ' + argname
@@ -355,7 +358,7 @@ if Type is not None:
     origin_type_checkers[Type] = check_class
 
 
-def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = None) -> None:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -412,7 +415,7 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
         return check_type(argname, value, expected_type.__supertype__, memo)
 
 
-def check_return_type(retval, memo: _CallMemo) -> bool:
+def check_return_type(retval, memo: Optional[_CallMemo]) -> bool:
     if 'return' in memo.type_hints:
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
@@ -422,7 +425,7 @@ def check_return_type(retval, memo: _CallMemo) -> bool:
     return True
 
 
-def check_argument_types(memo: _CallMemo = None) -> bool:
+def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -498,7 +501,7 @@ class TypeWarning(UserWarning):
 
     __slots__ = ('func', 'event', 'message', 'frame')
 
-    def __init__(self, memo: _CallMemo, event: str, frame,
+    def __init__(self, memo: Optional[_CallMemo], event: str, frame,
                  exception: TypeError):  # pragma: no cover
         self.func = memo.func
         self.event = event
