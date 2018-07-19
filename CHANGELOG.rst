@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
 - Argument type annotations are no longer unioned with the types of their default values, except in
   the case of ``None`` as the default value (although PEP 484 still recommends against this)
+- Fixed some generic types (``typing.Collection`` among others) producing false negatives on
+  Python 3.7
 
 **2.2.0** (2018-07-08)
 

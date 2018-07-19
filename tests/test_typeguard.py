@@ -16,6 +16,11 @@ try:
 except ImportError:
     Type = List  # don't worry, Type is not actually used if this happens!
 
+try:
+    from typing import Collection
+except ImportError:
+    Collection = None
+
 
 class Parent:
     pass
@@ -514,6 +519,14 @@ class TestCheckArgumentTypes:
         assert foo(1) == 42
         exc = pytest.raises(TypeError, foo, "a")
         assert str(exc.value) == 'type of argument "a" must be int; got str instead'
+
+    @pytest.mark.skipif(Collection is None, reason='typing.Collection is not available')
+    def test_collection(self):
+        def foo(a: Collection):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, True).match(
+            'type of argument "a" must be collections.abc.Collection; got bool instead')
 
 
 class TestTypeChecked:

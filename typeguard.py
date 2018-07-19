@@ -380,6 +380,8 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
         checker_func = origin_type_checkers.get(origin_type)
         if checker_func:
             checker_func(argname, value, expected_type, memo)
+        else:
+            check_type(argname, value, origin_type, memo)
     elif isclass(expected_type):
         if issubclass(expected_type, Tuple):
             check_tuple(argname, value, expected_type, memo)
