@@ -424,7 +424,6 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
     Unless both ``args`` and ``kwargs`` are provided, the information will be retrieved from
     the previous stack frame (ie. from the function that called this).
 
-    :param func: the callable to check the arguments against
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
 
@@ -437,7 +436,7 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
     for argname, expected_type in memo.type_hints.items():
         if argname != 'return' and argname in memo.arguments:
             value = memo.arguments[argname]
-            description = 'argument "{}"'.format(argname, memo.func_name)
+            description = 'argument "{}"'.format(argname)
             check_type(description, value, expected_type, memo)
 
     return True
