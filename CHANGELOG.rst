@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
   the case of ``None`` as the default value (although PEP 484 still recommends against this)
 - Fixed some generic types (``typing.Collection`` among others) producing false negatives on
   Python 3.7
+- Shortened unnecessarily long tracebacks by raising a new ``TypeError`` based on the old one
 
 **2.2.0** (2018-07-08)
 

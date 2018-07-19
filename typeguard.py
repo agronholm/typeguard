@@ -414,7 +414,10 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
 
 def check_return_type(retval, memo: _CallMemo) -> bool:
     if 'return' in memo.type_hints:
-        check_type('the return value', retval, memo.type_hints['return'], memo)
+        try:
+            check_type('the return value', retval, memo.type_hints['return'], memo)
+        except TypeError as exc:  # suppress unnecessarily long tracebacks
+            raise TypeError(exc) from None
 
     return True
 
@@ -439,7 +442,10 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
         if argname != 'return' and argname in memo.arguments:
             value = memo.arguments[argname]
             description = 'argument "{}"'.format(argname)
-            check_type(description, value, expected_type, memo)
+            try:
+                check_type(description, value, expected_type, memo)
+            except TypeError as exc:  # suppress unnecessarily long tracebacks
+                raise TypeError(exc) from None
 
     return True
 
