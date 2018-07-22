@@ -14,11 +14,13 @@ There are three principal ways to use type checking, each with its pros and cons
 
 #. calling ``check_argument_types()`` from within the function body:
 
-   * debugger friendly
+   * debugger friendly (except when running with the pydev debugger with the C extension installed)
    * cannot check the type of the return value
    * does not work reliably with dynamically defined type hints (e.g. in nested functions)
 #. decorating the function with ``@typechecked``:
 
+   * 100% reliable at finding the function object to be checked (does not need to check the garbage
+     collector)
    * can check the type of the return value
    * adds an extra frame to the call stack for every call to a decorated function
 #. using ``with TypeChecker('packagename'):``:

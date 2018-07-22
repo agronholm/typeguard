@@ -89,6 +89,8 @@ def find_function(frame) -> Optional[Callable]:
         # Cache the result for future lookups
         if func is not None:
             _functions_map[frame.f_code] = func
+        else:
+            raise LookupError('target function not found')
 
     return func
 
@@ -438,7 +440,11 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     """
     if memo is None:
         frame = inspect.currentframe().f_back
-        func = find_function(frame)
+        try:
+            func = find_function(frame)
+        except LookupError:
+            return True  # This can happen with the Pydev/PyCharm debugger extension installed
+
         memo = _CallMemo(func, frame)
 
     for argname, expected_type in memo.type_hints.items():

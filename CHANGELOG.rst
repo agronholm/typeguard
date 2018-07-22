@@ -12,6 +12,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 - Shortened unnecessarily long tracebacks by raising a new ``TypeError`` based on the old one
 - Allowed type checking against arbitrary types by removing the requirement to supply a call memo
   to ``check_type()``
+- Fixed ``AttributeError`` when running with the pydev debugger extension installed
 
 **2.2.0** (2018-07-08)
 
