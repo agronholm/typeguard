@@ -774,6 +774,8 @@ class TestTypeChecker:
         warning.print_stack(buffer)
         assert len(buffer.getvalue()) > 100
 
+
+
     def test_check_return_value(self, checker: TypeChecker):
         def foo() -> int:
             return 'x'
@@ -783,6 +785,16 @@ class TestTypeChecker:
 
         assert len(record) == 1
         assert record[0].message.error == 'type of the return value must be int; got str instead'
+
+    def test_check_return_forward_reference(self, checker: TypeChecker):
+        class A:
+
+            @typechecked
+            def clone(self) -> 'A':
+                return A()
+
+        val = A().clone()
+        assert isinstance(val, A)
 
     def test_threaded_check_call_args(self, checker: TypeChecker, executor):
         def foo(a: int):
@@ -847,3 +859,4 @@ class TestTypeChecker:
 
         assert profiler_run_count
         assert len(record) == 1
+

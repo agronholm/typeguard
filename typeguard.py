@@ -11,7 +11,7 @@ from inspect import Parameter, isclass, isfunction
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                    get_type_hints, TextIO, Optional)
+                    get_type_hints, TextIO, Optional, ForwardRef, _eval_type as typing_eval_type)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -42,7 +42,8 @@ class _CallMemo:
 
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
-            hints = get_type_hints(func)
+            frame = inspect.stack()[2].frame
+            hints = get_type_hints(func, localns=frame.f_locals, globalns=frame.f_globals)
             self.type_hints = _type_hints_map[func] = OrderedDict()
             for name, parameter in self.signature.parameters.items():
                 if name in hints:
