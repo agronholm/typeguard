@@ -42,8 +42,9 @@ class _CallMemo:
 
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
-            frame = inspect.stack()[2][0]
-            hints = get_type_hints(func, localns=frame.f_locals, globalns=frame.f_globals)
+            hints = get_type_hints(func,
+                                   localns=frame.f_locals if frame else None,
+                                   globalns=frame.f_globals if frame else None)
             self.type_hints = _type_hints_map[func] = OrderedDict()
             for name, parameter in self.signature.parameters.items():
                 if name in hints:
@@ -483,9 +484,11 @@ def typechecked(func: Callable = None, *, always: bool = False):
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
+    frame = inspect.stack()[1][0]
+
     @wraps(func)
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(func, args=args, kwargs=kwargs)
+        memo = _CallMemo(func, frame=frame, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
