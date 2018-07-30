@@ -11,7 +11,7 @@ from inspect import Parameter, isclass, isfunction
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                    get_type_hints, TextIO, Optional)
+                    get_type_hints, TextIO, Optional, ForwardRef)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -461,6 +461,21 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
+def _inject_forward_refs(frame, func: Callable):
+    """
+    Ask python for a forward reference in the correct frame locals
+
+    :param frame: the frame that corresponds to when the function is decorated
+    :param func: the function to enable type checking for
+    :return:
+    """
+    for annotation_val in func.__annotations__.values():
+        if not isinstance(annotation_val, str):
+            continue
+        if annotation_val not in frame.f_locals and annotation_val not in frame.f_globals:
+            frame.f_locals[annotation_val] = ForwardRef(annotation_val)
+
+
 def typechecked(func: Callable = None, *, always: bool = False):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
@@ -485,6 +500,8 @@ def typechecked(func: Callable = None, *, always: bool = False):
         return func
 
     frame = inspect.stack()[1][0]
+
+    dec_later = _inject_forward_refs(frame, func)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
