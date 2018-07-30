@@ -42,7 +42,7 @@ class _CallMemo:
 
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
-            frame = inspect.stack()[2].frame
+            frame = inspect.stack()[2][0]
             hints = get_type_hints(func, localns=frame.f_locals, globalns=frame.f_globals)
             self.type_hints = _type_hints_map[func] = OrderedDict()
             for name, parameter in self.signature.parameters.items():
