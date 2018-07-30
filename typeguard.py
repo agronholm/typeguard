@@ -11,7 +11,7 @@ from inspect import Parameter, isclass, isfunction
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                    get_type_hints, TextIO, Optional, ForwardRef, _eval_type as typing_eval_type)
+                    get_type_hints, TextIO, Optional)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
