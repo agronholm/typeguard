@@ -333,6 +333,13 @@ class TestCheckArgumentTypes:
 
         foo(value)
 
+    def test_union(self):
+        def foo(a: Union[str, Collection]):
+            assert check_argument_types()
+
+        with pytest.raises(TypeError):
+            foo(1)
+
     @pytest.mark.parametrize('value', [6.5, b'aa'])
     def test_union_fail(self, value):
         def foo(a: Union[str, int]):
