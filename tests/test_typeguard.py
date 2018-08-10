@@ -362,6 +362,14 @@ class TestCheckArgumentTypes:
 
         foo(*values)
 
+    def test_typevar_constraints_fail_typing_type(self):
+        T = TypeVar('T', int, Collection)
+        def foo(a: T, b: T):
+            assert check_argument_types()
+
+        with pytest.raises(TypeError):
+            foo('aa', 'bb')
+
     def test_typevar_constraints_fail(self):
         T = TypeVar('T', int, str)
 
