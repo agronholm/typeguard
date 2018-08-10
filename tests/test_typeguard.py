@@ -333,7 +333,7 @@ class TestCheckArgumentTypes:
 
         foo(value)
 
-    def test_union(self):
+    def test_union_typing_type(self):
         def foo(a: Union[str, Collection]):
             assert check_argument_types()
 
@@ -364,6 +364,7 @@ class TestCheckArgumentTypes:
 
     def test_typevar_constraints_fail_typing_type(self):
         T = TypeVar('T', int, Collection)
+
         def foo(a: T, b: T):
             assert check_argument_types()
 

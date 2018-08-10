@@ -261,6 +261,7 @@ def _get_type_name(type_):
         name = type_._name
     return name
 
+
 def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if hasattr(expected_type, '__union_params__'):
         # Python 3.5
