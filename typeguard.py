@@ -63,6 +63,11 @@ class _CallMemo:
                 self.type_hints['return'] = hints['return']
 
 
+def get_type_name(type_):
+    # typing.* types don't have a __name__ on Python 3.7+
+    return getattr(type_, '__name__', None) or type._name
+
+  
 def find_function(frame) -> Optional[Callable]:
     """
     Return a function object from the garbage collector that matches the frame's code object.
@@ -254,14 +259,6 @@ def check_tuple(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
             check_type('{}[{}]'.format(argname, i), element, element_type, memo)
 
 
-def _get_type_name(type_):
-    # typing.* types don't have a __name__
-    name = getattr(type_, '__name__', None)
-    if name is None:
-        name = type_._name
-    return name
-
-
 def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
     if hasattr(expected_type, '__union_params__'):
         # Python 3.5
@@ -277,7 +274,7 @@ def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
         except TypeError:
             pass
 
-    typelist = ', '.join(_get_type_name(t) for t in union_params)
+    typelist = ', '.join(get_type_name(t) for t in union_params)
     raise TypeError('type of {} must be one of ({}); got {} instead'.
                     format(argname, typelist, qualified_name(value)))
 
@@ -312,7 +309,7 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMem
         # The type variable hasn't been bound yet -- check that the given value matches the
         # constraints of the type variable, if any
         if typevar.__constraints__ and value_type not in typevar.__constraints__:
-            typelist = ', '.join(_get_type_name(t) for t in typevar.__constraints__
+            typelist = ', '.join(get_type_name(t) for t in typevar.__constraints__
                                  if t is not object)
             raise TypeError('{} must be one of ({}); got {} instead'.
                             format(subject, typelist, qualified_name(value_type)))
