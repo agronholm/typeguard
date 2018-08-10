@@ -333,6 +333,13 @@ class TestCheckArgumentTypes:
 
         foo(value)
 
+    def test_union_typing_type(self):
+        def foo(a: Union[str, Collection]):
+            assert check_argument_types()
+
+        with pytest.raises(TypeError):
+            foo(1)
+
     @pytest.mark.parametrize('value', [6.5, b'aa'])
     def test_union_fail(self, value):
         def foo(a: Union[str, int]):
@@ -354,6 +361,15 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo(*values)
+
+    def test_typevar_constraints_fail_typing_type(self):
+        T = TypeVar('T', int, Collection)
+
+        def foo(a: T, b: T):
+            assert check_argument_types()
+
+        with pytest.raises(TypeError):
+            foo('aa', 'bb')
 
     def test_typevar_constraints_fail(self):
         T = TypeVar('T', int, str)
