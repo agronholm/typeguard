@@ -13,6 +13,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 - Allowed type checking against arbitrary types by removing the requirement to supply a call memo
   to ``check_type()``
 - Fixed ``AttributeError`` when running with the pydev debugger extension installed
+- Fixed getting type names on ``typing.*`` on Python 3.7 (fix by Dale Jung)
 
 **2.2.0** (2018-07-08)
 
