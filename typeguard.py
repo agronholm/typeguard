@@ -67,7 +67,7 @@ def get_type_name(type_):
     # typing.* types don't have a __name__ on Python 3.7+
     return getattr(type_, '__name__', None) or type._name
 
-  
+
 def find_function(frame) -> Optional[Callable]:
     """
     Return a function object from the garbage collector that matches the frame's code object.
