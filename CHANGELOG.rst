@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
-**UNRELEASED**
+**2.2.1** (2018-08-12)
 
 - Argument type annotations are no longer unioned with the types of their default values, except in
   the case of ``None`` as the default value (although PEP 484 still recommends against this)
