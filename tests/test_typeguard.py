@@ -128,6 +128,15 @@ class TestCheckArgumentTypes:
 
         foo(SomeClass)
 
+    def test_callable_plain(self):
+        def foo(a: Callable):
+            assert check_argument_types()
+
+        def callback(a):
+            pass
+
+        foo(callback)
+
     def test_callable_partial_class(self):
         """
         Test that passing a bound method as a callable does not count the "self" argument "a"gainst

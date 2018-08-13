@@ -131,7 +131,7 @@ def check_callable(argname: str, value, expected_type, memo: Optional[_CallMemo]
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
-    if isinstance(expected_type.__args__, tuple):
+    if expected_type.__args__:
         try:
             signature = inspect.signature(value)
         except (TypeError, ValueError):

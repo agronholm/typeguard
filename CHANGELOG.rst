@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.2.2** (2018-08-13)
+
+- Fixed false positive when checking a callable against the plain ``typing.Callable`` on Python 3.7
+
 **2.2.1** (2018-08-12)
 
 - Argument type annotations are no longer unioned with the types of their default values, except in
