@@ -198,7 +198,7 @@ def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) ->
 
 
 def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
-    if not isinstance(value, collections.Sequence):
+    if not isinstance(value, collections.abc.Sequence):
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
 
@@ -209,7 +209,7 @@ def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]
 
 
 def check_set(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
-    if not isinstance(value, collections.Set):
+    if not isinstance(value, collections.abc.Set):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
 
