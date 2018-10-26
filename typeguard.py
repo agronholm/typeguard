@@ -267,6 +267,12 @@ def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
         # Python 3.6+
         union_params = expected_type.__args__
 
+    # Union[type, None], aka Optional[type]
+    if len(union_params) == 2 and union_params[1] is type(None):
+        if value is not None:
+            check_type(argname, value, union_params[0], memo)
+        return
+
     for type_ in union_params:
         try:
             check_type(argname, value, type_, memo)
