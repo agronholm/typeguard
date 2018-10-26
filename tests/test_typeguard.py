@@ -371,21 +371,24 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, ['meme', None])
-        assert str(exc.value) == ('type of argument "a" must be one of (List, str, NoneType); got list instead')
+        assert str(exc.value) == (
+            'type of argument "a" must be one of (List, str, NoneType); got list instead')
 
     def test_union_with_none_first(self):
         def foo(a: Union[None, List[str]]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, ['meme', None])
-        assert str(exc.value) == ('type of argument "a" must be one of (NoneType, List); got list instead')
+        assert str(exc.value) == (
+            'type of argument "a" must be one of (NoneType, List); got list instead')
 
     def test_union_of_three(self):
         def foo(a: Union[List[str], List[int], int]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, ['meme', None])
-        assert str(exc.value) == ('type of argument "a" must be one of (List, List, int); got list instead')
+        assert str(exc.value) == (
+            'type of argument "a" must be one of (List, List, int); got list instead')
 
     @pytest.mark.parametrize('values', [
         (6, 7),
