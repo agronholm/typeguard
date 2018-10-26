@@ -4,7 +4,7 @@ from functools import wraps, partial
 from io import StringIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic)
+    Container, Generic, Optional)
 
 import pytest
 
@@ -358,6 +358,34 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument "a" must be one of (str, int); got {} instead'.
             format(value.__class__.__name__))
+
+    def test_optional_special_case(self):
+        def foo(a: Optional[List[str]]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, ['meme', None])
+        assert str(exc.value) == ('type of argument "a"[1] must be str; got NoneType instead')
+
+    def test_optional_of_union(self):
+        def foo(a: Optional[Union[List[str], str]]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, ['meme', None])
+        assert str(exc.value) == ('type of argument "a" must be one of (List, str, NoneType); got list instead')
+
+    def test_union_with_none_first(self):
+        def foo(a: Union[None, List[str]]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, ['meme', None])
+        assert str(exc.value) == ('type of argument "a" must be one of (NoneType, List); got list instead')
+
+    def test_union_of_three(self):
+        def foo(a: Union[List[str], List[int], int]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, ['meme', None])
+        assert str(exc.value) == ('type of argument "a" must be one of (List, List, int); got list instead')
 
     @pytest.mark.parametrize('values', [
         (6, 7),
