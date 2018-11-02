@@ -268,7 +268,7 @@ def check_union(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
         union_params = expected_type.__args__
 
     # Union[type, None], aka Optional[type]
-    if len(union_params) == 2 and union_params[1] is type(None):
+    if len(union_params) == 2 and union_params[1] is type(None): # noqa: E721
         if value is not None:
             check_type(argname, value, union_params[0], memo)
         return
