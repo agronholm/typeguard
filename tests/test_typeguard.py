@@ -518,7 +518,7 @@ class TestCheckArgumentTypes:
         Test that if the default value is ``None``, a ``None`` argument can be passed.
 
         """
-        def foo(a: str=None):
+        def foo(a: str = None):
             assert check_argument_types()
 
         foo()
