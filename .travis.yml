@@ -26,11 +26,6 @@ jobs:
 
     - stage: test
       env: TOXENV=py35
-      python: "3.5.0"
-      after_success: *after_success
-
-    - stage: test
-      env: TOXENV=py35
       python: "3.5.2"
       after_success: *after_success
 
