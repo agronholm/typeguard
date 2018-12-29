@@ -13,28 +13,34 @@ jobs:
     - stage: static analysis
       env: TOXENV=flake8
 
-    - env: TOXENV=pypy3
+    - stage: test
+      env: TOXENV=pypy3
       python: pypy3.5-6.0
 
-    - env: TOXENV=py34
+    - stage: test
+      env: TOXENV=py34
       python: "3.4"
       after_success: &after_success
         - pip install coveralls
         - coveralls
 
-    - env: TOXENV=py35
+    - stage: test
+      env: TOXENV=py35
       python: "3.5.0"
       after_success: *after_success
 
-    - env: TOXENV=py35
+    - stage: test
+      env: TOXENV=py35
       python: "3.5.2"
       after_success: *after_success
 
-    - env: TOXENV=py36
+    - stage: test
+      env: TOXENV=py36
       python: "3.6"
       after_success: *after_success
 
-    - env: TOXENV=py37
+    - stage: test
+      env: TOXENV=py37
       python: "3.7"
       after_success: *after_success
 
