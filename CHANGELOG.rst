@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**UNRELEASED**
+
+- Added support for ``typing.IO`` and derivatives
+
 **2.2.2** (2018-08-13)
 
 - Fixed false positive when checking a callable against the plain ``typing.Callable`` on Python 3.7

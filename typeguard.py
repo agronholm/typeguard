@@ -8,10 +8,12 @@ import threading
 from collections import OrderedDict
 from functools import wraps, partial
 from inspect import Parameter, isclass, isfunction
+from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
-from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-                    get_type_hints, TextIO, Optional)
+from typing import (
+    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+    get_type_hints, TextIO, Optional, IO, BinaryIO)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -343,6 +345,20 @@ def check_number(argname: str, value, expected_type):
                         format(argname, qualified_name(value.__class__)))
 
 
+def check_io(argname: str, value, expected_type):
+    if expected_type is TextIO:
+        if not isinstance(value, TextIOBase):
+            raise TypeError('type of {} must be a text based I/O object; got {} instead'.
+                            format(argname, qualified_name(value.__class__)))
+    elif expected_type is BinaryIO:
+        if not isinstance(value, (RawIOBase, BufferedIOBase)):
+            raise TypeError('type of {} must be a binary I/O object; got {} instead'.
+                            format(argname, qualified_name(value.__class__)))
+    elif not isinstance(value, IOBase):
+        raise TypeError('type of {} must be an I/O object; got {} instead'.
+                        format(argname, qualified_name(value.__class__)))
+
+
 # Equality checks are applied to these
 origin_type_checkers = {
     Callable: check_callable,
@@ -404,6 +420,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
             check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
             check_typevar(argname, value, expected_type, memo)
+        elif issubclass(expected_type, IO):
+            check_io(argname, value, expected_type)
         else:
             expected_type = (getattr(expected_type, '__extra__', None) or origin_type or
                              expected_type)

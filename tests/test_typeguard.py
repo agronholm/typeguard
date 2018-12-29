@@ -1,10 +1,10 @@
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial
-from io import StringIO
+from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic)
+    Container, Generic, IO, BinaryIO, TextIO)
 
 import pytest
 
@@ -562,6 +562,37 @@ class TestCheckArgumentTypes:
 
         pytest.raises(TypeError, foo, True).match(
             'type of argument "a" must be collections.abc.Collection; got bool instead')
+
+    @pytest.mark.parametrize('annotation, io_object', [
+        (BinaryIO, BytesIO()),
+        (TextIO, StringIO())
+    ], ids=['binary', 'text'])
+    def test_io(self, annotation, io_object):
+        def foo(a: annotation):
+            assert check_argument_types()
+
+        foo(io_object)
+
+    @pytest.mark.parametrize('annotation, io_object, error', [
+        (TextIO, BytesIO(), 'must be a text based I/O'),
+        (BinaryIO, StringIO(), 'must be a binary I/O')
+    ], ids=['binary', 'text'])
+    def test_io_fail(self, annotation, io_object, error):
+        def foo(a: annotation):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, io_object).match(error)
+
+    @pytest.mark.parametrize('annotation, mode', [
+        (BinaryIO, 'wb'),
+        (TextIO, 'w')
+    ], ids=['binary', 'text'])
+    def test_io_real_file(self, annotation, mode, tmpdir):
+        def foo(a: IO):
+            assert check_argument_types()
+
+        with tmpdir.join('testfile').open(mode) as f:
+            foo(f)
 
 
 class TestTypeChecked:
