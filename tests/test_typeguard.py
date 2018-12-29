@@ -51,7 +51,7 @@ def test_check_type_no_memo():
 
 def test_check_type_no_memo_fail():
     pytest.raises(TypeError, check_type, 'foo', ['a'], List[int]).\
-        match('type of foo\[0\] must be int; got str instead')
+        match(r'type of foo\[0\] must be int; got str instead')
 
 
 class TestCheckArgumentTypes:
@@ -324,7 +324,7 @@ class TestCheckArgumentTypes:
 
         pytest.raises(TypeError, foo, ('bob', 1)).\
             match('type of argument "bar" must be a named tuple of type '
-                  '(test_typeguard\.)?Employee; got tuple instead')
+                  r'(test_typeguard\.)?Employee; got tuple instead')
 
     def test_namedtuple_wrong_field_type(self):
         Employee = NamedTuple('Employee', [('name', str), ('id', int)])
@@ -487,7 +487,7 @@ class TestCheckArgumentTypes:
         Test that if the default value is ``None``, a ``None`` argument can be passed.
 
         """
-        def foo(a: str=None):
+        def foo(a: str = None):
             assert check_argument_types()
 
         foo()
@@ -513,7 +513,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 1, 'a')
-        exc.match('type of argument "args"\[1\] must be int; got str instead')
+        exc.match(r'type of argument "args"\[1\] must be int; got str instead')
 
     def test_kwargs(self):
         def foo(**kwargs: int):
@@ -526,7 +526,7 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, a=1, b='a')
-        exc.match('type of argument "kwargs"\[\'b\'\] must be int; got str instead')
+        exc.match(r'type of argument "kwargs"\[\'b\'\] must be int; got str instead')
 
     def test_generic(self):
         T_Foo = TypeVar('T_Foo')
