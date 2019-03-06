@@ -7,6 +7,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
 - Added support for ``typing.IO`` and derivatives
 - Fixed return type checking for coroutine functions
+- Dropped support for Python 3.4
 
 **2.2.2** (2018-08-13)
 
