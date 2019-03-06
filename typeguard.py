@@ -505,7 +505,6 @@ def typechecked(func: Callable = None, *, always: bool = False):
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
-    @wraps(func)
     def wrapper(*args, **kwargs):
         memo = _CallMemo(func, args=args, kwargs=kwargs)
         check_argument_types(memo)
@@ -513,7 +512,17 @@ def typechecked(func: Callable = None, *, always: bool = False):
         check_return_type(retval, memo)
         return retval
 
-    return wrapper
+    async def async_wrapper(*args, **kwargs):
+        memo = _CallMemo(func, args=args, kwargs=kwargs)
+        check_argument_types(memo)
+        retval = await func(*args, **kwargs)
+        check_return_type(retval, memo)
+        return retval
+
+    if inspect.iscoroutinefunction(func):
+        return wraps(func)(async_wrapper)
+    else:
+        return wraps(func)(wrapper)
 
 
 class TypeWarning(UserWarning):

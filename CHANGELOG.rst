@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 **UNRELEASED**
 
 - Added support for ``typing.IO`` and derivatives
+- Fixed return type checking for coroutine functions
 
 **2.2.2** (2018-08-13)
 

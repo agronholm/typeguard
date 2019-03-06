@@ -797,6 +797,23 @@ class TestTypeChecked:
 
         foo(value)
 
+    def test_coroutine_correct_return_type(self):
+        @typechecked
+        async def foo() -> str:
+            return 'foo'
+
+        coro = foo()
+        pytest.raises(StopIteration, coro.send, None)
+
+    def test_coroutine_wrong_return_type(self):
+        @typechecked
+        async def foo() -> str:
+            return 1
+
+        coro = foo()
+        pytest.raises(TypeError, coro.send, None).\
+            match('type of the return value must be str; got int instead')
+
 
 class TestTypeChecker:
     @pytest.fixture
