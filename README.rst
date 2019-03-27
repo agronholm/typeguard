@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.org/agronholm/typeguard.svg?branch=master
-  :target: https://travis-ci.org/agronholm/typeguard
+.. image:: https://travis-ci.com/agronholm/typeguard.svg?branch=master
+  :target: https://travis-ci.com/agronholm/typeguard
   :alt: Build Status
 .. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/agronholm/typeguard?branch=master
