@@ -45,7 +45,7 @@ class _CallMemo:
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
             hints = get_type_hints(func)
-            self.type_hints = _type_hints_map[func] = OrderedDict()
+            self.type_hints = OrderedDict()
             for name, parameter in self.signature.parameters.items():
                 if name in hints:
                     annotated_type = hints[name]
@@ -63,6 +63,8 @@ class _CallMemo:
 
             if 'return' in hints:
                 self.type_hints['return'] = hints['return']
+
+            _type_hints_map[func] = self.type_hints
 
 
 def get_type_name(type_):
