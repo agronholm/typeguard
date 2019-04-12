@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning <http://semver.org/>`_.
 
+**2.3.1** (2019-04-12)
+
+- Fixed thread safety issue with the type hints cache (PR by Kelsey Francis)
+
 **2.3.0** (2019-03-27)
 
 - Added support for ``typing.IO`` and derivatives
