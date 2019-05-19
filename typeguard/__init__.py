@@ -25,6 +25,8 @@ except ImportError:
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
+T_Callable = TypeVar('T_Callable', bound=Callable)
+
 
 class _CallMemo:
     __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints')
@@ -484,7 +486,8 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
-def typechecked(func: Callable = None, *, always: bool = False):
+def typechecked(func: Optional[T_Callable] = None, *,
+                always: bool = False) -> Optional[T_Callable]:
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 
