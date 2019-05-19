@@ -759,6 +759,13 @@ class TestTypeChecked:
 
         foo((1, 2))
 
+    def test_empty_tuple(self):
+        @typechecked
+        def foo(a: Tuple[()]):
+            pass
+
+        foo(())
+
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
         Type[Parent],

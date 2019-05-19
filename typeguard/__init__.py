@@ -256,6 +256,9 @@ def check_tuple(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
         element_type = tuple_params[0]
         for i, element in enumerate(value):
             check_type('{}[{}]'.format(argname, i), element, element_type, memo)
+    elif tuple_params == ((),):
+        if value != ():
+            raise TypeError('{} is not an empty tuple but one was expected'.format(argname))
     else:
         if len(value) != len(tuple_params):
             raise TypeError('{} has wrong number of elements (expected {}, got {} instead)'
