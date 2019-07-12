@@ -472,7 +472,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
         try:
             # much faster than inspect, but not officially
             # supported in all python implementations
-            frame = sys._getframe(0).f_back
+            frame = sys._getframe(1)
         except Exception:
             # fall back to slower, but safer method
             frame = inspect.currentframe().f_back
