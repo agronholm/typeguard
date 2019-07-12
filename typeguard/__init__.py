@@ -469,7 +469,10 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 
     """
     if memo is None:
-        frame = inspect.currentframe().f_back
+        # faster than inspect.currentframe(), but not officially
+        # supported in all python implementations
+        frame = sys._getframe(1)
+
         try:
             func = find_function(frame)
         except LookupError:
