@@ -8,6 +8,7 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 - Added :pep:`561` support
 - Added support for empty tuples (``Tuple[()]``)
 - Added support for ``typing.Literal``
+- Make getting the caller frame faster (PR by Nick Sweeting)
 
 **2.3.1** (2019-04-12)
 
