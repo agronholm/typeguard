@@ -10,7 +10,7 @@ import pytest
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type)
+    check_type, Literal)
 
 try:
     from typing import Type
@@ -593,6 +593,14 @@ class TestCheckArgumentTypes:
 
         with tmpdir.join('testfile').open(mode) as f:
             foo(f)
+
+    @pytest.mark.skipif(Literal is None, reason='typing.Literal could not be imported')
+    def test_literal(self):
+        def foo(a: Literal[1, 6, 8]):
+            assert check_argument_types()
+
+        foo(6)
+        pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
 
 
 class TestTypeChecked:

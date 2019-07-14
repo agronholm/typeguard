@@ -6,7 +6,8 @@ This library adheres to `Semantic Versioning <http://semver.org/>`_.
 **UNRELEASED**
 
 - Added :pep:`561` support
-- Added support for empty tuples (`Tuple[()]`)
+- Added support for empty tuples (``Tuple[()]``)
+- Added support for ``typing.Literal``
 
 **2.3.1** (2019-04-12)
 

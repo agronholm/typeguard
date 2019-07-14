@@ -22,6 +22,12 @@ try:
 except ImportError:
     Type = None
 
+try:
+    from typing import Literal
+except ImportError:
+    Literal = None
+
+
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
@@ -343,6 +349,12 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMem
         memo.typevars[typevar] = value_type
 
 
+def check_literal(argname: str, value, expected_type, memo: Optional[_CallMemo]):
+    if value not in expected_type.__args__:
+        raise TypeError('the value of {} must be one of {}; got {} instead'.
+                        format(argname, expected_type.__args__, value))
+
+
 def check_number(argname: str, value, expected_type):
     if expected_type is complex and not isinstance(value, (complex, float, int)):
         raise TypeError('type of {} must be either complex, float or int; got {} instead'.
@@ -386,6 +398,8 @@ origin_type_checkers = {
 _subclass_check_unions = hasattr(Union, '__union_set_params__')
 if Type is not None:
     origin_type_checkers[Type] = check_class
+if Literal is not None:
+    origin_type_checkers[Literal] = check_literal
 
 
 def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = None) -> None:
@@ -493,7 +507,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 
 
 def typechecked(func: Optional[T_Callable] = None, *,
-                always: bool = False) -> Optional[T_Callable]:
+                always: bool = False) -> Union[T_Callable]:
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 

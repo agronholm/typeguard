@@ -33,6 +33,11 @@ jobs:
       python: "3.7"
       after_success: *after_success
 
+    - stage: test
+      env: TOXENV=py38
+      python: "3.8-dev"
+      after_success: *after_success
+
     - stage: deploy to pypi
       install: skip
       script: skip
