@@ -603,21 +603,28 @@ class TypeChecker:
     A type checker that collects type violations by hooking into ``sys.setprofile()``.
 
     :param all_threads: ``True`` to check types in all threads created while the checker is
-        running, ``False`` to only check in the current one
+        running, ``False`` to only check in the current one.
+    :param check_orphans: ``True`` to check funcs where ``__module__`` is ``None``.
     """
 
-    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True):
+    def __init__(self,
+            packages: Union[str, Sequence[str]],
+            *,
+            all_threads: bool = True,
+            check_orphans = False):
         assert check_argument_types()
         self.all_threads = all_threads
         self._call_memos = {}  # type: Dict[Any, _CallMemo]
         self._previous_profiler = None
         self._previous_thread_profiler = None
         self._active = False
+        self._check_orphans = check_orphans
 
         if isinstance(packages, str):
             self._packages = (packages,)
         else:
             self._packages = tuple(packages)
+        self._doted_packages = [p + '.' for p in self._packages]
 
     @property
     def active(self) -> bool:
@@ -625,13 +632,25 @@ class TypeChecker:
         return self._active
 
     def should_check_type(self, func: Callable) -> bool:
+        # This function gets called a lot, and is worth making fast.
+
         if not func.__annotations__:
             # No point in checking if there are no type hints
             return False
-        else:
-            # Check types if the module matches any of the package prefixes
-            return any(func.__module__ == package or func.__module__.startswith(package + '.')
-                       for package in self._packages)
+
+        # Check types if the module matches any of the package prefixes
+        module = func.__module__
+        if module is None:
+            return self._check_orphans
+
+        if module in self._packages:
+            return True
+
+        for p in self._doted_packages:
+            if module.startswith(p):
+                return True
+
+        return False
 
     def start(self):
         if self._active:

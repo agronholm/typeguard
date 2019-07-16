@@ -852,10 +852,18 @@ class TestTypeChecker:
         def foo(a: int):
             pass
 
+        def bar(a: int):
+            pass
+
+        bar.__module__ = None
+
         with checker, pytest.warns(TypeWarning) as record:
             assert checker.active
             foo(1)
             foo('x')
+
+            # ignored, __module__ is None
+            bar('z')
 
         assert not checker.active
         foo('x')
