@@ -700,7 +700,12 @@ class TypeChecker:
                 self._previous_profiler(frame, event, arg)
 
             memo = self._call_memos.pop(frame, None)
-            if memo is not None:
+
+            # Note that the return event is also triggered when exiting a function via an
+            # exception. In this case arg is None and we can not perform any type checking.
+            # Unfortunately, this event is not distinguishable from regularly returning None from a
+            # function. Surpressing the false positive therefore also hides real warnings.
+            if arg is not None and memo is not None:
                 try:
                     check_return_type(arg, memo)
                 except TypeError as exc:

@@ -31,6 +31,7 @@ There are three principal ways to use type checking, each with its pros and cons
    * noninvasive (only records type violations; does not raise exceptions)
    * does not work reliably with dynamically defined type hints (e.g. in nested functions)
    * may cause problems with badly behaving debuggers or profilers
+   * can not distinguish returning None from raising an exception (i.e. detects slightly less)
 
 If a function is called with incompatible argument types or a ``@typechecked`` decorated function
 returns a value incompatible with the declared type, a descriptive ``TypeError`` exception is

@@ -869,12 +869,26 @@ class TestTypeChecker:
         warning.print_stack(buffer)
         assert len(buffer.getvalue()) > 100
 
-    def test_check_return_value(self, checker: TypeChecker):
+    def test_check_no_warning_on_exception(self, checker: TypeChecker, recwarn):
+        """Test that no return type warning is emitted when exiting a function via an exception."""
         def foo() -> int:
-            return 'x'
+            raise RuntimeError()
+
+        with checker:
+            try:
+                foo()
+            except RuntimeError:
+                pass
+
+        assert len(recwarn) == 0
+
+    def test_check_return_value(self, checker: TypeChecker):
+        def foo(arg) -> int:
+            return arg
 
         with checker, pytest.warns(TypeWarning) as record:
-            foo()
+            foo(None)  # This type error is unfortunately indistinguishable to an exception return.
+            foo('x')
 
         assert len(record) == 1
         assert record[0].message.error == 'type of the return value must be int; got str instead'
