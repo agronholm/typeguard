@@ -13,14 +13,9 @@ from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-    get_type_hints, TextIO, Optional, IO, BinaryIO)
+    get_type_hints, TextIO, Optional, IO, BinaryIO, Type)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
-
-try:
-    from typing import Type
-except ImportError:
-    Type = None
 
 try:
     from typing import Literal
