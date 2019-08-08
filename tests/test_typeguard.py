@@ -842,6 +842,14 @@ class TestTypeChecked:
         pytest.raises(TypeError, coro.send, None).\
             match('type of the return value must be str; got int instead')
 
+    def test_bytearray_bytes(self):
+        """Test that a bytearray is accepted where bytes are expected."""
+        @typechecked
+        def foo(x: bytes) -> None:
+            pass
+
+        foo(bytearray([1]))
+
 
 class TestTypeChecker:
     @pytest.fixture

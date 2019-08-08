@@ -451,6 +451,11 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
         else:
             expected_type = (getattr(expected_type, '__extra__', None) or origin_type or
                              expected_type)
+
+            if expected_type is bytes:
+                # As per https://github.com/python/typing/issues/552
+                expected_type = (bytearray, bytes)
+
             if not isinstance(value, expected_type):
                 raise TypeError(
                     'type of {} must be {}; got {} instead'.

@@ -9,6 +9,9 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Silenced ``TypeChecker`` warnings about async generators
 - Fixed bogus ``TypeError`` on ``Type[Any]``
 - Fixed bogus ``TypeChecker`` warnings when an exception is raised from a type checked function
+- Accept a ``bytearray`` where ``bytes`` are expected, as per `python/typing#552`_
+
+.. _python/typing#552: https://github.com/python/typing/issues/552
 
 **2.4.1** (2019-07-15)
 
