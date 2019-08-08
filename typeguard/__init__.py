@@ -694,15 +694,12 @@ class TypeChecker:
             return
 
         # If an actual profiler is running, don't include the type checking times in its results
-        # print('event: %s  arg: %s  code: %s' % (event, arg, frame.f_code.co_name))
         if event == 'call':
-            # print('  call, code name = %s' % (frame.f_code.co_name))
             try:
                 func = find_function(frame)
             except Exception:
                 func = None
 
-            # print('call, func = %s' % func)
             if func is not None and self.should_check_type(func):
                 memo = self._call_memos[frame] = _CallMemo(func, frame)
                 if memo.is_generator:
@@ -724,7 +721,6 @@ class TypeChecker:
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
 
-            print('  return, arg = %s, code name = %s' % (arg, frame.f_code.co_name))
             memo = self._call_memos.get(frame)
             if memo is not None:
                 try:
