@@ -10,7 +10,7 @@ from functools import wraps, partial
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
-from types import CodeType, FunctionType  # noqa
+from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
     get_type_hints, TextIO, Optional, IO, BinaryIO, Type, Generator)
@@ -405,7 +405,7 @@ origin_type_checkers = {
     type: check_class,
     Union: check_union
 }
-_subclass_check_unions = hasattr(Union, '__union_set_params__')
+
 if Type is not None:
     origin_type_checkers[Type] = check_class
 if Literal is not None:
@@ -442,13 +442,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     elif isclass(expected_type):
         if issubclass(expected_type, Tuple):
             check_tuple(argname, value, expected_type, memo)
-        elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
-            # Needed on Python 3.5.0 to 3.5.2
-            check_callable(argname, value, expected_type, memo)
         elif issubclass(expected_type, (float, complex)):
             check_number(argname, value, expected_type)
-        elif _subclass_check_unions and issubclass(expected_type, Union):
-            check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
             check_typevar(argname, value, expected_type, memo)
         elif issubclass(expected_type, IO):
