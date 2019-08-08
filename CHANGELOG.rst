@@ -8,6 +8,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added generator yield type checking in ``TypeChecker`` for regular generators
 - Silenced ``TypeChecker`` warnings about async generators
 - Fixed bogus ``TypeError`` on ``Type[Any]``
+- Fixed bogus ``TypeChecker`` warnings when an exception is raised from a type checked function
 
 **2.4.1** (2019-07-15)
 

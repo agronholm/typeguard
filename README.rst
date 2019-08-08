@@ -91,8 +91,10 @@ Using ``TypeChecker``:
 
 Some shortcomings in ``TypeChecker``:
 
+* If a function returns ``None``, no return (or yield) value type checking is done because ``None``
+  is also returned to the profiler hook when an exception is raised
 * Generator yield types are checked, send types are not
-* Generator yields cannot be distinguished from returns, but ``None`` values are ignored
+* Generator yields cannot be distinguished from returns
 * Async generators are ignored
 
 .. hint:: Some other things you can do with ``TypeChecker``:

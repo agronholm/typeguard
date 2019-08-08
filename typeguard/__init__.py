@@ -721,12 +721,16 @@ class TypeChecker:
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
 
+            if arg is None:
+                # a None return value might mean an exception is being raised but we have no way of
+                # checking
+                return
+
             memo = self._call_memos.get(frame)
             if memo is not None:
                 try:
                     if memo.is_generator:
-                        if arg is not None:  # arg is None when StopIteration is raised
-                            check_type('yielded value', arg, memo.type_hints['return'], memo)
+                        check_type('yielded value', arg, memo.type_hints['return'], memo)
                     else:
                         check_return_type(arg, memo)
                 except TypeError as exc:

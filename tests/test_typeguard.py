@@ -863,6 +863,10 @@ class TestTypeChecker:
         yield 1
         yield 'foo'
 
+    @staticmethod
+    def error_function() -> float:
+        return 1 / 0
+
     def test_check_call_args(self, checker: TypeChecker):
         def foo(a: int):
             pass
@@ -972,3 +976,9 @@ class TestTypeChecker:
 
         assert len(record) == 1
         assert 'type of yielded value must be int; got str instead' in str(record[0].message)
+
+    def test_exception(self, checker):
+        with checker, pytest.warns(None) as record:
+            pytest.raises(ZeroDivisionError, self.error_function)
+
+        assert len(record) == 0
