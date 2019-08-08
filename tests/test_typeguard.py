@@ -461,6 +461,12 @@ class TestCheckArgumentTypes:
         pytest.raises(TypeError, foo, Parent).match(
             '"a" must be a subclass of test_typeguard.Child; got test_typeguard.Parent instead')
 
+    def test_class_any(self):
+        def foo(a: Type[Any]):
+            assert check_argument_types()
+
+        foo(str)
+
     def test_wrapped_function(self):
         def decorator(func):
             @wraps(func)

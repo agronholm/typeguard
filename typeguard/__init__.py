@@ -313,7 +313,9 @@ def check_class(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
 
     expected_class = expected_type.__args__[0] if expected_type.__args__ else None
     if expected_class:
-        if isinstance(expected_class, TypeVar):
+        if expected_class is Any:
+            return
+        elif isinstance(expected_class, TypeVar):
             check_typevar(argname, value, expected_class, memo, True)
         elif not issubclass(value, expected_class):
             raise TypeError('{} must be a subclass of {}; got {} instead'.format(
