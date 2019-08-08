@@ -4,7 +4,7 @@ from functools import wraps, partial
 from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO)
+    Container, Generic, BinaryIO, TextIO, Generator)
 
 import pytest
 
@@ -848,6 +848,15 @@ class TestTypeChecker:
     def checker(self):
         return TypeChecker(__name__)
 
+    @staticmethod
+    def generatorfunc() -> Generator[int, None, None]:
+        yield 1
+
+    @staticmethod
+    def bad_generatorfunc() -> Generator[int, None, None]:
+        yield 1
+        yield 'foo'
+
     def test_check_call_args(self, checker: TypeChecker):
         def foo(a: int):
             pass
@@ -942,3 +951,18 @@ class TestTypeChecker:
 
         assert profiler_run_count
         assert len(record) == 1
+
+    def test_generator(self, checker):
+        with checker, pytest.warns(None) as record:
+            gen = self.generatorfunc()
+            assert next(gen) == 1
+
+        assert len(record) == 0
+
+    def test_generator_wrong_yield(self, checker):
+        with checker, pytest.warns(TypeWarning) as record:
+            gen = self.bad_generatorfunc()
+            assert list(gen) == [1, 'foo']
+
+        assert len(record) == 1
+        assert 'type of yielded value must be int; got str instead' in str(record[0].message)

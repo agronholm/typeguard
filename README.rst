@@ -89,6 +89,12 @@ Using ``TypeChecker``:
     checker.start()
     mypackage.start_app()
 
+Some shortcomings in ``TypeChecker``:
+
+* Generator yield types are checked, send types are not
+* Generator yields cannot be distinguished from returns, but ``None`` values are ignored
+* Async generators are ignored
+
 .. hint:: Some other things you can do with ``TypeChecker``:
 
    * display all warnings from the start with ``python -W always::typeguard.TypeWarning``

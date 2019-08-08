@@ -7,13 +7,13 @@ import sys
 import threading
 from collections import OrderedDict
 from functools import wraps, partial
-from inspect import Parameter, isclass, isfunction
+from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-    get_type_hints, TextIO, Optional, IO, BinaryIO, Type)
+    get_type_hints, TextIO, Optional, IO, BinaryIO, Type, Generator)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -21,6 +21,17 @@ try:
     from typing import Literal
 except ImportError:
     Literal = None
+
+try:
+    from typing import AsyncGenerator
+except ImportError:
+    AsyncGenerator = None
+
+try:
+    from inspect import isasyncgenfunction
+except ImportError:
+    def isasyncgenfunction(func):
+        return False
 
 
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
@@ -30,7 +41,8 @@ T_Callable = TypeVar('T_Callable', bound=Callable)
 
 
 class _CallMemo:
-    __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints')
+    __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints',
+                 'is_generator')
 
     def __init__(self, func: Callable, frame=None, args: tuple = None,
                  kwargs: Dict[str, Any] = None):
@@ -38,6 +50,7 @@ class _CallMemo:
         self.func_name = function_name(func)
         self.signature = inspect.signature(func)
         self.typevars = {}  # type: Dict[Any, type]
+        self.is_generator = isgeneratorfunction(func)
 
         if args is not None and kwargs is not None:
             self.arguments = self.signature.bind(*args, **kwargs).arguments
@@ -560,7 +573,7 @@ class TypeWarning(UserWarning):
     __slots__ = ('func', 'event', 'message', 'frame')
 
     def __init__(self, memo: Optional[_CallMemo], event: str, frame,
-                 exception: TypeError):  # pragma: no cover
+                 exception: Union[str, TypeError]):  # pragma: no cover
         self.func = memo.func
         self.event = event
         self.error = str(exception)
@@ -623,6 +636,10 @@ class TypeChecker:
         if not func.__annotations__:
             # No point in checking if there are no type hints
             return False
+        elif isasyncgenfunction(func):
+            # Async generators cannot be supported because the return arg is of an opaque builtin
+            # type (async_generator_wrapped_value)
+            return False
         else:
             # Check types if the module matches any of the package prefixes
             return any(func.__module__ == package or func.__module__.startswith(package + '.')
@@ -675,18 +692,29 @@ class TypeChecker:
             return
 
         # If an actual profiler is running, don't include the type checking times in its results
+        # print('event: %s  arg: %s  code: %s' % (event, arg, frame.f_code.co_name))
         if event == 'call':
+            # print('  call, code name = %s' % (frame.f_code.co_name))
             try:
                 func = find_function(frame)
             except Exception:
                 func = None
 
+            # print('call, func = %s' % func)
             if func is not None and self.should_check_type(func):
                 memo = self._call_memos[frame] = _CallMemo(func, frame)
-                try:
-                    check_argument_types(memo)
-                except TypeError as exc:
-                    warn(TypeWarning(memo, event, frame, exc))
+                if memo.is_generator:
+                    return_type_hint = memo.type_hints['return']
+                    if return_type_hint is not None:
+                        origin = getattr(return_type_hint, '__origin__', None)
+                        if origin in (collections.abc.Generator, Generator):
+                            # Check the types of the yielded values
+                            memo.type_hints['return'] = return_type_hint.__args__[0]
+                else:
+                    try:
+                        check_argument_types(memo)
+                    except TypeError as exc:
+                        warn(TypeWarning(memo, event, frame, exc))
 
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
@@ -694,11 +722,19 @@ class TypeChecker:
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
 
-            memo = self._call_memos.pop(frame, None)
+            print('  return, arg = %s, code name = %s' % (arg, frame.f_code.co_name))
+            memo = self._call_memos.get(frame)
             if memo is not None:
                 try:
-                    check_return_type(arg, memo)
+                    if memo.is_generator:
+                        if arg is not None:  # arg is None when StopIteration is raised
+                            check_type('yielded value', arg, memo.type_hints['return'], memo)
+                    else:
+                        check_return_type(arg, memo)
                 except TypeError as exc:
                     warn(TypeWarning(memo, event, frame, exc))
+
+                if not memo.is_generator:
+                    del self._call_memos[frame]
         elif self._previous_profiler is not None:
             self._previous_profiler(frame, event, arg)
