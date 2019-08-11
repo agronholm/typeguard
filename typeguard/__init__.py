@@ -571,6 +571,39 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
+class TypeCheckedGenerator:
+    def __init__(self, wrapped: Generator, memo: _CallMemo):
+        self.__wrapped = wrapped
+        self.__memo = memo
+        self.__yield_type, self.__send_type, self.__return_type = \
+            memo.type_hints['return'].__args__
+        self.__initialized = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.send(None)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.__wrapped, name)
+
+    def send(self, obj):
+        if self.__initialized:
+            check_type('value sent to generator', obj, self.__send_type, memo=self.__memo)
+        else:
+            self.__initialized = True
+
+        try:
+            value = self.__wrapped.send(obj)
+        except StopIteration as exc:
+            check_type('return value', exc.value, self.__return_type, memo=self.__memo)
+            raise
+
+        check_type('value yielded from generator', value, self.__yield_type, memo=self.__memo)
+        return value
+
+
 @overload
 def typechecked(*, always: bool = False) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
@@ -622,7 +655,10 @@ def typechecked(func=None, *, always=False):
         check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
-        return retval
+        if inspect.isgenerator(retval):
+            return TypeCheckedGenerator(retval, memo)
+        else:
+            return retval
 
     async def async_wrapper(*args, **kwargs):
         memo = _CallMemo(func, args=args, kwargs=kwargs)

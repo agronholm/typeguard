@@ -12,6 +12,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Accept a ``bytearray`` where ``bytes`` are expected, as per `python/typing#552`_
 - Added policies for dealing with unmatched forward references
 - Added support for using ``@typechecked`` as a class decorator
+- Added type checking for generators via ``@typechecked``
 
 .. _python/typing#552: https://github.com/python/typing/issues/552
 

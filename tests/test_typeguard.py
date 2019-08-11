@@ -870,6 +870,60 @@ class TestTypeChecked:
         pytest.raises(TypeError, Foo.classmethod).match(pattern)
         pytest.raises(TypeError, Foo().method).match(pattern)
 
+    def test_generator(self):
+        @typechecked
+        def genfunc() -> Generator[int, str, List[str]]:
+            val1 = yield 2
+            val2 = yield 3
+            val3 = yield 4
+            return [val1, val2, val3]
+
+        gen = genfunc()
+        with pytest.raises(StopIteration) as exc:
+            value = next(gen)
+            while True:
+                value = gen.send(str(value))
+                assert isinstance(value, int)
+
+        assert exc.value.value == ['2', '3', '4']
+
+    def test_generator_bad_yield(self):
+        @typechecked
+        def genfunc() -> Generator[int, str, None]:
+            yield 'foo'
+
+        gen = genfunc()
+        with pytest.raises(TypeError) as exc:
+            next(gen)
+
+        exc.match('type of value yielded from generator must be int; got str instead')
+
+    def test_generator_bad_send(self):
+        @typechecked
+        def genfunc() -> Generator[int, str, None]:
+            yield 1
+            yield 2
+
+        gen = genfunc()
+        next(gen)
+        with pytest.raises(TypeError) as exc:
+            gen.send(2)
+
+        exc.match('type of value sent to generator must be str; got int instead')
+
+    def test_generator_bad_return(self):
+        @typechecked
+        def genfunc() -> Generator[int, str, str]:
+            yield 1
+            return 6
+
+        gen = genfunc()
+        next(gen)
+        with pytest.raises(TypeError) as exc:
+            gen.send('foo')
+
+        exc.match('type of return value must be str; got int instead')
+
 
 class TestTypeChecker:
     @pytest.fixture
