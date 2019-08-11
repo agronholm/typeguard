@@ -851,6 +851,25 @@ class TestTypeChecked:
 
         foo(bytearray([1]))
 
+    def test_class_decorator(self):
+        @typechecked
+        class Foo:
+            @staticmethod
+            def staticmethod() -> int:
+                return 'foo'
+
+            @classmethod
+            def classmethod(cls) -> int:
+                return 'foo'
+
+            def method(self) -> int:
+                return 'foo'
+
+        pattern = 'type of the return value must be int; got str instead'
+        pytest.raises(TypeError, Foo.staticmethod).match(pattern)
+        pytest.raises(TypeError, Foo.classmethod).match(pattern)
+        pytest.raises(TypeError, Foo().method).match(pattern)
+
 
 class TestTypeChecker:
     @pytest.fixture

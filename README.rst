@@ -61,6 +61,13 @@ Using ``@typechecked``:
     def some_function(a: int, b: float, c: str, *args: str) -> bool:
         ...
 
+    @typechecked
+    class SomeClass:
+        # All type annotated methods (static, class methods included) are type checked
+        # Does not apply to inner classes!
+        def method(x: int) -> int:
+            ...
+
 To enable type checks even in optimized mode:
 
 .. code-block:: python3

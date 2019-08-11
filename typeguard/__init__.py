@@ -14,8 +14,8 @@ from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
-    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
-    get_type_hints, TextIO, Optional, IO, BinaryIO, Type, Generator)
+    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
+    Optional, IO, BinaryIO, Type, Generator, overload)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -39,7 +39,7 @@ except ImportError:
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
-T_Callable = TypeVar('T_Callable', bound=Callable)
+T_CallableOrType = TypeVar('T_CallableOrType', Callable, Type[Any])
 
 
 class ForwardRefPolicy(Enum):
@@ -571,8 +571,17 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
-def typechecked(func: Optional[T_Callable] = None, *,
-                always: bool = False) -> Union[T_Callable]:
+@overload
+def typechecked(*, always: bool = False) -> Callable[[T_CallableOrType], T_CallableOrType]:
+    ...
+
+
+@overload
+def typechecked(func: T_CallableOrType, *, always: bool = False) -> T_CallableOrType:
+    ...
+
+
+def typechecked(func=None, *, always=False):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 
@@ -581,7 +590,10 @@ def typechecked(func: Optional[T_Callable] = None, *,
     If the ``__debug__`` global variable is set to ``False``, no wrapping and therefore no type
     checking is done, unless ``always`` is ``True``.
 
-    :param func: the function to enable type checking for
+    This can also be used as a class decorator. This will wrap all type annotated methods in the
+    class with this decorator.
+
+    :param func: the function or class to enable type checking for
     :param always: ``True`` to enable type checks even in optimized mode
 
     """
@@ -590,6 +602,16 @@ def typechecked(func: Optional[T_Callable] = None, *,
 
     if func is None:
         return partial(typechecked, always=always)
+
+    if isclass(func):
+        prefix = func.__qualname__ + '.'
+        for key in dir(func):
+            attr = getattr(func, key)
+            if callable(attr) and attr.__qualname__.startswith(prefix):
+                if getattr(attr, '__annotations__', None):
+                    setattr(func, key, typechecked(attr, always=always))
+
+        return func
 
     if not getattr(func, '__annotations__', None):
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
@@ -610,9 +632,14 @@ def typechecked(func: Optional[T_Callable] = None, *,
         return retval
 
     if inspect.iscoroutinefunction(func):
-        return wraps(func)(async_wrapper)
+        if func.__code__ is not async_wrapper.__code__:
+            return wraps(func)(async_wrapper)
     else:
-        return wraps(func)(wrapper)
+        if func.__code__ is not wrapper.__code__:
+            return wraps(func)(wrapper)
+
+    # the target callable was already wrapped
+    return func
 
 
 class TypeWarning(UserWarning):
