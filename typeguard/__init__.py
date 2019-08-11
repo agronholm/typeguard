@@ -1,4 +1,5 @@
-__all__ = ('typechecked', 'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
+__all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_argument_types',
+           'check_type', 'TypeWarning', 'TypeChecker')
 
 import collections.abc
 import gc
@@ -6,6 +7,7 @@ import inspect
 import sys
 import threading
 from collections import OrderedDict
+from enum import Enum
 from functools import wraps, partial
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
@@ -40,12 +42,29 @@ _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 T_Callable = TypeVar('T_Callable', bound=Callable)
 
 
+class ForwardRefPolicy(Enum):
+    """Defines how unresolved forward references are handled."""
+
+    ERROR = 1  #: propagate the NameError from get_type_hints()
+    WARN = 2  #: remove the annotation and emit a TypeHintWarning
+    #: replace the annotation with the argument's class if the qualified name matches, else remove
+    #: the annotation
+    GUESS = 3
+
+
+class TypeHintWarning(UserWarning):
+    """
+    A warning that is emitted when a type hint in string form could not be resolved to an actual
+    type.
+    """
+
+
 class _CallMemo:
     __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints',
                  'is_generator')
 
     def __init__(self, func: Callable, frame=None, args: tuple = None,
-                 kwargs: Dict[str, Any] = None):
+                 kwargs: Dict[str, Any] = None, forward_refs_policy=ForwardRefPolicy.ERROR):
         self.func = func
         self.func_name = function_name(func)
         self.signature = inspect.signature(func)
@@ -60,7 +79,38 @@ class _CallMemo:
 
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
-            hints = get_type_hints(func)
+            while True:
+                try:
+                    hints = get_type_hints(func)
+                except NameError as exc:
+                    if forward_refs_policy is ForwardRefPolicy.ERROR:
+                        raise
+
+                    typename = str(exc).split("'", 2)[1]
+                    for param in self.signature.parameters.values():
+                        if param.annotation == typename:
+                            break
+                    else:
+                        raise
+
+                    func_name = function_name(func)
+                    if forward_refs_policy is ForwardRefPolicy.GUESS:
+                        if param.name in self.arguments:
+                            argtype = self.arguments[param.name].__class__
+                            if param.annotation == argtype.__qualname__:
+                                func.__annotations__[param.name] = argtype
+                                msg = ('Replaced forward declaration {!r} in {} with {!r}'
+                                       .format(param.annotation, func_name, argtype))
+                                warn(TypeHintWarning(msg))
+                                continue
+
+                    msg = 'Could not resolve type hint {!r} on {}: {}'.format(
+                        param.annotation, function_name(func), exc)
+                    warn(TypeHintWarning(msg))
+                    del func.__annotations__[param.name]
+                else:
+                    break
+
             self.type_hints = OrderedDict()
             for name, parameter in self.signature.parameters.items():
                 if name in hints:
@@ -617,13 +667,17 @@ class TypeChecker:
     """
     A type checker that collects type violations by hooking into ``sys.setprofile()``.
 
+    :param packages: list of top level modules and packages or modules to include for type checking
     :param all_threads: ``True`` to check types in all threads created while the checker is
         running, ``False`` to only check in the current one
+    :param forward_refs_policy: how to handle unresolvable forward references in annotations
     """
 
-    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True):
+    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True,
+                 forward_refs_policy: ForwardRefPolicy = ForwardRefPolicy.ERROR):
         assert check_argument_types()
         self.all_threads = all_threads
+        self.annotation_policy = forward_refs_policy
         self._call_memos = {}  # type: Dict[Any, _CallMemo]
         self._previous_profiler = None
         self._previous_thread_profiler = None
@@ -706,7 +760,8 @@ class TypeChecker:
                 func = None
 
             if func is not None and self.should_check_type(func):
-                memo = self._call_memos[frame] = _CallMemo(func, frame)
+                memo = self._call_memos[frame] = _CallMemo(
+                    func, frame, forward_refs_policy=self.annotation_policy)
                 if memo.is_generator:
                     return_type_hint = memo.type_hints['return']
                     if return_type_hint is not None:

@@ -10,6 +10,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed bogus ``TypeError`` on ``Type[Any]``
 - Fixed bogus ``TypeChecker`` warnings when an exception is raised from a type checked function
 - Accept a ``bytearray`` where ``bytes`` are expected, as per `python/typing#552`_
+- Added policies for dealing with unmatched forward references
 
 .. _python/typing#552: https://github.com/python/typing/issues/552
 

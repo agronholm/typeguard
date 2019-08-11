@@ -1,3 +1,4 @@
+import gc
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial
@@ -10,7 +11,7 @@ import pytest
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, Literal)
+    check_type, Literal, TypeHintWarning, ForwardRefPolicy)
 
 try:
     from typing import Type
@@ -990,3 +991,33 @@ class TestTypeChecker:
             pytest.raises(ZeroDivisionError, self.error_function)
 
         assert len(record) == 0
+
+    @pytest.mark.parametrize('policy', [ForwardRefPolicy.WARN, ForwardRefPolicy.GUESS],
+                             ids=['warn', 'guess'])
+    def test_forward_ref_policy_resolution_fails(self, checker, policy):
+        def unresolvable_annotation(x: 'OrderedDict'):  # noqa
+            pass
+
+        checker.annotation_policy = policy
+        gc.collect()  # prevent find_function() from finding more than one instance of the function
+        with checker, pytest.warns(TypeHintWarning) as record:
+            unresolvable_annotation({})
+
+        assert len(record) == 1
+        assert ("unresolvable_annotation: name 'OrderedDict' is not defined"
+                in str(record[0].message))
+        assert 'x' not in unresolvable_annotation.__annotations__
+
+    def test_forward_ref_policy_guess(self, checker):
+        import collections
+
+        def unresolvable_annotation(x: 'OrderedDict'):  # noqa
+            pass
+
+        checker.annotation_policy = ForwardRefPolicy.GUESS
+        with checker, pytest.warns(TypeHintWarning) as record:
+            unresolvable_annotation(collections.OrderedDict())
+
+        assert len(record) == 1
+        assert str(record[0].message).startswith("Replaced forward declaration 'OrderedDict' in")
+        assert unresolvable_annotation.__annotations__['x'] is collections.OrderedDict
