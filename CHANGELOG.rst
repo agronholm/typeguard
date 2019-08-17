@@ -5,14 +5,14 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- Added generator yield type checking in ``TypeChecker`` for regular generators
+- Added yield type checking via ``TypeChecker`` for regular generators
+- Added yield, send and return type checking via ``@typechecked`` for regular and async generators
 - Silenced ``TypeChecker`` warnings about async generators
 - Fixed bogus ``TypeError`` on ``Type[Any]``
 - Fixed bogus ``TypeChecker`` warnings when an exception is raised from a type checked function
 - Accept a ``bytearray`` where ``bytes`` are expected, as per `python/typing#552`_
 - Added policies for dealing with unmatched forward references
 - Added support for using ``@typechecked`` as a class decorator
-- Added type checking for generators via ``@typechecked``
 
 .. _python/typing#552: https://github.com/python/typing/issues/552
 

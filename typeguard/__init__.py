@@ -604,6 +604,33 @@ class TypeCheckedGenerator:
         return value
 
 
+class TypeCheckedAsyncGenerator:
+    def __init__(self, wrapped: AsyncGenerator, memo: _CallMemo):
+        self.__wrapped = wrapped
+        self.__memo = memo
+        self.__yield_type, self.__send_type = memo.type_hints['return'].__args__
+        self.__initialized = False
+
+    async def __aiter__(self):
+        return self
+
+    def __anext__(self):
+        return self.asend(None)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.__wrapped, name)
+
+    async def asend(self, obj):
+        if self.__initialized:
+            check_type('value sent to generator', obj, self.__send_type, memo=self.__memo)
+        else:
+            self.__initialized = True
+
+        value = await self.__wrapped.asend(obj)
+        check_type('value yielded from generator', value, self.__yield_type, memo=self.__memo)
+        return value
+
+
 @overload
 def typechecked(*, always: bool = False) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
@@ -667,9 +694,18 @@ def typechecked(func=None, *, always=False):
         check_return_type(retval, memo)
         return retval
 
+    def asyncgen_wrapper(*args, **kwargs):
+        memo = _CallMemo(func, args=args, kwargs=kwargs)
+        check_argument_types(memo)
+        retval = func(*args, **kwargs)
+        return TypeCheckedAsyncGenerator(retval, memo)
+
     if inspect.iscoroutinefunction(func):
         if func.__code__ is not async_wrapper.__code__:
             return wraps(func)(async_wrapper)
+    elif isasyncgenfunction(func):
+        if func.__code__ is not asyncgen_wrapper.__code__:
+            return wraps(func)(asyncgen_wrapper)
     else:
         if func.__code__ is not wrapper.__code__:
             return wraps(func)(wrapper)

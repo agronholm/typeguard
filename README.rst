@@ -22,6 +22,7 @@ There are three principal ways to use type checking, each with its pros and cons
    * 100% reliable at finding the function object to be checked (does not need to check the garbage
      collector)
    * can check the type of the return value
+   * wraps returned generators (async or regular) and type checks yields, sends and returns
    * adds an extra frame to the call stack for every call to a decorated function
 #. using ``with TypeChecker('packagename'):``:
 
