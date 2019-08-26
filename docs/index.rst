@@ -128,3 +128,25 @@ against annotations in the :mod:`typing` module::
 
     # Raises TypeError if there's a problem
     check_type('variablename', [1234], List[int])
+
+Supported typing.* types
+------------------------
+
+The following types from the ``typing`` package have specialized support:
+
+============== ============================================================
+Type           Notes
+============== ============================================================
+``Callable``   Argument count is checked but types are not (yet)
+``Dict``       Keys and values are typechecked
+``List``       Contents are typechecked
+``Literal``
+``NamedTuple`` Field values are typechecked
+``Set``        Contents are typechecked
+``Sequence``   Contents are typechecked
+``Tuple``      Contents are typechecked
+``Type``
+``TypeVar``    Constraints, bound types and co/contravariance are supported
+               but custom generic types are not (due to type erasure)
+``Union``
+============== ============================================================
