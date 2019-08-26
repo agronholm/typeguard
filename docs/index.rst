@@ -1,9 +1,14 @@
 Typeguard
 =========
 
+.. contents::
+   :local:
+
+Quick links
+-----------
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Quick links:
+   :maxdepth: 1
 
    api
    versionhistory
