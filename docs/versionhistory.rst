@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.5.0** (2019-08-26)
 
 - Added yield type checking via ``TypeChecker`` for regular generators
 - Added yield, send and return type checking via ``@typechecked`` for regular and async generators
