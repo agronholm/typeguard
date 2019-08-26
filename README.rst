@@ -42,15 +42,17 @@ Type checks can be fairly expensive so it is recommended to run Python in "optim
 type checks in production. The optimized mode will disable the type checks, by virtue of removing
 all ``assert`` statements and setting the ``__debug__`` constant to ``False``.
 
-Using ``check_argument_types()``:
+Using ``check_argument_types()`` and ``check_return_value()``:
 
 .. code-block:: python3
 
-    from typeguard import check_argument_types
+    from typeguard import check_argument_types, check_return_value
 
     def some_function(a: int, b: float, c: str, *args: str):
         assert check_argument_types()
         ...
+        assert check_return_value(retval)
+        return retval
 
 Using ``@typechecked``:
 

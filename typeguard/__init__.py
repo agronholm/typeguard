@@ -1,5 +1,5 @@
-__all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_argument_types',
-           'check_type', 'TypeWarning', 'TypeChecker')
+__all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
+           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
 
 import collections.abc
 import gc
@@ -526,7 +526,26 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
         return check_type(argname, value, expected_type.__supertype__, memo)
 
 
-def check_return_type(retval, memo: Optional[_CallMemo]) -> bool:
+def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
+    """
+    Check that the return value is compatible with the return value annotation in the function.
+
+    :param retval: the value about to be returned from the call
+    :return: the value of the ``retval`` argument
+
+    """
+    if memo is None:
+        # faster than inspect.currentframe(), but not officially
+        # supported in all python implementations
+        frame = sys._getframe(1)
+
+        try:
+            func = find_function(frame)
+        except LookupError:
+            return True  # This can happen with the Pydev/PyCharm debugger extension installed
+
+        memo = _CallMemo(func, frame)
+
     if 'return' in memo.type_hints:
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
@@ -722,7 +741,7 @@ class TypeWarning(UserWarning):
     :ivar Callable func: the function in which the violation occurred (the called function if event
         is ``call``, or the function where a value of the wrong type was returned from if event is
         ``return``)
-    :ivar str error: the error message contained by the caught :cls:`TypeError`
+    :ivar str error: the error message contained by the caught :class:`TypeError`
     :ivar frame: the frame in which the violation occurred
     """
 

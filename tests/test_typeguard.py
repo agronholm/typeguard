@@ -11,7 +11,7 @@ import pytest
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, Literal, TypeHintWarning, ForwardRefPolicy)
+    check_type, Literal, TypeHintWarning, ForwardRefPolicy, check_return_type)
 
 try:
     from typing import Type
@@ -53,6 +53,22 @@ def test_check_type_no_memo():
 def test_check_type_no_memo_fail():
     pytest.raises(TypeError, check_type, 'foo', ['a'], List[int]).\
         match(r'type of foo\[0\] must be int; got str instead')
+
+
+def test_check_return_type():
+    def foo() -> int:
+        assert check_return_type(0)
+        return 0
+
+    foo()
+
+
+def test_check_return_type_fail():
+    def foo() -> int:
+        assert check_return_type('foo')
+        return 1
+
+    pytest.raises(TypeError, foo).match('type of the return value must be int; got str instead')
 
 
 class TestCheckArgumentTypes:
