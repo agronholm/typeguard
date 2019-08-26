@@ -45,7 +45,7 @@ T_CallableOrType = TypeVar('T_CallableOrType', Callable, Type[Any])
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
 
-    ERROR = 1  #: propagate the NameError from get_type_hints()
+    ERROR = 1  #: propagate the :exc:`NameError` from :func:`~typing.get_type_hints`
     WARN = 2  #: remove the annotation and emit a TypeHintWarning
     #: replace the annotation with the argument's class if the qualified name matches, else remove
     #: the annotation
@@ -531,7 +531,8 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
     Check that the return value is compatible with the return value annotation in the function.
 
     :param retval: the value about to be returned from the call
-    :return: the value of the ``retval`` argument
+    :return: ``True``
+    :raises TypeError: if there is a type mismatch
 
     """
     if memo is None:
@@ -783,7 +784,7 @@ class TypeWarning(UserWarning):
 
 class TypeChecker:
     """
-    A type checker that collects type violations by hooking into ``sys.setprofile()``.
+    A type checker that collects type violations by hooking into :func:`sys.setprofile`.
 
     :param packages: list of top level modules and packages or modules to include for type checking
     :param all_threads: ``True`` to check types in all threads created while the checker is

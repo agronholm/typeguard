@@ -14,6 +14,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added policies for dealing with unmatched forward references
 - Added support for using ``@typechecked`` as a class decorator
 - Added ``check_return_type()`` to accompany ``check_argument_types()``
+- Added Sphinx documentation
 
 .. _python/typing#552: https://github.com/python/typing/issues/552
 
