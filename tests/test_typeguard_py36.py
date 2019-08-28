@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, AsyncIterable
 
 import pytest
 
@@ -6,10 +6,14 @@ from typeguard import TypeChecker, typechecked
 
 
 class TestTypeChecked:
-    def test_async_generator(self):
+    @pytest.mark.parametrize('annotation', [
+        AsyncGenerator[int, str],
+        AsyncIterable[int]
+    ], ids=['generator', 'iterable'])
+    def test_async_generator(self, annotation):
         async def run_generator():
             @typechecked
-            async def genfunc() -> AsyncGenerator[int, str]:
+            async def genfunc() -> annotation:
                 values.append((yield 2))
                 values.append((yield 3))
                 values.append((yield 4))
@@ -32,9 +36,13 @@ class TestTypeChecked:
 
         assert values == ['2', '3', '4']
 
-    def test_async_generator_bad_yield(self):
+    @pytest.mark.parametrize('annotation', [
+        AsyncGenerator[int, str],
+        AsyncIterable[int]
+    ], ids=['generator', 'iterable'])
+    def test_async_generator_bad_yield(self, annotation):
         @typechecked
-        async def genfunc() -> AsyncGenerator[int, str]:
+        async def genfunc() -> annotation:
             yield 'foo'
 
         gen = genfunc()
@@ -57,18 +65,24 @@ class TestTypeChecked:
         exc.match('type of value sent to generator must be str; got int instead')
 
 
-class TestTypeChecker:
-    @staticmethod
-    async def asyncgenfunc() -> AsyncGenerator[int, None]:
-        yield 1
+async def asyncgenfunc() -> AsyncGenerator[int, None]:
+    yield 1
 
+
+async def asyncgeniterablefunc() -> AsyncIterable[int]:
+    yield 1
+
+
+class TestTypeChecker:
     @pytest.fixture
     def checker(self):
         return TypeChecker(__name__)
 
-    def test_async_generator(self, checker):
+    @pytest.mark.parametrize('func', [asyncgenfunc, asyncgeniterablefunc],
+                             ids=['generator', 'iterable'])
+    def test_async_generator(self, checker, func):
         """Make sure that the type checker does not complain about the None return value."""
         with checker, pytest.warns(None) as record:
-            self.asyncgenfunc()
+            func()
 
         assert len(record) == 0

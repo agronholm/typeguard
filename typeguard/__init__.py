@@ -15,7 +15,7 @@ from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
-    Optional, IO, BinaryIO, Type, Generator, overload)
+    Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -30,8 +30,11 @@ except ImportError:
     AsyncGenerator = None
 
 try:
-    from inspect import isasyncgenfunction
+    from inspect import isasyncgenfunction, isasyncgen
 except ImportError:
+    def isasyncgen(obj):
+        return False
+
     def isasyncgenfunction(func):
         return False
 
@@ -593,10 +596,12 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 
 class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator, memo: _CallMemo):
+        rtype_args = memo.type_hints['return'].__args__
         self.__wrapped = wrapped
         self.__memo = memo
-        self.__yield_type, self.__send_type, self.__return_type = \
-            memo.type_hints['return'].__args__
+        self.__yield_type = rtype_args[0]
+        self.__send_type = rtype_args[1] if len(rtype_args) > 1 else Any
+        self.__return_type = rtype_args[2] if len(rtype_args) > 2 else Any
         self.__initialized = False
 
     def __iter__(self):
@@ -626,9 +631,11 @@ class TypeCheckedGenerator:
 
 class TypeCheckedAsyncGenerator:
     def __init__(self, wrapped: AsyncGenerator, memo: _CallMemo):
+        rtype_args = memo.type_hints['return'].__args__
         self.__wrapped = wrapped
         self.__memo = memo
-        self.__yield_type, self.__send_type = memo.type_hints['return'].__args__
+        self.__yield_type = rtype_args[0]
+        self.__send_type = rtype_args[1] if len(rtype_args) > 1 else Any
         self.__initialized = False
 
     async def __aiter__(self):
@@ -702,10 +709,19 @@ def typechecked(func=None, *, always=False):
         check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
-        if inspect.isgenerator(retval):
-            return TypeCheckedGenerator(retval, memo)
-        else:
-            return retval
+
+        # If a generator is returned, wrap it if its yield/send/return types can be checked
+        if inspect.isgenerator(retval) or isasyncgen(retval):
+            return_type = memo.type_hints.get('return')
+            origin = getattr(return_type, '__origin__')
+            if origin in (Generator, collections.abc.Generator,
+                          Iterable, collections.abc.Iterable):
+                return TypeCheckedGenerator(retval, memo)
+            elif origin is not None and origin in (AsyncGenerator, collections.abc.AsyncGenerator,
+                                                   AsyncIterable, collections.abc.AsyncIterable):
+                return TypeCheckedAsyncGenerator(retval, memo)
+
+        return retval
 
     async def async_wrapper(*args, **kwargs):
         memo = _CallMemo(func, args=args, kwargs=kwargs)
@@ -714,18 +730,9 @@ def typechecked(func=None, *, always=False):
         check_return_type(retval, memo)
         return retval
 
-    def asyncgen_wrapper(*args, **kwargs):
-        memo = _CallMemo(func, args=args, kwargs=kwargs)
-        check_argument_types(memo)
-        retval = func(*args, **kwargs)
-        return TypeCheckedAsyncGenerator(retval, memo)
-
     if inspect.iscoroutinefunction(func):
         if func.__code__ is not async_wrapper.__code__:
             return wraps(func)(async_wrapper)
-    elif isasyncgenfunction(func):
-        if func.__code__ is not asyncgen_wrapper.__code__:
-            return wraps(func)(asyncgen_wrapper)
     else:
         if func.__code__ is not wrapper.__code__:
             return wraps(func)(wrapper)

@@ -886,9 +886,15 @@ class TestTypeChecked:
         pytest.raises(TypeError, Foo.classmethod).match(pattern)
         pytest.raises(TypeError, Foo().method).match(pattern)
 
-    def test_generator(self):
+    @pytest.mark.parametrize('annotation', [
+        Generator[int, str, List[str]],
+        Generator,
+        Iterable[int],
+        Iterable
+    ], ids=['generator', 'bare_generator', 'iterable', 'bare_iterable'])
+    def test_generator(self, annotation):
         @typechecked
-        def genfunc() -> Generator[int, str, List[str]]:
+        def genfunc() -> annotation:
             val1 = yield 2
             val2 = yield 3
             val3 = yield 4
@@ -903,9 +909,13 @@ class TestTypeChecked:
 
         assert exc.value.value == ['2', '3', '4']
 
-    def test_generator_bad_yield(self):
+    @pytest.mark.parametrize('annotation', [
+        Generator[int, str, None],
+        Iterable[int],
+    ], ids=['generator', 'iterable'])
+    def test_generator_bad_yield(self, annotation):
         @typechecked
-        def genfunc() -> Generator[int, str, None]:
+        def genfunc() -> annotation:
             yield 'foo'
 
         gen = genfunc()
