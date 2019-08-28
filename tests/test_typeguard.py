@@ -903,6 +903,18 @@ class TestTypeChecked:
 
         assert exc.value.value == ['2', '3', '4']
 
+    def test_iterable_yield(self):
+        @typechecked
+        def genfunc() -> Iterable[int]:
+            for val in [2, 3, 4]:
+                yield val
+
+        gen = genfunc()
+        with pytest.raises(StopIteration):
+            while True:
+                value = next(gen)
+                assert isinstance(value, int)
+
     def test_generator_bad_yield(self):
         @typechecked
         def genfunc() -> Generator[int, str, None]:

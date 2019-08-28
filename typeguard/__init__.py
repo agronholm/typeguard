@@ -595,8 +595,13 @@ class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator, memo: _CallMemo):
         self.__wrapped = wrapped
         self.__memo = memo
-        self.__yield_type, self.__send_type, self.__return_type = \
-            memo.type_hints['return'].__args__
+        try:
+            self.__yield_type, self.__send_type, self.__return_type = \
+                memo.type_hints['return'].__args__
+        except ValueError:
+            # Handle Iterable case where only the yield type is available
+            self.__yield_type = memo.type_hints['return'].__args__[0]
+            self.__send_type, self.__return_type = None, None
         self.__initialized = False
 
     def __iter__(self):
