@@ -554,7 +554,7 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
         except TypeError as exc:  # suppress unnecessarily long tracebacks
-            raise TypeError(exc) from None
+            raise exc from None
 
     return True
 
@@ -589,7 +589,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
             try:
                 check_type(description, value, expected_type, memo)
             except TypeError as exc:  # suppress unnecessarily long tracebacks
-                raise TypeError(exc) from None
+                raise exc from None
 
     return True
 
