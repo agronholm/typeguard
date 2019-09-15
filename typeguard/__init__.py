@@ -901,7 +901,7 @@ class TypeChecker:
                     return_type_hint = memo.type_hints['return']
                     if return_type_hint is not None:
                         origin = getattr(return_type_hint, '__origin__', None)
-                        if origin in (collections.abc.Generator, Generator):
+                        if origin in generator_origin_types:
                             # Check the types of the yielded values
                             memo.type_hints['return'] = return_type_hint.__args__[0]
                 else:
