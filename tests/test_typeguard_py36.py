@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, AsyncIterable
+from typing import AsyncGenerator, AsyncIterable, AsyncIterator
 
 import pytest
 
@@ -8,8 +8,9 @@ from typeguard import TypeChecker, typechecked
 class TestTypeChecked:
     @pytest.mark.parametrize('annotation', [
         AsyncGenerator[int, str],
-        AsyncIterable[int]
-    ], ids=['generator', 'iterable'])
+        AsyncIterable[int],
+        AsyncIterator[int]
+    ], ids=['generator', 'iterable', 'iterator'])
     def test_async_generator(self, annotation):
         async def run_generator():
             @typechecked
@@ -38,8 +39,9 @@ class TestTypeChecked:
 
     @pytest.mark.parametrize('annotation', [
         AsyncGenerator[int, str],
-        AsyncIterable[int]
-    ], ids=['generator', 'iterable'])
+        AsyncIterable[int],
+        AsyncIterator[int]
+    ], ids=['generator', 'iterable', 'iterator'])
     def test_async_generator_bad_yield(self, annotation):
         @typechecked
         async def genfunc() -> annotation:
@@ -73,13 +75,17 @@ async def asyncgeniterablefunc() -> AsyncIterable[int]:
     yield 1
 
 
+async def asyncgeniteratorfunc() -> AsyncIterator[int]:
+    yield 1
+
+
 class TestTypeChecker:
     @pytest.fixture
     def checker(self):
         return TypeChecker(__name__)
 
-    @pytest.mark.parametrize('func', [asyncgenfunc, asyncgeniterablefunc],
-                             ids=['generator', 'iterable'])
+    @pytest.mark.parametrize('func', [asyncgenfunc, asyncgeniterablefunc, asyncgeniteratorfunc],
+                             ids=['generator', 'iterable', 'iterator'])
     def test_async_generator(self, checker, func):
         """Make sure that the type checker does not complain about the None return value."""
         with checker, pytest.warns(None) as record:

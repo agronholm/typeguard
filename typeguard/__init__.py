@@ -15,7 +15,8 @@ from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
-    Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable)
+    Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
+    AsyncIterator)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -464,6 +465,16 @@ if Type is not None:
 if Literal is not None:
     origin_type_checkers[Literal] = check_literal
 
+generator_origin_types = (Generator, collections.abc.Generator,
+                          Iterator, collections.abc.Iterator,
+                          Iterable, collections.abc.Iterable)
+asyncgen_origin_types = (AsyncIterator, collections.abc.AsyncIterator,
+                         AsyncIterable, collections.abc.AsyncIterable)
+if AsyncGenerator is not None:
+    asyncgen_origin_types += (AsyncGenerator,)
+if hasattr(collections.abc, 'AsyncGenerator'):
+    asyncgen_origin_types += (collections.abc.AsyncGenerator,)
+
 
 def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = None) -> None:
     """
@@ -714,11 +725,9 @@ def typechecked(func=None, *, always=False):
         if inspect.isgenerator(retval) or isasyncgen(retval):
             return_type = memo.type_hints.get('return')
             origin = getattr(return_type, '__origin__')
-            if origin in (Generator, collections.abc.Generator,
-                          Iterable, collections.abc.Iterable):
+            if origin in generator_origin_types:
                 return TypeCheckedGenerator(retval, memo)
-            elif origin is not None and origin in (AsyncGenerator, collections.abc.AsyncGenerator,
-                                                   AsyncIterable, collections.abc.AsyncIterable):
+            elif origin is not None and origin in asyncgen_origin_types:
                 return TypeCheckedAsyncGenerator(retval, memo)
 
         return retval

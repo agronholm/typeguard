@@ -5,8 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- Fixed incompatibility between annotated ``Iterable`` or ``AsyncIterable`` return types and
-  generator/async generator functions
+- Fixed incompatibility between annotated ``Iterable``, ``Iterator``, ``AsyncIterable`` or
+  ``AsyncIterator`` return types and generator/async generator functions
 
 **2.5.0** (2019-08-26)
 

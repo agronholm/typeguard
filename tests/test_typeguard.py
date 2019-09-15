@@ -5,7 +5,7 @@ from functools import wraps, partial
 from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator)
 
 import pytest
 
@@ -890,8 +890,11 @@ class TestTypeChecked:
         Generator[int, str, List[str]],
         Generator,
         Iterable[int],
-        Iterable
-    ], ids=['generator', 'bare_generator', 'iterable', 'bare_iterable'])
+        Iterable,
+        Iterator[int],
+        Iterator
+    ], ids=['generator', 'bare_generator', 'iterable', 'bare_iterable', 'iterator',
+            'bare_iterator'])
     def test_generator(self, annotation):
         @typechecked
         def genfunc() -> annotation:
@@ -912,7 +915,8 @@ class TestTypeChecked:
     @pytest.mark.parametrize('annotation', [
         Generator[int, str, None],
         Iterable[int],
-    ], ids=['generator', 'iterable'])
+        Iterator[int]
+    ], ids=['generator', 'iterable', 'iterator'])
     def test_generator_bad_yield(self, annotation):
         @typechecked
         def genfunc() -> annotation:
