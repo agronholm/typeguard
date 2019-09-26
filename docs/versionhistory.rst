@@ -3,10 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.5.1** (2019-09-26)
 
 - Fixed incompatibility between annotated ``Iterable``, ``Iterator``, ``AsyncIterable`` or
   ``AsyncIterator`` return types and generator/async generator functions
+- Fixed ``TypeError`` being wrapped inside another TypeError (PR by russok)
 
 **2.5.0** (2019-08-26)
 
