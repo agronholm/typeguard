@@ -1,6 +1,9 @@
 API reference
 =============
 
+:mod:`typeguard`
+================
+
 .. module:: typeguard
 
 .. autofunction:: check_type
@@ -19,3 +22,13 @@ API reference
 
 .. autoclass:: ForwardRefPolicy
     :members:
+
+:mod:`typeguard.importhook`
+===========================
+
+.. module:: typeguard.importhook
+
+.. autoclass:: TypeguardFinder
+    :members:
+
+.. autofunction:: install_import_hook

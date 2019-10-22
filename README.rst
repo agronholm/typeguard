@@ -28,6 +28,13 @@ Three principal ways to do type checking are provided, each with its pros and co
    * does not work reliably with dynamically defined type hints (e.g. in nested functions)
    * may cause problems with badly behaving debuggers or profilers
    * cannot distinguish between an exception being raised and a ``None`` being returned
+#. the import hook (``typeguard.importhook.install_import_hook()``):
+
+   * automatically annotates classes and functions with ``@typechecked`` on import
+   * no code changes required in target modules
+   * requires imports of modules you need to check to be deferred until after the import hook has
+     been installed
+   * may clash with other import hooks
 
 See the documentation_ for further instructions.
 

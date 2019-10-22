@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Added a :pep:`302` import hook for annotating functions and classes with ``@typechecked``
+
 **2.5.1** (2019-09-26)
 
 - Fixed incompatibility between annotated ``Iterable``, ``Iterator``, ``AsyncIterable`` or
