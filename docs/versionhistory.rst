@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Added a :pep:`302` import hook for annotating functions and classes with ``@typechecked``
+- Deprecated ``TypeChecker`` (will be removed in v3.0)
 
 **2.5.1** (2019-09-26)
 

@@ -80,6 +80,9 @@ yields and sends of an async generator (annotated with :class:`~typing.AsyncGene
 Using the profiler hook
 -----------------------
 
+.. deprecated:: 2.6
+   Use the import hook instead. The profiler hook will be removed in v3.0.
+
 This type checking approach requires no code changes, but does come with a number of drawbacks.
 It relies on setting a profiler hook in the interpreter which gets called every time a new Python
 stack frame is entered or exited.

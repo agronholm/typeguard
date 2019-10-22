@@ -806,6 +806,9 @@ class TypeChecker:
     :param all_threads: ``True`` to check types in all threads created while the checker is
         running, ``False`` to only check in the current one
     :param forward_refs_policy: how to handle unresolvable forward references in annotations
+
+    .. deprecated:: 2.6
+       Use :func:`~.importhook.install_import_hook` instead. This class will be removed in v3.0.
     """
 
     def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True,

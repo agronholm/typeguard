@@ -20,7 +20,7 @@ Three principal ways to do type checking are provided, each with its pros and co
 
    * automatically type checks yields and sends of returned generators (regular and async)
    * adds an extra frame to the call stack for every call to a decorated function
-#. the stack profiler hook (``with TypeChecker('packagename'):``):
+#. the stack profiler hook (``with TypeChecker('packagename'):``) (deprecated):
 
    * emits warnings instead of raising ``TypeError``
    * requires very few modifications to the code
