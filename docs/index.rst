@@ -192,6 +192,7 @@ Type           Notes
 ``Sequence``   Contents are typechecked
 ``Tuple``      Contents are typechecked
 ``Type``
+``TypedDict``  Contents are typechecked
 ``TypeVar``    Constraints, bound types and co/contravariance are supported
                but custom generic types are not (due to type erasure)
 ``Union``

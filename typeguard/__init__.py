@@ -21,9 +21,9 @@ from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 try:
-    from typing import Literal
+    from typing import Literal, TypedDict
 except ImportError:
-    Literal = None
+    Literal = TypedDict = None
 
 try:
     from typing import AsyncGenerator
@@ -42,6 +42,7 @@ except ImportError:
 
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
+_missing = object()
 
 T_CallableOrType = TypeVar('T_CallableOrType', Callable, Type[Any])
 
@@ -258,6 +259,16 @@ def check_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) ->
     for k, v in value.items():
         check_type('keys of {}'.format(argname), k, key_type, memo)
         check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
+
+
+def check_typed_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
+    for key, argtype in expected_type.__annotations__.items():
+        argvalue = value.get(key, _missing)
+        if argvalue is not _missing:
+            check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype)
+        elif not hasattr(expected_type, key):
+            raise TypeError('the required key "{}" is missing for {}'
+                            .format(key, argname)) from None
 
 
 def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
@@ -517,6 +528,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
             check_typevar(argname, value, expected_type, memo)
         elif issubclass(expected_type, IO):
             check_io(argname, value, expected_type)
+        elif issubclass(expected_type, dict) and hasattr(expected_type, '__annotations__'):
+            check_typed_dict(argname, value, expected_type, memo)
         else:
             expected_type = (getattr(expected_type, '__extra__', None) or origin_type or
                              expected_type)
