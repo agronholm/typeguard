@@ -164,6 +164,20 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
+Using the pytest plugin
+-----------------------
+
+Typeguard comes with a pytest plugin that installs the import hook (explained in the previous
+section). To use it, run ``pytest`` with the appropriate ``--typeguard-packages`` option. For
+example, if you wanted to instrument the ``foo.bar`` and ``xyz`` packages for type checking, you
+can do the following:
+
+.. code-block:: bash
+
+    pytest --typeguard-packages=foo.bar,xyz
+
+There is currently no support for specifying a customized module finder.
+
 Checking types directly
 -----------------------
 
