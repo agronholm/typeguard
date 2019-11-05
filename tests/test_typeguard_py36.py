@@ -1,3 +1,4 @@
+import warnings
 from typing import AsyncGenerator, AsyncIterable, AsyncIterator
 
 import pytest
@@ -82,7 +83,9 @@ async def asyncgeniteratorfunc() -> AsyncIterator[int]:
 class TestTypeChecker:
     @pytest.fixture
     def checker(self):
-        return TypeChecker(__name__)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            return TypeChecker(__name__)
 
     @pytest.mark.parametrize('func', [asyncgenfunc, asyncgeniterablefunc, asyncgeniteratorfunc],
                              ids=['generator', 'iterable', 'iterator'])

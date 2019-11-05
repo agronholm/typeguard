@@ -827,6 +827,8 @@ class TypeChecker:
     def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True,
                  forward_refs_policy: ForwardRefPolicy = ForwardRefPolicy.ERROR):
         assert check_argument_types()
+        warn('TypeChecker has been deprecated and will be removed in v3.0. '
+             'Use install_import_hook() or the pytest plugin instead.', DeprecationWarning)
         self.all_threads = all_threads
         self.annotation_policy = forward_refs_policy
         self._call_memos = {}  # type: Dict[Any, _CallMemo]

@@ -1,5 +1,6 @@
 import gc
 import sys
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial
 from io import StringIO, BytesIO
@@ -956,7 +957,9 @@ class TestTypeChecker:
 
     @pytest.fixture
     def checker(self):
-        return TypeChecker(__name__)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            return TypeChecker(__name__)
 
     @staticmethod
     def generatorfunc() -> Generator[int, None, None]:
@@ -1027,9 +1030,14 @@ class TestTypeChecker:
         def foo(a: int):
             pass
 
-        with TypeChecker(__name__), pytest.warns(TypeWarning) as record:
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore', DeprecationWarning)
+            parent = TypeChecker(__name__)
+            child = TypeChecker(__name__)
+
+        with parent, pytest.warns(TypeWarning) as record:
             foo('x')
-            with TypeChecker(__name__):
+            with child:
                 foo('x')
 
         assert len(record) == 3
