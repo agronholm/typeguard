@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.6.0** (2019-11-06)
 
 - Added a :pep:`302` import hook for annotating functions and classes with ``@typechecked``
 - Added a pytest plugin that activates the import hook
