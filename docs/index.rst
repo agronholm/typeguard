@@ -130,7 +130,7 @@ Using the import hook
 ---------------------
 
 The import hook, when active, automatically decorates all type annotated functions with
-``@typechecked``. This allows for a noninvasive method of run time tyoe checking. This method does
+``@typechecked``. This allows for a noninvasive method of run time type checking. This method does
 not modify the source code on disk, but instead modifies its AST (Abstract Syntax Tree) when the
 module is loaded.
 
