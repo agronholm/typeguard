@@ -27,6 +27,8 @@ class TypeguardTransformer(ast.NodeVisitor):
         for i, child in enumerate(node.body):
             if isinstance(child, ast.ImportFrom) and child.module == '__future__':
                 continue
+            elif isinstance(child, ast.Expr) and isinstance(child.value, ast.Str):
+                continue  # module docstring
             else:
                 node.body.insert(i, ast.Import(names=[ast.alias('typeguard', None)]))
                 break

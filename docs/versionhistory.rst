@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed import errors when using the import hook and trying to import a module that has both a
+  module docstring and ``__future__`` imports in it
+
 **2.6.0** (2019-11-06)
 
 - Added a :pep:`302` import hook for annotating functions and classes with ``@typechecked``
