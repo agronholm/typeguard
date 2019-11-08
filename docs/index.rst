@@ -158,7 +158,7 @@ You can also customize the logic used to select which modules to instrument::
     from typeguard.importhook import TypeguardFinder, install_import_hook
 
     class CustomFinder(TypeguardFinder):
-        def should_instrument(module_name: str):
+        def should_instrument(self, module_name: str):
             # disregard the module names list and instrument all loaded modules
             return True
 
