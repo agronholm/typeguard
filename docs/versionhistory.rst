@@ -7,7 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed import errors when using the import hook and trying to import a module that has both a
   module docstring and ``__future__`` imports in it
-- Fixed ``AttributeError`` when using @typechecked on a metaclass
+- Fixed ``AttributeError`` when using ``@typechecked`` on a metaclass
+- Fixed ``@typechecked`` compatibility with built-in function wrappers
 
 **2.6.0** (2019-11-06)
 

@@ -2,7 +2,7 @@ import gc
 import sys
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from functools import wraps, partial
+from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
@@ -946,6 +946,21 @@ class TestTypeChecked:
             gen.send('foo')
 
         exc.match('type of return value must be str; got int instead')
+
+    def test_builtin_decorator(self):
+        @typechecked
+        @lru_cache()
+        def func(x: int) -> None:
+            pass
+
+        func(3)
+        func(3)
+        pytest.raises(TypeError, func, 'foo').\
+            match('type of argument "x" must be int; got str instead')
+
+        # Make sure that @lru_cache is still being used
+        cache_info = func.__wrapped__.cache_info()
+        assert cache_info.hits == 1
 
 
 class TestTypeChecker:

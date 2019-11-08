@@ -724,12 +724,15 @@ def typechecked(func=None, *, always=False):
 
         return func
 
+    # Find either the first Python wrapper or the actual function
+    python_func = inspect.unwrap(func, stop=lambda f: hasattr(f, '__code__'))
+
     if not getattr(func, '__annotations__', None):
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(func, args=args, kwargs=kwargs)
+        memo = _CallMemo(python_func, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
@@ -746,17 +749,17 @@ def typechecked(func=None, *, always=False):
         return retval
 
     async def async_wrapper(*args, **kwargs):
-        memo = _CallMemo(func, args=args, kwargs=kwargs)
+        memo = _CallMemo(python_func, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = await func(*args, **kwargs)
         check_return_type(retval, memo)
         return retval
 
     if inspect.iscoroutinefunction(func):
-        if func.__code__ is not async_wrapper.__code__:
+        if python_func.__code__ is not async_wrapper.__code__:
             return wraps(func)(async_wrapper)
     else:
-        if func.__code__ is not wrapper.__code__:
+        if python_func.__code__ is not wrapper.__code__:
             return wraps(func)(wrapper)
 
     # the target callable was already wrapped
