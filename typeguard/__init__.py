@@ -717,7 +717,7 @@ def typechecked(func=None, *, always=False):
     if isclass(func):
         prefix = func.__qualname__ + '.'
         for key in dir(func):
-            attr = getattr(func, key)
+            attr = getattr(func, key, None)
             if callable(attr) and attr.__qualname__.startswith(prefix):
                 if getattr(attr, '__annotations__', None):
                     setattr(func, key, typechecked(attr, always=always))

@@ -31,7 +31,11 @@ def dynamic_type_checking_func(arg, argtype, return_annotation):
     return inner(arg)
 
 
-class DummyClass:
+class Metaclass(type):
+    pass
+
+
+class DummyClass(metaclass=Metaclass):
     def type_checked_method(self, x: int, y: int) -> int:
         return x * y
 
