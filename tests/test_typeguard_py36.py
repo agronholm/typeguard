@@ -67,6 +67,17 @@ class TestTypeChecked:
 
         exc.match('type of value sent to generator must be str; got int instead')
 
+    def test_return_async_generator(self):
+        @typechecked
+        async def genfunc() -> AsyncGenerator[int, None]:
+            yield 1
+
+        @typechecked
+        def foo() -> AsyncGenerator[int, None]:
+            return genfunc()
+
+        foo()
+
 
 async def asyncgenfunc() -> AsyncGenerator[int, None]:
     yield 1

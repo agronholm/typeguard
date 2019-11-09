@@ -637,6 +637,12 @@ class TypeCheckedGenerator:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.__wrapped, name)
 
+    def throw(self, *args):
+        return self.__wrapped.throw(*args)
+
+    def close(self):
+        self.__wrapped.close()
+
     def send(self, obj):
         if self.__initialized:
             check_type('value sent to generator', obj, self.__send_type, memo=self.__memo)
@@ -670,6 +676,12 @@ class TypeCheckedAsyncGenerator:
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.__wrapped, name)
+
+    def athrow(self, *args):
+        return self.__wrapped.athrow(*args)
+
+    def aclose(self):
+        return self.__wrapped.aclose()
 
     async def asend(self, obj):
         if self.__initialized:

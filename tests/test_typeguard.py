@@ -947,6 +947,17 @@ class TestTypeChecked:
 
         exc.match('type of return value must be str; got int instead')
 
+    def test_return_generator(self):
+        @typechecked
+        def genfunc() -> Generator[int, None, None]:
+            yield 1
+
+        @typechecked
+        def foo() -> Generator[int, None, None]:
+            return genfunc()
+
+        foo()
+
     def test_builtin_decorator(self):
         @typechecked
         @lru_cache()

@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   module docstring and ``__future__`` imports in it
 - Fixed ``AttributeError`` when using ``@typechecked`` on a metaclass
 - Fixed ``@typechecked`` compatibility with built-in function wrappers
+- Fixed type checking generator wrappers not being recognized as generators
 
 **2.6.0** (2019-11-06)
 
