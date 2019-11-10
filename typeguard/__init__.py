@@ -86,6 +86,9 @@ class _CallMemo:
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
             while True:
+                if sys.version_info < (3, 5, 3):
+                    frame_locals = dict(frame_locals)
+
                 try:
                     hints = get_type_hints(func, localns=frame_locals)
                 except NameError as exc:
