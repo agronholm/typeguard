@@ -985,6 +985,20 @@ class TestTypeChecked:
         retval = LocalClass().create_inner()
         assert isinstance(retval, LocalClass.Inner)
 
+    def test_local_class_async(self):
+        @typechecked
+        class LocalClass:
+            class Inner:
+                pass
+
+            async def create_inner(self) -> 'Inner':
+                return self.Inner()
+
+        coro = LocalClass().create_inner()
+        exc = pytest.raises(StopIteration, coro.send, None)
+        retval = exc.value.value
+        assert isinstance(retval, LocalClass.Inner)
+
 
 class TestTypeChecker:
     @pytest.fixture

@@ -766,7 +766,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         return retval
 
     async def async_wrapper(*args, **kwargs):
-        memo = _CallMemo(python_func, args=args, kwargs=kwargs)
+        memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = await func(*args, **kwargs)
         check_return_type(retval, memo)
