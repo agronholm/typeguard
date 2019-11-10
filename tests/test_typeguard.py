@@ -973,6 +973,18 @@ class TestTypeChecked:
         cache_info = func.__wrapped__.cache_info()
         assert cache_info.hits == 1
 
+    def test_local_class(self):
+        @typechecked
+        class LocalClass:
+            class Inner:
+                pass
+
+            def create_inner(self) -> 'Inner':
+                return self.Inner()
+
+        retval = LocalClass().create_inner()
+        assert isinstance(retval, LocalClass.Inner)
+
 
 class TestTypeChecker:
     @pytest.fixture

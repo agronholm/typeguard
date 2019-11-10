@@ -46,3 +46,29 @@ class DummyClass(metaclass=Metaclass):
     @staticmethod
     def type_checked_staticmethod(x: int, y: int) -> int:
         return x * y
+
+
+def outer():
+    class Inner:
+        pass
+
+    def create_inner() -> 'Inner':
+        return Inner()
+
+    return create_inner
+
+
+class Outer:
+    class Inner:
+        pass
+
+    def create_inner(self) -> 'Inner':
+        return Outer.Inner()
+
+    @classmethod
+    def create_inner_classmethod(cls) -> 'Inner':
+        return Outer.Inner()
+
+    @staticmethod
+    def create_inner_staticmethod() -> 'Inner':
+        return Outer.Inner()

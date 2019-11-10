@@ -10,6 +10,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``AttributeError`` when using ``@typechecked`` on a metaclass
 - Fixed ``@typechecked`` compatibility with built-in function wrappers
 - Fixed type checking generator wrappers not being recognized as generators
+- Fixed resolution of forward references in certain cases (inner classes, function-local classes)
 
 **2.6.0** (2019-11-06)
 
