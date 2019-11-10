@@ -729,11 +729,13 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
 
     if isclass(func):
         prefix = func.__qualname__ + '.'
-        for key in dir(func):
-            attr = getattr(func, key, None)
+        for key, attr in func.__dict__.items():
             if inspect.isfunction(attr) or inspect.ismethod(attr) or inspect.isclass(attr):
                 if attr.__qualname__.startswith(prefix) and getattr(attr, '__annotations__', None):
                     setattr(func, key, typechecked(attr, always=always, _localns=func.__dict__))
+            elif isinstance(attr, (classmethod, staticmethod)):
+                wrapped = typechecked(attr.__func__, always=always, _localns=func.__dict__)
+                setattr(func, key, type(attr)(wrapped))
 
         return func
 

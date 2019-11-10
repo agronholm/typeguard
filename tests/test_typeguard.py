@@ -1008,6 +1008,20 @@ class TestTypeChecked:
         class LocalClass:
             some_callable = CallableClass()
 
+    def test_inherited_class_method(self):
+        @typechecked
+        class Parent:
+            @classmethod
+            def foo(cls, x: str) -> str:
+                return cls.__name__
+
+        @typechecked
+        class Child(Parent):
+            pass
+
+        assert Child.foo('bar') == 'Child'
+        pytest.raises(TypeError, Child.foo, 1)
+
 
 class TestTypeChecker:
     @pytest.fixture

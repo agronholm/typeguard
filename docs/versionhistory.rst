@@ -13,6 +13,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed resolution of forward references in certain cases (inner classes, function-local classes)
 - Fixed ``AttributeError`` when a class has contains a variable that is an instance of a class
   that has a ``__call__()`` method
+- Fixed class methods and static methods being wrapped incorrectly when ``@typechecked`` is applied
+  to the class
 
 **2.6.0** (2019-11-06)
 
