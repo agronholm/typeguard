@@ -731,8 +731,8 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         prefix = func.__qualname__ + '.'
         for key in dir(func):
             attr = getattr(func, key, None)
-            if callable(attr) and attr.__qualname__.startswith(prefix):
-                if getattr(attr, '__annotations__', None):
+            if inspect.isfunction(attr) or inspect.ismethod(attr) or inspect.isclass(attr):
+                if attr.__qualname__.startswith(prefix) and getattr(attr, '__annotations__', None):
                     setattr(func, key, typechecked(attr, always=always, _localns=func.__dict__))
 
         return func

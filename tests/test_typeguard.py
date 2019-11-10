@@ -999,6 +999,15 @@ class TestTypeChecked:
         retval = exc.value.value
         assert isinstance(retval, LocalClass.Inner)
 
+    def test_callable_nonmember(self):
+        class CallableClass:
+            def __call__(self):
+                pass
+
+        @typechecked
+        class LocalClass:
+            some_callable = CallableClass()
+
 
 class TestTypeChecker:
     @pytest.fixture
