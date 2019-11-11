@@ -47,6 +47,14 @@ class DummyClass(metaclass=Metaclass):
     def type_checked_staticmethod(x: int, y: int) -> int:
         return x * y
 
+    @classmethod
+    def undocumented_classmethod(cls, x, y):
+        pass
+
+    @staticmethod
+    def undocumented_staticmethod(x, y):
+        pass
+
 
 def outer():
     class Inner:
