@@ -1022,6 +1022,24 @@ class TestTypeChecked:
         assert Child.foo('bar') == 'Child'
         pytest.raises(TypeError, Child.foo, 1)
 
+    def test_decorator_factory_no_annotations(self):
+        class CallableClass:
+            def __call__(self):
+                pass
+
+        def decorator_factory():
+            def decorator(f):
+                cmd = CallableClass()
+                return cmd
+
+            return decorator
+
+        with pytest.warns(UserWarning):
+            @typechecked
+            @decorator_factory()
+            def foo():
+                pass
+
 
 class TestTypeChecker:
     @pytest.fixture

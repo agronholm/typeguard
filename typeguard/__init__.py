@@ -193,7 +193,7 @@ def qualified_name(obj) -> str:
     return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
-def function_name(func: FunctionType) -> str:
+def function_name(func: Callable) -> str:
     """
     Return the qualified name of the given function.
 
@@ -201,8 +201,9 @@ def function_name(func: FunctionType) -> str:
     name stripped from the generated name.
 
     """
+    # For partial functions and objects with __call__ defined, __qualname__ does not exist
     module = func.__module__
-    qualname = func.__qualname__
+    qualname = getattr(func, '__qualname__', repr(func))
     return qualname if module == 'builtins' else '{}.{}'.format(module, qualname)
 
 
