@@ -15,6 +15,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   that has a ``__call__()`` method
 - Fixed class methods and static methods being wrapped incorrectly when ``@typechecked`` is applied
   to the class
+- Fixed ``AttributeError`` when ``@typechecked`` is applied to a function that has been decorated
+  with a decorator that does not properly wrap the original (PR by Joel Beach)
 
 **2.6.0** (2019-11-06)
 
