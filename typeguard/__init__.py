@@ -32,8 +32,10 @@ except ImportError:
 
 try:
     from typing import ForwardRef
+    evaluate_forwardref = ForwardRef._evaluate
 except ImportError:
     from typing import _ForwardRef as ForwardRef  # Python < 3.8
+    evaluate_forwardref = ForwardRef._eval_type
 
 try:
     from inspect import isasyncgenfunction, isasyncgen
@@ -147,18 +149,11 @@ class _CallMemo:
             _type_hints_map[func] = self.type_hints
 
 
-if sys.version_info < (3, 7):
-    def resolve_forwardref(maybe_ref, memo: _CallMemo):
-        if isinstance(maybe_ref, ForwardRef):
-            return maybe_ref._eval_type(memo.func.__globals__, None)
-        else:
-            return maybe_ref
-else:
-    def resolve_forwardref(maybe_ref, memo: _CallMemo):
-        if isinstance(maybe_ref, ForwardRef):
-            return maybe_ref._evaluate(memo.func.__globals__, None)
-        else:
-            return maybe_ref
+def resolve_forwardref(maybe_ref, memo: _CallMemo):
+    if isinstance(maybe_ref, ForwardRef):
+        return evaluate_forwardref(maybe_ref, memo.func.__globals__, {})
+    else:
+        return maybe_ref
 
 
 def get_type_name(type_):
