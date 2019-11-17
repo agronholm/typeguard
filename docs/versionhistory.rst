@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.6.1** (2019-11-17)
 
 - Fixed import errors when using the import hook and trying to import a module that has both a
   module docstring and ``__future__`` imports in it
