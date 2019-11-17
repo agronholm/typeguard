@@ -25,6 +25,10 @@ except ImportError:
     Collection = None
 
 
+TBound = TypeVar('TBound', bound='Parent')
+TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
+
+
 class Parent:
     pass
 
@@ -1053,6 +1057,16 @@ class TestTypeChecked:
             @decorator_factory()
             def foo():
                 pass
+
+    @pytest.mark.parametrize('annotation', [TBound, TConstrained], ids=['bound', 'constrained'])
+    def test_typevar_forwardref(self, annotation):
+        @typechecked
+        def func(x: annotation) -> None:
+            pass
+
+        func(Parent())
+        func(Child())
+        pytest.raises(TypeError, func, 'foo')
 
 
 class TestTypeChecker:

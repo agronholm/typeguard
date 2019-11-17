@@ -31,6 +31,11 @@ except ImportError:
     AsyncGenerator = None
 
 try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef  # Python < 3.8
+
+try:
     from inspect import isasyncgenfunction, isasyncgen
 except ImportError:
     def isasyncgen(obj):
@@ -140,6 +145,20 @@ class _CallMemo:
                 self.type_hints['return'] = hints['return']
 
             _type_hints_map[func] = self.type_hints
+
+
+if sys.version_info < (3, 7):
+    def resolve_forwardref(maybe_ref, memo: _CallMemo):
+        if isinstance(maybe_ref, ForwardRef):
+            return maybe_ref._eval_type(memo.func.__globals__, None)
+        else:
+            return maybe_ref
+else:
+    def resolve_forwardref(maybe_ref, memo: _CallMemo):
+        if isinstance(maybe_ref, ForwardRef):
+            return maybe_ref._evaluate(memo.func.__globals__, None)
+        else:
+            return maybe_ref
 
 
 def get_type_name(type_):
@@ -405,17 +424,18 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMem
     if memo is None:
         raise TypeError('encountered a TypeVar but a call memo was not provided')
 
-    bound_type = memo.typevars.get(typevar, typevar.__bound__)
+    bound_type = resolve_forwardref(memo.typevars.get(typevar, typevar.__bound__), memo)
     value_type = value if subclass_check else type(value)
     subject = argname if subclass_check else 'type of ' + argname
     if bound_type is None:
         # The type variable hasn't been bound yet -- check that the given value matches the
         # constraints of the type variable, if any
-        if typevar.__constraints__ and value_type not in typevar.__constraints__:
-            typelist = ', '.join(get_type_name(t) for t in typevar.__constraints__
-                                 if t is not object)
-            raise TypeError('{} must be one of ({}); got {} instead'.
-                            format(subject, typelist, qualified_name(value_type)))
+        if typevar.__constraints__:
+            constraints = [resolve_forwardref(c, memo) for c in typevar.__constraints__]
+            if value_type not in constraints:
+                typelist = ', '.join(get_type_name(t) for t in constraints if t is not object)
+                raise TypeError('{} must be one of ({}); got {} instead'.
+                                format(subject, typelist, qualified_name(value_type)))
     elif typevar.__covariant__ or typevar.__bound__:
         if not issubclass(value_type, bound_type):
             raise TypeError(

@@ -19,6 +19,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   with a decorator that does not properly wrap the original (PR by Joel Beach)
 - Fixed collections with mixed value (or key) types raising ``TypeError`` on Python 3.7+ when
   matched against unparametrized annotations from the ``typing`` module
+- Fixed inadvertent ``TypeError`` when checking against a type variable that has constraints or
+  a bound type expressed as a forward reference
 
 **2.6.0** (2019-11-06)
 
