@@ -725,6 +725,20 @@ class TestTypeChecked:
 
         foo({'x': 2})
 
+    @pytest.mark.parametrize('typehint, value', [
+        (Dict, {'x': 2, 6: 4}),
+        (List, ['x', 6]),
+        (Sequence, ['x', 6]),
+        (Set, {'x', 6}),
+        (Tuple, ('x', 6)),
+    ], ids=['dict', 'list', 'sequence', 'set', 'tuple'])
+    def test_unparametrized_types_mixed_values(self, typehint, value):
+        @typechecked
+        def foo(a: typehint):
+            pass
+
+        foo(value)
+
     @pytest.mark.parametrize('typehint', [
         Sequence[str],
         Sequence

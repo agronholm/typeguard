@@ -260,10 +260,13 @@ def check_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) ->
         raise TypeError('type of {} must be a dict; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    key_type, value_type = getattr(expected_type, '__args__', expected_type.__parameters__)
-    for k, v in value.items():
-        check_type('keys of {}'.format(argname), k, key_type, memo)
-        check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
+    if expected_type is not dict:
+        if expected_type.__args__ not in (None, expected_type.__parameters__):
+            key_type, value_type = expected_type.__args__
+            if key_type is not Any or value_type is not Any:
+                for k, v in value.items():
+                    check_type('keys of {}'.format(argname), k, key_type, memo)
+                    check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
 
 
 def check_typed_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
@@ -281,10 +284,12 @@ def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) ->
         raise TypeError('type of {} must be a list; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
-    if value_type:
-        for i, v in enumerate(value):
-            check_type('{}[{}]'.format(argname, i), v, value_type, memo)
+    if expected_type is not list:
+        if expected_type.__args__ not in (None, expected_type.__parameters__):
+            value_type = expected_type.__args__[0]
+            if value_type is not Any:
+                for i, v in enumerate(value):
+                    check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
 def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
@@ -292,10 +297,11 @@ def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
-    if value_type:
-        for i, v in enumerate(value):
-            check_type('{}[{}]'.format(argname, i), v, value_type, memo)
+    if expected_type.__args__ not in (None, expected_type.__parameters__):
+        value_type = expected_type.__args__[0]
+        if value_type is not Any:
+            for i, v in enumerate(value):
+                check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
 def check_set(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
@@ -303,10 +309,12 @@ def check_set(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> 
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    value_type = getattr(expected_type, '__args__', expected_type.__parameters__)[0]
-    if value_type:
-        for v in value:
-            check_type('elements of {}'.format(argname), v, value_type, memo)
+    if expected_type is not set:
+        if expected_type.__args__ not in (None, expected_type.__parameters__):
+            value_type = expected_type.__args__[0]
+            if value_type is not Any:
+                for v in value:
+                    check_type('elements of {}'.format(argname), v, value_type, memo)
 
 
 def check_tuple(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
