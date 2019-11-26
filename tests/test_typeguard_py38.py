@@ -14,14 +14,16 @@ def test_literal():
     pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
 
 
-@pytest.mark.parametrize('value, error_re', [
-    ({'x': 6, 'y': 'foo'}, None),
-    ({'y': 'foo'}, None),
-    ({'y': 3}, 'type of dict item "y" for argument "arg" must be str; got int instead'),
-    ({}, 'the required key "y" is missing for argument "arg"')
-], ids=['correct', 'missing_x', 'wrong_type', 'missing_y'])
-def test_typed_dict(value, error_re):
-    class DummyDict(TypedDict):
+@pytest.mark.parametrize('value, total, error_re', [
+    ({'x': 6, 'y': 'foo'}, True, None),
+    ({'y': 'foo'}, True, None),
+    ({'y': 3}, True, 'type of dict item "y" for argument "arg" must be str; got int instead'),
+    ({}, True, 'the required key "y" is missing for argument "arg"'),
+    ({}, False, None),
+    ({'x': 'abc'}, False, 'type of dict item "x" for argument "arg" must be int; got str instead')
+], ids=['correct', 'missing_x', 'wrong_y', 'missing_y', 'empty_dict', 'wrong_x'])
+def test_typed_dict(value, total, error_re):
+    class DummyDict(TypedDict, total=total):
         x: int = 0
         y: str
 
