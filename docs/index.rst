@@ -202,6 +202,8 @@ Type           Notes
 ``List``       Contents are typechecked
 ``Literal``
 ``NamedTuple`` Field values are typechecked
+``Protocol``   Value type checked with ``issubclass()`` against the
+               protocol
 ``Set``        Contents are typechecked
 ``Sequence``   Contents are typechecked
 ``Tuple``      Contents are typechecked

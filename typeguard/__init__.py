@@ -9,7 +9,7 @@ import threading
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps, partial
-from inspect import Parameter, isclass, isfunction, isgeneratorfunction
+from inspect import Parameter, isclass, isfunction, isgeneratorfunction, getattr_static
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
@@ -24,6 +24,11 @@ try:
     from typing import Literal, TypedDict
 except ImportError:
     Literal = TypedDict = None
+
+try:
+    from typing import Protocol
+except ImportError:
+    from typing import _Protocol as Protocol
 
 try:
     from typing import AsyncGenerator
@@ -481,6 +486,12 @@ def check_io(argname: str, value, expected_type):
                         format(argname, qualified_name(value.__class__)))
 
 
+def check_protocol(argname: str, value, expected_type):
+    if not issubclass(type(value), expected_type):
+        raise TypeError('type of {} ({}) is not compatible with the {} protocol'.
+                        format(argname, type(value).__qualname__, expected_type.__qualname__))
+
+
 # Equality checks are applied to these
 origin_type_checkers = {
     Callable: check_callable,
@@ -558,6 +569,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
             check_io(argname, value, expected_type)
         elif issubclass(expected_type, dict) and hasattr(expected_type, '__annotations__'):
             check_typed_dict(argname, value, expected_type, memo)
+        elif getattr_static(expected_type, '_is_protocol', False):
+            check_protocol(argname, value, expected_type)
         else:
             expected_type = (getattr(expected_type, '__extra__', None) or origin_type or
                              expected_type)

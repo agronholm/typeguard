@@ -6,7 +6,7 @@ from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt)
 
 import pytest
 
@@ -1067,6 +1067,21 @@ class TestTypeChecked:
         func(Parent())
         func(Child())
         pytest.raises(TypeError, func, 'foo')
+
+    @pytest.mark.parametrize('value, error_re', [
+        (1, None),
+        ('foo',
+         r'type of argument "arg" \(str\) is not compatible with the SupportsInt protocol')
+    ], ids=['int', 'str'])
+    def test_protocol(self, value, error_re):
+        @typechecked
+        def foo(arg: SupportsInt):
+            pass
+
+        if error_re:
+            pytest.raises(TypeError, foo, value).match(error_re)
+        else:
+            foo(value)
 
 
 class TestTypeChecker:
