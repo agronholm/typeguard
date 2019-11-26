@@ -288,7 +288,7 @@ def check_typed_dict(argname: str, value, expected_type, memo: Optional[_CallMem
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype)
-        elif expected_type.__total__ and not hasattr(expected_type, key):
+        elif expected_type.__total__:
             raise TypeError('the required key "{}" is missing for {}'
                             .format(key, argname)) from None
 
