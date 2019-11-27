@@ -324,7 +324,7 @@ def check_sequence(argname: str, value, expected_type, memo: Optional[_CallMemo]
 
 
 def check_set(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
-    if not isinstance(value, (collections.abc.Set, AbstractSet)):
+    if not isinstance(value, AbstractSet):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
 
