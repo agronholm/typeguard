@@ -6,7 +6,7 @@ from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
 
 import pytest
 
@@ -275,12 +275,43 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == (
             'type of argument "a"[2] must be int; got str instead')
 
+    def test_abstractset_custom_type(self):
+        class DummySet(AbstractSet[int]):
+            def __contains__(self, x: object) -> bool:
+                return x == 1
+
+            def __len__(self) -> int:
+                return 1
+
+            def __iter__(self) -> Iterator[int]:
+                yield 1
+
+        def foo(a: AbstractSet[int]):
+            assert check_argument_types()
+
+        foo(DummySet())
+
+    def test_abstractset_bad_type(self):
+        def foo(a: AbstractSet[int]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, 5)
+        assert str(exc.value) == 'type of argument "a" must be a set; got int instead'
+
     def test_set_bad_type(self):
         def foo(a: Set[int]):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 5)
         assert str(exc.value) == 'type of argument "a" must be a set; got int instead'
+
+    def test_abstractset_bad_element(self):
+        def foo(a: AbstractSet[int]):
+            assert check_argument_types()
+
+        exc = pytest.raises(TypeError, foo, {1, 2, 'bb'})
+        assert str(exc.value) == (
+            'type of elements of argument "a" must be int; got str instead')
 
     def test_set_bad_element(self):
         def foo(a: Set[int]):
@@ -734,8 +765,9 @@ class TestTypeChecked:
         (List, ['x', 6]),
         (Sequence, ['x', 6]),
         (Set, {'x', 6}),
+        (AbstractSet, {'x', 6}),
         (Tuple, ('x', 6)),
-    ], ids=['dict', 'list', 'sequence', 'set', 'tuple'])
+    ], ids=['dict', 'list', 'sequence', 'set', 'abstractset', 'tuple'])
     def test_unparametrized_types_mixed_values(self, typehint, value):
         @typechecked
         def foo(a: typehint):
@@ -783,10 +815,12 @@ class TestTypeChecked:
         foo(value)
 
     @pytest.mark.parametrize('typehint', [
+        AbstractSet[int],
+        AbstractSet,
         Set[int],
         Set,
         set
-    ], ids=['parametrized', 'unparametrized', 'plain'])
+    ], ids=['abstract_parametrized', 'abstract', 'parametrized', 'unparametrized', 'plain'])
     @pytest.mark.parametrize('value', [set(), {6}])
     def test_set(self, typehint, value):
         @typechecked

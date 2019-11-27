@@ -16,7 +16,7 @@ from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
-    AsyncIterator)
+    AsyncIterator, AbstractSet)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -494,6 +494,7 @@ def check_protocol(argname: str, value, expected_type):
 
 # Equality checks are applied to these
 origin_type_checkers = {
+    AbstractSet: check_set,
     Callable: check_callable,
     collections.abc.Callable: check_callable,
     dict: check_dict,
