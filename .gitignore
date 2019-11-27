@@ -11,3 +11,4 @@ __pycache__/
 docs/_build/
 dist/
 build/
+.pre-commit-config.yaml
