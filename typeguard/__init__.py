@@ -289,13 +289,24 @@ def check_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) ->
 
 
 def check_typed_dict(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
+    expected_keys = frozenset(expected_type.__annotations__)
+    existing_keys = frozenset(value)
+
+    extra_keys = existing_keys - expected_keys
+    if extra_keys:
+        keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(extra_keys))
+        raise TypeError('extra key(s) ({}) in {}'.format(keys_formatted, argname))
+
+    if expected_type.__total__:
+        missing_keys = expected_keys - existing_keys
+        if missing_keys:
+            keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
+            raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
+
     for key, argtype in expected_type.__annotations__.items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype)
-        elif expected_type.__total__:
-            raise TypeError('the required key "{}" is missing for {}'
-                            .format(key, argname)) from None
 
 
 def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:

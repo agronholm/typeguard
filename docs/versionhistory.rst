@@ -8,6 +8,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added support for ``typing.Protocol`` subclasses
 - Added support for ``typing.AbstractSet``
 - Fixed the handling of ``total=False`` in ``TypedDict``
+- Fixed no error reported on unknown keys with ``TypedDict``
 - Removed support of default values in ``TypedDict``, as they are not supported in the spec
 
 **2.6.1** (2019-11-17)
