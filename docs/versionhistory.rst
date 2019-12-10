@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.7.0** (2019-12-10)
 
 - Added support for ``typing.Protocol`` subclasses
 - Added support for ``typing.AbstractSet``
