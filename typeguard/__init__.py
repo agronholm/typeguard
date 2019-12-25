@@ -774,11 +774,11 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
     :param always: ``True`` to enable type checks even in optimized mode
 
     """
-    if not __debug__ and not always:  # pragma: no cover
-        return func
-
     if func is None:
         return partial(typechecked, always=always, _localns=_localns)
+
+    if not __debug__ and not always:  # pragma: no cover
+        return func
 
     if isclass(func):
         prefix = func.__qualname__ + '.'

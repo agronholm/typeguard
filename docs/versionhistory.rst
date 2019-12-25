@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``@typechecked`` returning ``None`` when called with ``always=True`` and Python runs in
+  optimized mode
+
 **2.7.0** (2019-12-10)
 
 - Added support for ``typing.Protocol`` subclasses
