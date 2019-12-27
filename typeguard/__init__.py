@@ -9,7 +9,7 @@ import threading
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps, partial
-from inspect import Parameter, isclass, isfunction, isgeneratorfunction, getattr_static
+from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
@@ -582,7 +582,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
             check_io(argname, value, expected_type)
         elif issubclass(expected_type, dict) and hasattr(expected_type, '__annotations__'):
             check_typed_dict(argname, value, expected_type, memo)
-        elif getattr_static(expected_type, '_is_protocol', False):
+        elif getattr(expected_type, '_is_protocol', False):
             check_protocol(argname, value, expected_type)
         else:
             expected_type = (getattr(expected_type, '__extra__', None) or origin_type or

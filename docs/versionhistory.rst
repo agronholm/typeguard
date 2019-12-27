@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed ``@typechecked`` returning ``None`` when called with ``always=True`` and Python runs in
   optimized mode
+- Fixed performance regression introduced in v2.7.0 (the ``getattr_static()`` call was causing a 3x
+  slowdown)
 
 **2.7.0** (2019-12-10)
 
