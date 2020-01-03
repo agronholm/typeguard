@@ -4,6 +4,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
+from unittest.mock import MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
@@ -82,6 +83,12 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo('aa')
+
+    def test_magicmock_value(self):
+        def foo(a: str, b: int, c: dict, d: Any) -> int:
+            assert check_argument_types()
+
+        foo(MagicMock(), MagicMock(), MagicMock(), MagicMock())
 
     def test_callable_exact_arg_count(self):
         def foo(a: Callable[[int, str], int]):
@@ -721,6 +728,13 @@ class TestTypeChecked:
 
         exc = pytest.raises(TypeError, foo)
         assert str(exc.value) == 'type of the return value must be NoneType; got str instead'
+
+    def test_return_type_magicmock(self):
+        @typechecked
+        def foo() -> str:
+            return MagicMock()
+
+        foo()
 
     @pytest.mark.parametrize('typehint', [
         Callable[..., int],
