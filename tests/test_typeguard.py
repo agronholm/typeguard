@@ -4,7 +4,6 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
-import sys
 import traceback
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
@@ -1304,8 +1303,9 @@ class TestTracebacks:
             assert check_argument_types()
         try:
             foo(1)
-        except TypeError as e:
+        except TypeError:
             _, _, tb = sys.exc_info()
             parts = traceback.extract_tb(tb)
-            typeguard_lines = [part for part in parts if part.filename.endswith("typeguard/__init__.py")]
-            assert len(typeguard_lines)==1
+            typeguard_lines = [part for part in parts
+                               if part.filename.endswith("typeguard/__init__.py")]
+            assert len(typeguard_lines) == 1
