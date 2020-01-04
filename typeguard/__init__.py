@@ -813,7 +813,6 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         except TypeError as exc:
             raise TypeError(exc) from None
 
-
         # If a generator is returned, wrap it if its yield/send/return types can be checked
         if inspect.isgenerator(retval) or isasyncgen(retval):
             return_type = memo.type_hints.get('return')
