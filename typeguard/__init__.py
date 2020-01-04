@@ -632,7 +632,7 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
         except TypeError as exc:  # suppress unnecessarily long tracebacks
-            raise exc from None
+            raise TypeError(exc) from None
 
     return True
 
@@ -667,7 +667,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
             try:
                 check_type(description, value, expected_type, memo)
             except TypeError as exc:  # suppress unnecessarily long tracebacks
-                raise exc from None
+                raise TypeError(exc) from None
 
     return True
 
@@ -808,7 +808,11 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
-        check_return_type(retval, memo)
+        try:
+            check_return_type(retval, memo)
+        except TypeError as exc:
+            raise TypeError(exc) from None
+
 
         # If a generator is returned, wrap it if its yield/send/return types can be checked
         if inspect.isgenerator(retval) or isasyncgen(retval):

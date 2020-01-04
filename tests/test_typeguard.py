@@ -4,6 +4,8 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
+import sys
+import traceback
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
@@ -1294,3 +1296,16 @@ class TestTypeChecker:
         assert len(record) == 1
         assert str(record[0].message).startswith("Replaced forward declaration 'OrderedDict' in")
         assert unresolvable_annotation.__annotations__['x'] is collections.OrderedDict
+
+
+class TestTracebacks:
+    def test_short_tracebacks(self):
+        def foo(a: Callable[..., int]):
+            assert check_argument_types()
+        try:
+            foo(1)
+        except TypeError as e:
+            _, _, tb = sys.exc_info()
+            parts = traceback.extract_tb(tb)
+            typeguard_lines = [part for part in parts if part.filename.endswith("typeguard/__init__.py")]
+            assert len(typeguard_lines)==1
