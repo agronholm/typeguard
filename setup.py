@@ -7,5 +7,8 @@ setup(
     },
     setup_requires=[
         'setuptools_scm >= 1.7.0'
-    ]
+    ],
+    package_data={
+        'typeguard': ["py.typed"]
+    }
 )
