@@ -813,11 +813,12 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         # If a generator is returned, wrap it if its yield/send/return types can be checked
         if inspect.isgenerator(retval) or isasyncgen(retval):
             return_type = memo.type_hints.get('return')
-            origin = getattr(return_type, '__origin__')
-            if origin in generator_origin_types:
-                return TypeCheckedGenerator(retval, memo)
-            elif origin is not None and origin in asyncgen_origin_types:
-                return TypeCheckedAsyncGenerator(retval, memo)
+            if return_type:
+                origin = getattr(return_type, '__origin__')
+                if origin in generator_origin_types:
+                    return TypeCheckedGenerator(retval, memo)
+                elif origin is not None and origin in asyncgen_origin_types:
+                    return TypeCheckedAsyncGenerator(retval, memo)
 
         return retval
 

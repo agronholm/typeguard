@@ -561,6 +561,17 @@ class TestCheckArgumentTypes:
         gen = generate(1)
         next(gen)
 
+    def test_wrapped_generator_no_return_type_annotation(self):
+        """Test that return type checking works in a generator function too."""
+        @typechecked
+        def generate(a: int):
+            yield a
+            yield a + 1
+
+        gen = generate(1)
+        next(gen)
+
+
     def test_varargs(self):
         def foo(*args: int):
             assert check_argument_types()
