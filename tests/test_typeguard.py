@@ -571,7 +571,6 @@ class TestCheckArgumentTypes:
         gen = generate(1)
         next(gen)
 
-
     def test_varargs(self):
         def foo(*args: int):
             assert check_argument_types()
