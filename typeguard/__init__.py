@@ -17,6 +17,7 @@ from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
     AsyncIterator, AbstractSet)
+from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
@@ -552,7 +553,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     :param expected_type: a class or generic type instance
 
     """
-    if expected_type is Any:
+    if expected_type is Any or isinstance(value, Mock):
         return
 
     if expected_type is None:

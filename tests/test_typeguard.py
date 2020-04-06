@@ -4,6 +4,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
+from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
@@ -36,6 +37,11 @@ class Parent:
 class Child(Parent):
     def method(self, a: int):
         pass
+
+
+@pytest.fixture(params=[Mock, MagicMock], ids=['mock', 'magicmock'])
+def mock_class(request):
+    return request.param
 
 
 @pytest.mark.parametrize('inputval, expected', [
@@ -82,6 +88,12 @@ class TestCheckArgumentTypes:
             assert check_argument_types()
 
         foo('aa')
+
+    def test_mock_value(self, mock_class):
+        def foo(a: str, b: int, c: dict, d: Any) -> int:
+            assert check_argument_types()
+
+        foo(mock_class(), mock_class(), mock_class(), mock_class())
 
     def test_callable_exact_arg_count(self):
         def foo(a: Callable[[int, str], int]):
@@ -721,6 +733,13 @@ class TestTypeChecked:
 
         exc = pytest.raises(TypeError, foo)
         assert str(exc.value) == 'type of the return value must be NoneType; got str instead'
+
+    def test_return_type_magicmock(self, mock_class):
+        @typechecked
+        def foo() -> str:
+            return mock_class()
+
+        foo()
 
     @pytest.mark.parametrize('typehint', [
         Callable[..., int],
