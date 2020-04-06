@@ -38,9 +38,9 @@ class Child(Parent):
     def method(self, a: int):
         pass
 
-    
+
 @pytest.fixture(params=[Mock, MagicMock], ids=['mock', 'magicmock'])
-def mock_class(request)
+def mock_class(request):
     return request.param
 
 
