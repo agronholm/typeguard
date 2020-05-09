@@ -8,6 +8,8 @@ from inspect import isclass
 from typing import Iterable, Type
 from unittest.mock import patch
 
+import typeguard
+
 
 # The name of this function is magical
 def _call_with_frames_removed(f, *args, **kwargs):
@@ -79,7 +81,11 @@ class TypeguardLoader(SourceFileLoader):
     def exec_module(self, module):
         # Use a custom optimization marker – the import lock should make this monkey patch safe
         with patch('importlib._bootstrap_external.cache_from_source', optimized_cache_from_source):
-            return super().exec_module(module)
+            super().exec_module(module)
+
+        if hasattr(module, '__annotations__'):
+            for attribute_name, type_info in module.__annotations__.items():
+                typeguard.check_type(attribute_name, getattr(module, attribute_name), type_info)
 
 
 class TypeguardFinder(MetaPathFinder):

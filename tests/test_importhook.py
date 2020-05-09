@@ -1,6 +1,6 @@
 import sys
 import warnings
-from importlib import import_module
+import importlib
 from importlib.util import cache_from_source
 from pathlib import Path
 
@@ -13,20 +13,30 @@ dummy_module_path = this_dir / 'dummymodule.py'
 cached_module_path = Path(cache_from_source(str(dummy_module_path), optimization='typeguard'))
 
 
-@pytest.fixture(scope='module')
-def dummymodule():
+def import_fixtures_module(module_name):
     if cached_module_path.exists():
         cached_module_path.unlink()
 
     sys.path.insert(0, str(this_dir))
+
     try:
-        with install_import_hook('dummymodule'):
+        with install_import_hook(module_name):
             with warnings.catch_warnings():
                 warnings.filterwarnings('error', module='typeguard')
-                module = import_module('dummymodule')
+
+                if module_name not in sys.modules:
+                    module = importlib.import_module(module_name)
+                else:
+                    module = importlib.reload(sys.modules[module_name])
+
                 return module
     finally:
         sys.path.remove(str(this_dir))
+
+
+@pytest.fixture(scope='module')
+def dummymodule():
+    return import_fixtures_module('dummymodule')
 
 
 def test_cached_module(dummymodule):
@@ -99,3 +109,16 @@ def test_inner_class_classmethod(dummymodule):
 def test_inner_class_staticmethod(dummymodule):
     retval = dummymodule.Outer.create_inner_staticmethod()
     assert retval.__class__.__qualname__ == 'Outer.Inner'
+
+
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
+def test_check_module_annotations_successed():
+    import_fixtures_module('dummymodule_3_6')
+
+
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
+def test_check_module_annotations_failed(monkeypatch):
+    monkeypatch.setenv('TYPEGUARD_TEST_WRONG_ANNOTATION', 'True')
+
+    exc = pytest.raises(TypeError, import_fixtures_module, 'dummymodule_3_6')
+    exc.match('type of wrong_annotated_attribute must be int; got float instead')
