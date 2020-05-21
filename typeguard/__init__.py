@@ -27,11 +27,6 @@ except ImportError:
     Literal = TypedDict = None
 
 try:
-    from typing import Protocol
-except ImportError:
-    from typing import _Protocol as Protocol
-
-try:
     from typing import AsyncGenerator
 except ImportError:
     AsyncGenerator = None
