@@ -29,7 +29,7 @@ except ImportError:
 try:
     from typing_extensions import Literal as BPLiteral
 except ImportError:
-    pass
+    BPLiteral = None
 
 try:
     from typing import AsyncGenerator
