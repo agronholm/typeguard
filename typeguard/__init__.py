@@ -27,6 +27,11 @@ except ImportError:
     Literal = TypedDict = None
 
 try:
+    from typing_extensions import Literal as BPLiteral
+except ImportError:
+    BPLiteral = None
+
+try:
     from typing import AsyncGenerator
 except ImportError:
     AsyncGenerator = None
@@ -465,9 +470,15 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMem
 
 
 def check_literal(argname: str, value, expected_type, memo: Optional[_CallMemo]):
-    if value not in expected_type.__args__:
+    try:
+        args = expected_type.__args__
+    except AttributeError:
+        # Instance of Literal from typing_extensions
+        args = expected_type.__values__
+
+    if value not in args:
         raise TypeError('the value of {} must be one of {}; got {} instead'.
-                        format(argname, expected_type.__args__, value))
+                        format(argname, args, value))
 
 
 def check_number(argname: str, value, expected_type):
@@ -523,6 +534,8 @@ if Type is not None:
     origin_type_checkers[Type] = check_class
 if Literal is not None:
     origin_type_checkers[Literal] = check_literal
+if BPLiteral is not None:
+    origin_type_checkers[BPLiteral] = check_literal
 
 generator_origin_types = (Generator, collections.abc.Generator,
                           Iterator, collections.abc.Iterator,
@@ -595,6 +608,9 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
+    elif BPLiteral is not None and isinstance(expected_type, BPLiteral.__class__):
+        # Only happens on < 3.7 when using Literal from typing_extensions
+        check_literal(argname, value, expected_type, memo)
     elif (isfunction(expected_type) and
             getattr(expected_type, "__module__", None) == "typing" and
             getattr(expected_type, "__qualname__", None).startswith("NewType.") and
