@@ -28,7 +28,7 @@ except ImportError:
 
 try:
     from typing_extensions import Literal as BPLiteral
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 try:
@@ -473,7 +473,7 @@ def check_literal(argname: str, value, expected_type, memo: Optional[_CallMemo])
     try:
         args = expected_type.__args__
     except AttributeError:
-        # Instance of Literal from typing_extensions.
+        # Instance of Literal from typing_extensions
         args = expected_type.__values__
 
     if value not in args:
