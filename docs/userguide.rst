@@ -177,6 +177,12 @@ against annotations in the :mod:`typing` module::
     # Raises TypeError if there's a problem
     check_type('variablename', [1234], List[int])
 
+Support for mock objects
+------------------------
+
+Typeguard handles the :class:`unittest.mock.Mock` and :class:`unittest.mock.MagicMock` classes
+specially, bypassing any type checks when encountering instances of these classes.
+
 Supported typing.* types
 ------------------------
 
