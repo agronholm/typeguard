@@ -196,8 +196,11 @@ Type            Notes
 ``Sequence``    Contents are typechecked
 ``Tuple``       Contents are typechecked
 ``Type``
-``TypedDict``   Contents are typechecked
+``TypedDict``   Contents are typechecked; ``total`` from superclasses is not
+                respected (see `#101`_ for more information)
 ``TypeVar``     Constraints, bound types and co/contravariance are supported
                 but custom generic types are not (due to type erasure)
 ``Union``
 =============== =============================================================
+
+.. _#101: https://github.com/agronholm/typeguard/issues/101
