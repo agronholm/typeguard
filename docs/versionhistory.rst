@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added support for ``typing_extensions.Literal`` (PR by Ryan Rowe)
 - Fixed unintended wrapping of untyped generators (PR by prescod)
 - Fixed checking against bound type variables with ``check_type()`` without a call memo
+- Fixed error message when checking against a ``Union`` containing a ``Literal``
 
 **2.7.1** (2019-12-27)
 

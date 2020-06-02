@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, Union
 
 import pytest
 
@@ -12,6 +12,16 @@ def test_literal():
 
     foo(6)
     pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
+
+
+def test_literal_union():
+    @typechecked
+    def foo(a: Union[str, Literal[1, 6, 8]]):
+        pass
+
+    foo(6)
+    pytest.raises(TypeError, foo, 4).\
+        match(r'must be one of \(str, typing.Literal\[1, 6, 8\]\); got int instead$')
 
 
 @pytest.mark.parametrize('value, total, error_re', [

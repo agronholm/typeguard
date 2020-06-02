@@ -164,7 +164,7 @@ def resolve_forwardref(maybe_ref, memo: _CallMemo):
 
 def get_type_name(type_):
     # typing.* types don't have a __name__ on Python 3.7+
-    return getattr(type_, '__name__', None) or type_._name
+    return getattr(type_, '__name__', None) or type_._name or str(type_)
 
 
 def find_function(frame) -> Optional[Callable]:
