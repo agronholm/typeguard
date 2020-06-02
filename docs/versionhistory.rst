@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.8.0** (2020-06-02)
 
 - Added support for the ``Mock`` and ``MagicMock`` types (PR by prescod)
 - Added support for ``typing_extensions.Literal`` (PR by Ryan Rowe)
