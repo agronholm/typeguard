@@ -433,10 +433,10 @@ def check_class(argname: str, value, expected_type, memo: Optional[_CallMemo]) -
 
 def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMemo],
                   subclass_check: bool = False) -> None:
-    if memo is None:
-        raise TypeError('encountered a TypeVar but a call memo was not provided')
+    bound_type = None
+    if memo is not None:
+        bound_type = resolve_forwardref(memo.typevars.get(typevar, typevar.__bound__), memo)
 
-    bound_type = resolve_forwardref(memo.typevars.get(typevar, typevar.__bound__), memo)
     value_type = value if subclass_check else type(value)
     subject = argname if subclass_check else 'type of ' + argname
     if bound_type is None:
@@ -464,7 +464,7 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: Optional[_CallMem
                 '{} must be exactly {}; got {} instead'.
                 format(subject, qualified_name(bound_type), qualified_name(value_type)))
 
-    if typevar not in memo.typevars:
+    if memo is not None and typevar not in memo.typevars:
         # Bind the type variable to a concrete type
         memo.typevars[typevar] = value_type
 

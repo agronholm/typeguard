@@ -7,7 +7,7 @@ from io import StringIO, BytesIO
 from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet, AnyStr)
 
 import pytest
 
@@ -64,6 +64,16 @@ def test_check_type_no_memo():
 def test_check_type_no_memo_fail():
     pytest.raises(TypeError, check_type, 'foo', ['a'], List[int]).\
         match(r'type of foo\[0\] must be int; got str instead')
+
+
+@pytest.mark.parametrize('value', ['bar', b'bar'], ids=['str', 'bytes'])
+def test_check_type_anystr(value):
+    check_type('foo', value, AnyStr)
+
+
+def test_check_type_anystr_fail():
+    pytest.raises(TypeError, check_type, 'foo', int, AnyStr).\
+        match(r'type of foo must be one of \(bytes, str\); got type instead')
 
 
 def test_check_return_type():

@@ -8,6 +8,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added support for the ``Mock`` and ``MagicMock`` types (PR by prescod)
 - Added support for ``typing_extensions.Literal`` (PR by Ryan Rowe)
 - Fixed unintended wrapping of untyped generators (PR by prescod)
+- Fixed checking against bound type variables with ``check_type()`` without a call memo
 
 **2.7.1** (2019-12-27)
 
