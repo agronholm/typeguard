@@ -2,7 +2,7 @@ API reference
 =============
 
 :mod:`typeguard`
-================
+----------------
 
 .. module:: typeguard
 
@@ -24,7 +24,7 @@ API reference
     :members:
 
 :mod:`typeguard.importhook`
-===========================
+---------------------------
 
 .. module:: typeguard.importhook
 

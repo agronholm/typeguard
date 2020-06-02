@@ -7,8 +7,8 @@
 .. image:: https://readthedocs.org/projects/typeguard/badge/?version=latest
   :target: https://typeguard.readthedocs.io/en/latest/?badge=latest
 
-This library provides run-time type checking for functions defined with `PEP 484`_ argument
-(and return) type annotations.
+This library provides run-time type checking for functions defined with
+`PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type annotations.
 
 Three principal ways to do type checking are provided, each with its pros and cons:
 
@@ -38,5 +38,4 @@ Three principal ways to do type checking are provided, each with its pros and co
 
 See the documentation_ for further instructions.
 
-.. _PEP 484: https://www.python.org/dev/peps/pep-0484/
 .. _documentation: https://typeguard.readthedocs.io/en/latest/
