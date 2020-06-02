@@ -814,7 +814,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         if inspect.isgenerator(retval) or isasyncgen(retval):
             return_type = memo.type_hints.get('return')
             if return_type:
-                origin = getattr(return_type, '__origin__')
+                origin = getattr(return_type, '__origin__', None)
                 if origin in generator_origin_types:
                     return TypeCheckedGenerator(retval, memo)
                 elif origin is not None and origin in asyncgen_origin_types:
