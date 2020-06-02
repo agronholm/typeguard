@@ -3,6 +3,12 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Added support for the ``Mock`` and ``MagicMock`` types (PR by prescod)
+- Added support for ``typing_extensions.Literal`` (PR by Ryan Rowe)
+- Fixed unintended wrapping of untyped generators (PR by prescod)
+
 **2.7.1** (2019-12-27)
 
 - Fixed ``@typechecked`` returning ``None`` when called with ``always=True`` and Python runs in
