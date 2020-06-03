@@ -10,6 +10,7 @@ from typing import (
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet, AnyStr)
 
 import pytest
+from typing_extensions import NoReturn
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
@@ -1155,6 +1156,13 @@ class TestTypeChecked:
             pytest.raises(TypeError, foo, value).match(error_re)
         else:
             foo(value)
+
+    def test_noreturn(self):
+        @typechecked
+        def foo() -> NoReturn:
+            pass
+
+        pytest.raises(TypeError, foo).match(r'foo\(\) was declared never to return but it did')
 
 
 class TestTypeChecker:

@@ -44,6 +44,14 @@ except ImportError:
     evaluate_forwardref = ForwardRef._eval_type
 
 try:
+    from typing import NoReturn
+except ImportError:
+    try:
+        from typing_extensions import NoReturn
+    except ImportError:
+        NoReturn = None
+
+try:
     from inspect import isasyncgenfunction, isasyncgen
 except ImportError:
     def isasyncgen(obj):
@@ -641,6 +649,9 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
         memo = _CallMemo(func, frame.f_locals)
 
     if 'return' in memo.type_hints:
+        if memo.type_hints['return'] is NoReturn:
+            raise TypeError('{}() was declared never to return but it did'.format(memo.func_name))
+
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
         except TypeError as exc:  # suppress unnecessarily long tracebacks
