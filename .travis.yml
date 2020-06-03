@@ -11,6 +11,7 @@ jobs:
   include:
     - stage: static analysis
       env: TOXENV=flake8
+      python: "3.8"
 
     - stage: test
       env: TOXENV=pypy3
