@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict, Union
+from typing import Literal, NoReturn, TypedDict, Union
 
 import pytest
 
@@ -22,6 +22,14 @@ def test_literal_union():
     foo(6)
     pytest.raises(TypeError, foo, 4).\
         match(r'must be one of \(str, typing.Literal\[1, 6, 8\]\); got int instead$')
+
+
+def test_regression_131():
+    @typechecked
+    def foo() -> NoReturn:
+        pass
+
+    foo()
 
 
 @pytest.mark.parametrize('value, total, error_re', [

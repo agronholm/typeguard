@@ -608,7 +608,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
-    elif BPLiteral is not None and isinstance(expected_type, BPLiteral.__class__):
+    elif BPLiteral is not None and Literal is None \
+            and isinstance(expected_type, BPLiteral.__class__):
         # Only happens on < 3.7 when using Literal from typing_extensions
         check_literal(argname, value, expected_type, memo)
     elif (isfunction(expected_type) and
