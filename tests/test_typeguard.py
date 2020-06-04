@@ -7,10 +7,10 @@ from io import StringIO, BytesIO
 from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet, AnyStr)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr)
 
 import pytest
-from typing_extensions import NoReturn
+from typing_extensions import NoReturn, Protocol, runtime_checkable
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
@@ -38,6 +38,17 @@ class Parent:
 class Child(Parent):
     def method(self, a: int):
         pass
+
+
+class StaticProtocol(Protocol):
+    def meth(self) -> None:
+        ...
+
+
+@runtime_checkable
+class RuntimeProtocol(Protocol):
+    def meth(self) -> None:
+        ...
 
 
 @pytest.fixture(params=[Mock, MagicMock], ids=['mock', 'magicmock'])
@@ -1142,20 +1153,26 @@ class TestTypeChecked:
         func(Child())
         pytest.raises(TypeError, func, 'foo')
 
-    @pytest.mark.parametrize('value, error_re', [
-        (1, None),
-        ('foo',
-         r'type of argument "arg" \(str\) is not compatible with the SupportsInt protocol')
-    ], ids=['int', 'str'])
-    def test_protocol(self, value, error_re):
+    @pytest.mark.parametrize('protocol_cls', [RuntimeProtocol, StaticProtocol])
+    def test_protocol(self, protocol_cls):
         @typechecked
-        def foo(arg: SupportsInt):
+        def foo(arg: protocol_cls) -> None:
             pass
 
-        if error_re:
-            pytest.raises(TypeError, foo, value).match(error_re)
-        else:
-            foo(value)
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        foo(Foo())
+
+    def test_protocol_fail(self):
+        @typechecked
+        def foo(arg: RuntimeProtocol) -> None:
+            pass
+
+        pytest.raises(TypeError, foo, object()).\
+            match(r'type of argument "arg" \(object\) is not compatible with the RuntimeProtocol '
+                  'protocol')
 
     def test_noreturn(self):
         @typechecked

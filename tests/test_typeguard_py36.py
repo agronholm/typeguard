@@ -2,9 +2,17 @@ import warnings
 from typing import AsyncGenerator, AsyncIterable, AsyncIterator
 
 import pytest
+from typing_extensions import Literal, Protocol, runtime_checkable
 
 from typeguard import TypeChecker, typechecked
-from typing_extensions import Literal
+
+
+@runtime_checkable
+class RuntimeProtocol(Protocol):
+    member: int
+
+    def meth(self) -> None:
+        ...
 
 
 class TestTypeChecked:
@@ -116,3 +124,17 @@ def test_literal():
 
     foo(6)
     pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
+
+
+def test_protocol_non_method_members():
+    @typechecked
+    def foo(a: RuntimeProtocol):
+        pass
+
+    class Foo:
+        member = 1
+
+        def meth(self) -> None:
+            pass
+
+    foo(Foo())

@@ -198,7 +198,8 @@ Type            Notes
 ``Literal``
 ``NamedTuple``  Field values are typechecked
 ``NoReturn``
-``Protocol``    Value type checked with ``issubclass()`` against the protocol
+``Protocol``    Run-time protocols are checked with isinstance(), others are
+                ignored
 ``Set``         Contents are typechecked
 ``Sequence``    Contents are typechecked
 ``Tuple``       Contents are typechecked

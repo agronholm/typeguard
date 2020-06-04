@@ -513,9 +513,11 @@ def check_io(argname: str, value, expected_type):
 
 
 def check_protocol(argname: str, value, expected_type):
-    if not issubclass(type(value), expected_type):
-        raise TypeError('type of {} ({}) is not compatible with the {} protocol'.
-                        format(argname, type(value).__qualname__, expected_type.__qualname__))
+    # TODO: implement proper compatibility checking and support non-runtime protocols
+    if getattr(expected_type, '_is_runtime_protocol', False):
+        if not isinstance(value, expected_type):
+            raise TypeError('type of {} ({}) is not compatible with the {} protocol'.
+                            format(argname, type(value).__qualname__, expected_type.__qualname__))
 
 
 # Equality checks are applied to these
@@ -575,6 +577,9 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     if expected_type is None:
         # Only happens on < 3.6
         expected_type = type(None)
+
+    if memo is not None:
+        expected_type = resolve_forwardref(expected_type, memo)
 
     origin_type = getattr(expected_type, '__origin__', None)
     if origin_type is not None:
