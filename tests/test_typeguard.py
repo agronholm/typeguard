@@ -10,7 +10,7 @@ from typing import (
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
 
 import pytest
-from typing_extensions import NoReturn, Protocol, runtime_checkable
+from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
@@ -19,6 +19,7 @@ from typeguard import (
 try:
     from typing import Collection
 except ImportError:
+    # Python 3.6.0+
     Collection = None
 
 
@@ -1195,6 +1196,48 @@ class TestTypeChecked:
         pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
             match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
                   r'List, Dict\); got dict instead')
+
+    def test_literal(self):
+        @typechecked
+        def foo(a: Literal[1, 6, 8]):
+            pass
+
+        foo(6)
+        pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
+
+    def test_literal_union(self):
+        @typechecked
+        def foo(a: Union[str, Literal[1, 6, 8]]):
+            pass
+
+        foo(6)
+        pytest.raises(TypeError, foo, 4).\
+            match(r'must be one of \(str, typing(_extensions)?.Literal\[1, 6, 8\]\); '
+                  r'got int instead$')
+
+    @pytest.mark.parametrize('value, total, error_re', [
+        ({'x': 6, 'y': 'foo'}, True, None),
+        ({'y': 'foo'}, True, r'required key\(s\) \("x"\) missing from argument "arg"'),
+        ({'x': 6, 'y': 3}, True,
+         'type of dict item "y" for argument "arg" must be str; got int instead'),
+        ({'x': 6}, True, r'required key\(s\) \("y"\) missing from argument "arg"'),
+        ({'x': 6}, False, None),
+        ({'x': 'abc'}, False,
+         'type of dict item "x" for argument "arg" must be int; got str instead'),
+        ({'x': 6, 'foo': 'abc'}, False, r'extra key\(s\) \("foo"\) in argument "arg"'),
+    ], ids=['correct', 'missing_x', 'wrong_y', 'missing_y_error', 'missing_y_ok', 'wrong_x',
+            'unknown_key'])
+    def test_typed_dict(self, value, total, error_re):
+        DummyDict = TypedDict('DummyDict', {'x': int, 'y': str}, total=total)
+
+        @typechecked
+        def foo(arg: DummyDict):
+            pass
+
+        if error_re:
+            pytest.raises(TypeError, foo, value).match(error_re)
+        else:
+            foo(value)
 
 
 class TestTypeChecker:

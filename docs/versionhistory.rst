@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Added support for ``typing.NoReturn``
+- Added full support for ``typing_extensions`` (now equivalent to support of the ``typing`` module)
 - Fixed erroneous ``TypeError`` when trying to check against non-runtime ``typing.Protocol``
   (skips the check for now until a proper compatibility check has been implemented)
 - Fixed forward references in ``TypedDict`` not being resolved

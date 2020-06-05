@@ -2,7 +2,7 @@ import warnings
 from typing import AsyncGenerator, AsyncIterable, AsyncIterator
 
 import pytest
-from typing_extensions import Literal, Protocol, runtime_checkable
+from typing_extensions import Protocol, runtime_checkable
 
 from typeguard import TypeChecker, typechecked
 
@@ -115,15 +115,6 @@ class TestTypeChecker:
             func()
 
         assert len(record) == 0
-
-
-def test_literal():
-    @typechecked
-    def foo(a: Literal[1, 6, 8]):
-        pass
-
-    foo(6)
-    pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
 
 
 def test_protocol_non_method_members():

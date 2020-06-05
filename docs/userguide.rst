@@ -186,7 +186,8 @@ specially, bypassing any type checks when encountering instances of these classe
 Supported typing.* types
 ------------------------
 
-The following types from the ``typing`` package have specialized support:
+The following types from the ``typing`` (and ``typing_extensions``) package have specialized
+support:
 
 =============== =============================================================
 Type            Notes

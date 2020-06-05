@@ -22,43 +22,30 @@ from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 try:
-    from typing import Literal, TypedDict
+    from typing_extensions import Literal, NoReturn
 except ImportError:
-    Literal = TypedDict = None
+    from typing import Literal, NoReturn
 
+# Python 3.6+
 try:
-    from typing_extensions import Literal as BPLiteral
-except ImportError:
-    BPLiteral = None
-
-try:
+    from inspect import isasyncgenfunction, isasyncgen
     from typing import AsyncGenerator
 except ImportError:
     AsyncGenerator = None
 
-try:
-    from typing import ForwardRef
-    evaluate_forwardref = ForwardRef._evaluate
-except ImportError:
-    from typing import _ForwardRef as ForwardRef  # Python < 3.8
-    evaluate_forwardref = ForwardRef._eval_type
-
-try:
-    from typing import NoReturn
-except ImportError:
-    try:
-        from typing_extensions import NoReturn
-    except ImportError:
-        NoReturn = None
-
-try:
-    from inspect import isasyncgenfunction, isasyncgen
-except ImportError:
     def isasyncgen(obj):
         return False
 
     def isasyncgenfunction(func):
         return False
+
+# Python 3.8+
+try:
+    from typing import ForwardRef
+    evaluate_forwardref = ForwardRef._evaluate
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
+    evaluate_forwardref = ForwardRef._eval_type
 
 
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
@@ -172,7 +159,7 @@ def resolve_forwardref(maybe_ref, memo: _CallMemo):
 
 def get_type_name(type_):
     # typing.* types don't have a __name__ on Python 3.7+
-    return getattr(type_, '__name__', None) or type_._name or str(type_)
+    return getattr(type_, '__name__', None) or getattr(type_, '_name', None) or str(type_)
 
 
 def find_function(frame) -> Optional[Callable]:
@@ -529,6 +516,7 @@ origin_type_checkers = {
     Dict: check_dict,
     list: check_list,
     List: check_list,
+    Literal: check_literal,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
@@ -537,15 +525,10 @@ origin_type_checkers = {
     tuple: check_tuple,
     Tuple: check_tuple,
     type: check_class,
+    Type: check_class,
     Union: check_union
 }
 _subclass_check_unions = hasattr(Union, '__union_set_params__')
-if Type is not None:
-    origin_type_checkers[Type] = check_class
-if Literal is not None:
-    origin_type_checkers[Literal] = check_literal
-if BPLiteral is not None:
-    origin_type_checkers[BPLiteral] = check_literal
 
 generator_origin_types = (Generator, collections.abc.Generator,
                           Iterator, collections.abc.Iterator,
@@ -621,7 +604,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_CallMemo] = N
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
-    elif BPLiteral is not None and isinstance(expected_type, BPLiteral.__class__):
+    elif isinstance(expected_type, Literal.__class__):
         # Only happens on < 3.7 when using Literal from typing_extensions
         check_literal(argname, value, expected_type, memo)
     elif (isfunction(expected_type) and
