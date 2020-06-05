@@ -29,6 +29,7 @@ except ImportError:
 
 TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
+JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
 
 
 class Parent:
@@ -704,6 +705,15 @@ class TestCheckArgumentTypes:
         with tmpdir.join('testfile').open('w') as f:
             foo(f)
 
+    def test_recursive_type(self):
+        def foo(arg: JSONType) -> None:
+            assert check_argument_types()
+
+        foo({'a': [1, 2, 3]})
+        pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
+            match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
+                  r'List, Dict\); got dict instead')
+
 
 class TestTypeChecked:
     def test_typechecked(self):
@@ -903,8 +913,8 @@ class TestTypeChecked:
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
         Type[Parent],
-        Type[TypeVar('UnboundType')],
-        Type[TypeVar('BoundType', bound=Parent)],
+        Type[TypeVar('UnboundType')],  # noqa: F821
+        Type[TypeVar('BoundType', bound=Parent)],  # noqa: F821
         Type,
         type
     ], ids=['parametrized', 'unbound-typevar', 'bound-typevar', 'unparametrized', 'plain'])
@@ -1180,6 +1190,16 @@ class TestTypeChecked:
             pass
 
         pytest.raises(TypeError, foo).match(r'foo\(\) was declared never to return but it did')
+
+    def test_recursive_type(self):
+        @typechecked
+        def foo(arg: JSONType) -> None:
+            pass
+
+        foo({'a': [1, 2, 3]})
+        pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
+            match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
+                  r'List, Dict\); got dict instead')
 
 
 class TestTypeChecker:
