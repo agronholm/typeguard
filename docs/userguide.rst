@@ -199,7 +199,7 @@ Type            Notes
 ``Literal``
 ``NamedTuple``  Field values are typechecked
 ``NoReturn``
-``Protocol``    Run-time protocols are checked with isinstance(), others are
+``Protocol``    Run-time protocols are checked with :func:`isinstance`, others are
                 ignored
 ``Set``         Contents are typechecked
 ``Sequence``    Contents are typechecked
