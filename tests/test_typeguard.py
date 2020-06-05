@@ -7,7 +7,7 @@ from io import StringIO, BytesIO
 from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
 
 import pytest
 from typing_extensions import NoReturn, Protocol, runtime_checkable
@@ -15,11 +15,6 @@ from typing_extensions import NoReturn, Protocol, runtime_checkable
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
     check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
-
-try:
-    from typing import Type
-except ImportError:
-    Type = List  # don't worry, Type is not actually used if this happens!
 
 try:
     from typing import Collection
