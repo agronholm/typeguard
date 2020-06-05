@@ -315,7 +315,7 @@ def check_typed_dict(argname: str, value, expected_type, memo: Optional[_CallMem
     for key, argtype in get_type_hints(expected_type).items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
-            check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype)
+            check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype, memo)
 
 
 def check_list(argname: str, value, expected_type, memo: Optional[_CallMemo]) -> None:
