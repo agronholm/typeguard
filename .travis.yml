@@ -14,10 +14,6 @@ jobs:
       python: "3.8"
 
     - stage: test
-      env: TOXENV=pypy3
-      python: pypy3
-
-    - stage: test
       env: TOXENV=py35
       python: "3.5.3"
       after_success: &after_success
