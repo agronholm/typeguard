@@ -5,6 +5,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Upped the minimum Python version from 3.5.2 to 3.5.3
 - Added support for ``typing.NoReturn``
 - Added full support for ``typing_extensions`` (now equivalent to support of the ``typing`` module)
 - Added the option of supplying ``check_type()`` with globals/locals for correct resolution of
