@@ -50,3 +50,10 @@ jobs:
 install: pip install tox
 
 script: tox
+
+env:
+  global:
+    - COVERALLS_PARALLEL=true
+
+notifications:
+  webhooks: https://coveralls.io/webhook
