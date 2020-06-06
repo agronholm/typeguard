@@ -101,6 +101,13 @@ def test_check_return_type_fail():
     pytest.raises(TypeError, foo).match('type of the return value must be int; got str instead')
 
 
+def test_check_recursive_type():
+    check_type('foo', {'a': [1, 2, 3]}, JSONType)
+    pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
+        match(r'type of foo must be one of \(str, int, float, (bool, )?NoneType, '
+              r'List, Dict\); got dict instead')
+
+
 class TestCheckArgumentTypes:
     def test_any_type(self):
         def foo(a: Any):
