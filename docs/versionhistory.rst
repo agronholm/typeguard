@@ -3,9 +3,13 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed checking ``NoReturn`` on Python < 3.8 when ``typing_extensions`` was not installed
+
 **2.9.1** (2020-06-07)
 
-- Fixed ``ImportError`` on Python < 3.8 where ``typing_extensions`` was not installed
+- Fixed ``ImportError`` on Python < 3.8 when ``typing_extensions`` was not installed
 
 **2.9.0** (2020-06-06)
 
