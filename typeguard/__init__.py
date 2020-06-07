@@ -21,13 +21,23 @@ from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
+# Python 3.8+
 try:
-    from typing_extensions import Literal, NoReturn
+    from typing_extensions import Literal
 except ImportError:
     try:
-        from typing import Literal, NoReturn
+        from typing import Literal
     except ImportError:
-        Literal = NoReturn = None
+        Literal = None
+
+# Python 3.5.4+ / 3.6.2+
+try:
+    from typing_extensions import NoReturn
+except ImportError:
+    try:
+        from typing import NoReturn
+    except ImportError:
+        NoReturn = None
 
 # Python 3.6+
 try:
