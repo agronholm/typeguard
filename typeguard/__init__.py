@@ -483,15 +483,29 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: _TypeCheckMemo,
 
 
 def check_literal(argname: str, value, expected_type, memo: _TypeCheckMemo):
-    try:
-        args = expected_type.__args__
-    except AttributeError:
-        # Instance of Literal from typing_extensions
-        args = expected_type.__values__
+    def get_args(literal):
+        try:
+            args = literal.__args__
+        except AttributeError:
+            # Instance of Literal from typing_extensions
+            args = literal.__values__
 
-    if value not in args:
+        retval = []
+        for arg in args:
+            if isinstance(arg, Literal.__class__) or getattr(arg, '__origin__', None) is Literal:
+                # The first check works on py3.6 and lower, the second one on py3.7+
+                retval.extend(get_args(arg))
+            elif isinstance(arg, (int, str, bool, type(None), Enum)):
+                retval.append(arg)
+            else:
+                raise TypeError('Illegal literal value: {}'.format(arg))
+
+        return retval
+
+    final_args = tuple(get_args(expected_type))
+    if value not in final_args:
         raise TypeError('the value of {} must be one of {}; got {} instead'.
-                        format(argname, args, value))
+                        format(argname, final_args, value))
 
 
 def check_number(argname: str, value, expected_type):

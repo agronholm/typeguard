@@ -1205,12 +1205,15 @@ class TestTypeChecked:
                   r'List, Dict\); got dict instead')
 
     def test_literal(self):
+        from http import HTTPStatus
+
         @typechecked
-        def foo(a: Literal[1, 6, 8]):
+        def foo(a: Literal[1, True, 'x', HTTPStatus.ACCEPTED]):
             pass
 
-        foo(6)
-        pytest.raises(TypeError, foo, 4).match(r'must be one of \(1, 6, 8\); got 4 instead$')
+        foo(HTTPStatus.ACCEPTED)
+        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, True, 'x', "
+                                               r"<HTTPStatus.ACCEPTED: 202>\); got 4 instead$")
 
     def test_literal_union(self):
         @typechecked
@@ -1221,6 +1224,22 @@ class TestTypeChecked:
         pytest.raises(TypeError, foo, 4).\
             match(r'must be one of \(str, typing(_extensions)?.Literal\[1, 6, 8\]\); '
                   r'got int instead$')
+
+    def test_literal_nested(self):
+        @typechecked
+        def foo(a: Literal[1, Literal['x', 'a', Literal['z']], 6, 8]):
+            pass
+
+        foo('z')
+        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, 'x', 'a', 'z', 6, 8\); "
+                                               r"got 4 instead$")
+
+    def test_literal_illegal_value(self):
+        @typechecked
+        def foo(a: Literal[1, 1.1]):
+            pass
+
+        pytest.raises(TypeError, foo, 4).match(r"Illegal literal value: 1.1$")
 
     @pytest.mark.parametrize('value, total, error_re', [
         ({'x': 6, 'y': 'foo'}, True, None),

@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Added support for nested ``Literal``
+- An appropriate ``TypeError`` is now raised when encountering an illegal ``Literal`` value
 - Fixed checking ``NoReturn`` on Python < 3.8 when ``typing_extensions`` was not installed
 
 **2.9.1** (2020-06-07)
