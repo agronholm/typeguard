@@ -24,7 +24,10 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 try:
     from typing_extensions import Literal, NoReturn
 except ImportError:
-    from typing import Literal, NoReturn
+    try:
+        from typing import Literal, NoReturn
+    except ImportError:
+        Literal = NoReturn = None
 
 # Python 3.6+
 try:
@@ -521,7 +524,6 @@ origin_type_checkers = {
     Dict: check_dict,
     list: check_list,
     List: check_list,
-    Literal: check_literal,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
@@ -534,6 +536,8 @@ origin_type_checkers = {
     Union: check_union
 }
 _subclass_check_unions = hasattr(Union, '__union_set_params__')
+if Literal is not None:
+    origin_type_checkers[Literal] = check_literal
 
 generator_origin_types = (Generator, collections.abc.Generator,
                           Iterator, collections.abc.Iterator,
