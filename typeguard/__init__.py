@@ -495,7 +495,7 @@ def check_literal(argname: str, value, expected_type, memo: _TypeCheckMemo):
             if isinstance(arg, Literal.__class__) or getattr(arg, '__origin__', None) is Literal:
                 # The first check works on py3.6 and lower, the second one on py3.7+
                 retval.extend(get_args(arg))
-            elif isinstance(arg, (int, str, bool, type(None), Enum)):
+            elif isinstance(arg, (int, str, bytes, bool, type(None), Enum)):
                 retval.append(arg)
             else:
                 raise TypeError('Illegal literal value: {}'.format(arg))

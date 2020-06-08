@@ -1208,11 +1208,11 @@ class TestTypeChecked:
         from http import HTTPStatus
 
         @typechecked
-        def foo(a: Literal[1, True, 'x', HTTPStatus.ACCEPTED]):
+        def foo(a: Literal[1, True, 'x', b'y', HTTPStatus.ACCEPTED]):
             pass
 
         foo(HTTPStatus.ACCEPTED)
-        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, True, 'x', "
+        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, True, 'x', b'y', "
                                                r"<HTTPStatus.ACCEPTED: 202>\); got 4 instead$")
 
     def test_literal_union(self):
