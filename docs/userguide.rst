@@ -15,12 +15,12 @@ and the return value does not match the return type annotation, then a :exc:`Typ
 
 For example::
 
-    from typeguard import check_argument_types, check_return_value
+    from typeguard import check_argument_types, check_return_type
 
     def some_function(a: int, b: float, c: str, *args: str) -> bool:
         assert check_argument_types()
         ...
-        assert check_return_value(retval)
+        assert check_return_type(retval)
         return retval
 
 When combined with the ``assert`` statement, these checks are automatically removed from the code
