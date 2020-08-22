@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from typeguard.importhook import install_import_hook
+from typeguard.importhook import TypeguardFinder, install_import_hook
 
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / 'dummymodule.py'
@@ -99,3 +99,20 @@ def test_inner_class_classmethod(dummymodule):
 def test_inner_class_staticmethod(dummymodule):
     retval = dummymodule.Outer.create_inner_staticmethod()
     assert retval.__class__.__qualname__ == 'Outer.Inner'
+
+
+def test_package_name_matching():
+    """
+    The path finder only matches configured (sub)packages.
+    """
+    packages = ["ham", "spam.eggs"]
+    dummy_original_pathfinder = None
+    finder = TypeguardFinder(packages, dummy_original_pathfinder)
+
+    assert finder.should_instrument("ham")
+    assert finder.should_instrument("ham.eggs")
+    assert finder.should_instrument("spam.eggs")
+
+    assert not finder.should_instrument("spam")
+    assert not finder.should_instrument("ha")
+    assert not finder.should_instrument("spam_eggs")
