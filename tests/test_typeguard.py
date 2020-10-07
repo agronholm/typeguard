@@ -10,17 +10,8 @@ from typing import (
     Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
 
 import pytest
-try:
-    from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
-except ImportError:
-    try:
-        from typing import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
-    except ImportError:
-        NoReturn = None
-        Protocol = None
-        Literal = None
-        TypedDict = None
-        runtime_checkable = None
+from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
+
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,

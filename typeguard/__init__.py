@@ -251,7 +251,7 @@ def check_callable(argname: str, value, expected_type, memo: _TypeCheckMemo) -> 
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
-    if hasattr(expected_type, "__args__") and expected_type.__args__:
+    if getattr(expected_type, "__args__", None):
         try:
             signature = inspect.signature(value)
         except (TypeError, ValueError):
@@ -301,8 +301,8 @@ def check_dict(argname: str, value, expected_type, memo: _TypeCheckMemo) -> None
                         format(argname, qualified_name(value)))
 
     if expected_type is not dict:
-        if hasattr(expected_type, "__args__") and expected_type.__args__ not in \
-                (None, expected_type.__parameters__):
+        if (hasattr(expected_type, "__args__") and
+                expected_type.__args__ not in (None, expected_type.__parameters__)):
             key_type, value_type = expected_type.__args__
             if key_type is not Any or value_type is not Any:
                 for k, v in value.items():
@@ -384,6 +384,7 @@ def check_tuple(argname: str, value, expected_type, memo: _TypeCheckMemo) -> Non
         if not isinstance(value, expected_type):
             raise TypeError('type of {} must be a named tuple of type {}; got {} instead'.
                             format(argname, qualified_name(expected_type), qualified_name(value)))
+
         if sys.version_info < (3, 8, 0):
             field_types = expected_type._field_types
         else:
@@ -454,8 +455,9 @@ def check_class(argname: str, value, expected_type, memo: _TypeCheckMemo) -> Non
     if expected_type is Type:
         return
 
-    expected_class = expected_type.__args__[0] if hasattr(
-        expected_type, "__args__") and expected_type.__args__ else None
+    expected_class = None
+    if hasattr(expected_type, "__args__") and expected_type.__args__:
+        expected_class = expected_type.__args__[0]
     if expected_class:
         if expected_class is Any:
             return
@@ -747,8 +749,9 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 
 class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator, memo: _CallMemo):
-        rtype_args = memo.type_hints['return'].__args__ if hasattr(
-            memo.type_hints['return'], "__args__") else []
+        rtype_args = []
+        if hasattr(memo.type_hints['return'], "__args__"):
+            rtype_args = memo.type_hints['return'].__args__
         self.__wrapped = wrapped
         self.__memo = memo
         self.__yield_type = rtype_args[0] if rtype_args else Any
