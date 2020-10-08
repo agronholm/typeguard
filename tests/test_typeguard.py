@@ -12,7 +12,6 @@ from typing import (
 import pytest
 from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
 
-
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
     check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
