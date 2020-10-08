@@ -752,6 +752,7 @@ class TypeCheckedGenerator:
         rtype_args = []
         if hasattr(memo.type_hints['return'], "__args__"):
             rtype_args = memo.type_hints['return'].__args__
+
         self.__wrapped = wrapped
         self.__memo = memo
         self.__yield_type = rtype_args[0] if rtype_args else Any
