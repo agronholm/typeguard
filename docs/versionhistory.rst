@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Added support for Python 3.9 (PR by Csergő Bálint)
 - Added support for nested ``Literal``
+- Added support for ``TypedDict`` inheritance (with some caveats; see the user guide on that for
+  details)
 - An appropriate ``TypeError`` is now raised when encountering an illegal ``Literal`` value
 - Fixed checking ``NoReturn`` on Python < 3.8 when ``typing_extensions`` was not installed
 - Fixed import hook matching unwanted modules (PR by Wouter Bolsterlee)

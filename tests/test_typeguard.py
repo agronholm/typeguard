@@ -27,6 +27,11 @@ TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
 JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
 
+DummyDict = TypedDict('DummyDict', {'x': int}, total=False)
+issue_42059 = pytest.mark.xfail(bool(DummyDict.__required_keys__),
+                                reason='Fails due to upstream bug BPO-42059')
+del DummyDict
+
 
 class Parent:
     pass
@@ -1242,17 +1247,21 @@ class TestTypeChecked:
         pytest.raises(TypeError, foo, 4).match(r"Illegal literal value: 1.1$")
 
     @pytest.mark.parametrize('value, total, error_re', [
-        ({'x': 6, 'y': 'foo'}, True, None),
-        ({'y': 'foo'}, True, r'required key\(s\) \("x"\) missing from argument "arg"'),
-        ({'x': 6, 'y': 3}, True,
-         'type of dict item "y" for argument "arg" must be str; got int instead'),
-        ({'x': 6}, True, r'required key\(s\) \("y"\) missing from argument "arg"'),
-        ({'x': 6}, False, None),
-        ({'x': 'abc'}, False,
-         'type of dict item "x" for argument "arg" must be int; got str instead'),
-        ({'x': 6, 'foo': 'abc'}, False, r'extra key\(s\) \("foo"\) in argument "arg"'),
-    ], ids=['correct', 'missing_x', 'wrong_y', 'missing_y_error', 'missing_y_ok', 'wrong_x',
-            'unknown_key'])
+        pytest.param({'x': 6, 'y': 'foo'}, True, None, id='correct'),
+        pytest.param({'y': 'foo'}, True, r'required key\(s\) \("x"\) missing from argument "arg"',
+                     id='missing_x'),
+        pytest.param({'x': 6, 'y': 3}, True,
+                     'type of dict item "y" for argument "arg" must be str; got int instead',
+                     id='wrong_y'),
+        pytest.param({'x': 6}, True, r'required key\(s\) \("y"\) missing from argument "arg"',
+                     id='missing_y_error'),
+        pytest.param({'x': 6}, False, None, id='missing_y_ok', marks=[issue_42059]),
+        pytest.param({'x': 'abc'}, False,
+                     'type of dict item "x" for argument "arg" must be int; got str instead',
+                     id='wrong_x', marks=[issue_42059]),
+        pytest.param({'x': 6, 'foo': 'abc'}, False, r'extra key\(s\) \("foo"\) in argument "arg"',
+                     id='unknown_key')
+    ])
     def test_typed_dict(self, value, total, error_re):
         DummyDict = TypedDict('DummyDict', {'x': int, 'y': str}, total=total)
 

@@ -6,6 +6,11 @@ from typing_extensions import Protocol, runtime_checkable
 
 from typeguard import TypeChecker, typechecked
 
+try:
+    from typing_extensions import TypedDict
+except ImportError:
+    from typing import TypedDict
+
 
 @runtime_checkable
 class RuntimeProtocol(Protocol):
@@ -86,6 +91,20 @@ class TestTypeChecked:
             return genfunc()
 
         foo()
+
+    def test_typeddict_inherited(self):
+        class ParentDict(TypedDict):
+            x: int
+
+        class ChildDict(ParentDict, total=False):
+            y: int
+
+        @typechecked
+        def foo(arg: ChildDict):
+            pass
+
+        foo({'x': 1})
+        pytest.raises(TypeError, foo, {'y': 1})
 
 
 async def asyncgenfunc() -> AsyncGenerator[int, None]:
