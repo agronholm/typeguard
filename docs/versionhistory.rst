@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.10.0** (2020-10-17)
 
 - Added support for Python 3.9 (PR by Csergő Bálint)
 - Added support for nested ``Literal``
