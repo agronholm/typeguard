@@ -1,0 +1,4 @@
+negative.py:11: error: Incompatible return value type (got "bool", expected "str")
+negative.py:15: error: Incompatible return value type (got "bool", expected "str")
+negative.py:18: error: Argument 1 to "arg_type" has incompatible type "Callable[..., Any]"; expected "int"
+Found 3 errors in 1 file (checked 1 source file)
