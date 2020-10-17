@@ -5,9 +5,13 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Added support for Python 3.9 (PR by Csergő Bálint)
 - Added support for nested ``Literal``
 - An appropriate ``TypeError`` is now raised when encountering an illegal ``Literal`` value
 - Fixed checking ``NoReturn`` on Python < 3.8 when ``typing_extensions`` was not installed
+- Fixed import hook matching unwanted modules (PR by Wouter Bolsterlee)
+- Install the pytest plugin earlier in the test run to support more use cases
+  (PR by Wouter Bolsterlee)
 
 **2.9.1** (2020-06-07)
 
