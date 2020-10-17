@@ -61,8 +61,8 @@ def main() -> None:
     expected_error_lines = get_expected_error_lines()
     if got_error_lines != expected_error_lines:
         raise RuntimeError(
-            "Expected error lines {} does not ".formst(expected_error_lines) +
-            "match got error lines {}.".formst(got_error_lines)
+            "Expected error lines {} does not ".format(expected_error_lines) +
+            "match got error lines {}.".format(got_error_lines)
         )
 
 
