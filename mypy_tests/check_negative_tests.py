@@ -10,7 +10,7 @@ LINE_PATTERN = SOURCE_FILE + ":([0-9]+):"
 
 def get_mypy_output() -> str:
     try:
-        subprocess.check_call(f"mypy negative.py > {OUTPUT_FILE}", shell=True)
+        subprocess.check_call("mypy negative.py > " + OUTPUT_FILE, shell=True)
     except subprocess.CalledProcessError:
         pass
 
@@ -60,8 +60,8 @@ def main() -> None:
     expected_error_lines = get_expected_error_lines()
     if got_error_lines != expected_error_lines:
         raise RuntimeError(
-            f"Expected error lines {expected_error_lines} does not match the "
-            f"got error lines {got_error_lines}."
+            "Expected error lines {} does not ".formst(expected_error_lines) +
+            "match got error lines {}.".formst(got_error_lines)
         )
 
 
