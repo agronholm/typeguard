@@ -311,19 +311,22 @@ def check_dict(argname: str, value, expected_type, memo: _TypeCheckMemo) -> None
 
 
 def check_typed_dict(argname: str, value, expected_type, memo: _TypeCheckMemo) -> None:
-    expected_keys = frozenset(expected_type.__annotations__)
-    existing_keys = frozenset(value)
+    declared_keys = frozenset(expected_type.__annotations__)
+    if hasattr(expected_type, '__required_keys__'):
+        required_keys = expected_type.__required_keys__
+    else:  # py3.8 and lower
+        required_keys = declared_keys if expected_type.__total__ else frozenset()
 
-    extra_keys = existing_keys - expected_keys
+    existing_keys = frozenset(value)
+    extra_keys = existing_keys - declared_keys
     if extra_keys:
         keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(extra_keys))
         raise TypeError('extra key(s) ({}) in {}'.format(keys_formatted, argname))
 
-    if expected_type.__total__:
-        missing_keys = expected_keys - existing_keys
-        if missing_keys:
-            keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
-            raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
+    missing_keys = required_keys - existing_keys
+    if missing_keys:
+        keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
+        raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
 
     for key, argtype in get_type_hints(expected_type).items():
         argvalue = value.get(key, _missing)

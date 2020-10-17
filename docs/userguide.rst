@@ -199,17 +199,22 @@ Type            Notes
 ``Literal``
 ``NamedTuple``  Field values are typechecked
 ``NoReturn``
-``Protocol``    Run-time protocols are checked with :func:`isinstance`, others are
-                ignored
+``Protocol``    Run-time protocols are checked with :func:`isinstance`,
+                others are ignored
 ``Set``         Contents are typechecked
 ``Sequence``    Contents are typechecked
 ``Tuple``       Contents are typechecked
 ``Type``
-``TypedDict``   Contents are typechecked; ``total`` from superclasses is not
-                respected (see `#101`_ for more information)
+``TypedDict``   Contents are typechecked; On Python 3.8 and earlier,
+                ``total`` from superclasses is not respected (see `#101`_ for
+                more information); On Python 3.9.0 or ``typing_extensions``
+                <= 3.7.4.3, false positives can happen when constructing
+                ``TypedDict`` classes using old-style syntax (see
+               `issue 42059`_)
 ``TypeVar``     Constraints, bound types and co/contravariance are supported
                 but custom generic types are not (due to type erasure)
 ``Union``
 =============== =============================================================
 
 .. _#101: https://github.com/agronholm/typeguard/issues/101
+.. _issue 42059: https://bugs.python.org/issue42059
