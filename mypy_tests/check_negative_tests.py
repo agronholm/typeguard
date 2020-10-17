@@ -5,7 +5,7 @@ from typing import Set
 
 OUTPUT_FILE = "negative.output"
 SOURCE_FILE = "negative.py"
-LINE_PATTERN = f"{SOURCE_FILE}:([0-9]+):"
+LINE_PATTERN = SOURCE_FILE + ":([0-9]+):"
 
 
 def get_mypy_output() -> str:
