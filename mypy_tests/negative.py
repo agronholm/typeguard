@@ -1,6 +1,5 @@
-from typing import Callable
-from typing_extensions import Literal
 from typeguard import check_argument_types, check_return_type, typechecked
+
 
 @typechecked
 def foo(x: int) -> int:

@@ -36,7 +36,8 @@ def get_expected_error_lines() -> Set[int]:
         idx + 1 for idx, line in enumerate(lines) if line.rstrip().endswith("# Error")
     }
 
-    assert error_lines
+    # Sanity check.  Should update if negative.py changes.
+    assert len(error_lines) == 3
     return error_lines
 
 
