@@ -9,8 +9,10 @@ LINE_PATTERN = SOURCE_FILE + ":([0-9]+):"
 
 
 def get_mypy_output() -> str:
-    process = subprocess.run(["mypy", SOURCE_FILE], capture_output=True, check=False)
-    return process.stdout.decode()
+    process = subprocess.run(["mypy", SOURCE_FILE], stdout=subprocess.PIPE, check=False)
+    output = process.stdout.decode()
+    assert output
+    return output
 
 
 def get_expected_output() -> str:
