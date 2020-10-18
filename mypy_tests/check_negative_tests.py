@@ -3,20 +3,14 @@ import re
 import subprocess
 from typing import Set
 
-OUTPUT_FILE = "negative.output"
 SOURCE_FILE = "negative.py"
-EXPECTED_FILE = OUTPUT_FILE + ".expected"
+EXPECTED_FILE = "negative.expected"
 LINE_PATTERN = SOURCE_FILE + ":([0-9]+):"
 
 
 def get_mypy_output() -> str:
-    try:
-        subprocess.check_call("mypy {} > {}".format(SOURCE_FILE, OUTPUT_FILE), shell=True)
-    except subprocess.CalledProcessError:
-        pass
-
-    with open(OUTPUT_FILE) as f:
-        return f.read()
+    process = subprocess.run(["mypy", SOURCE_FILE], capture_output=True, check=False)
+    return process.stdout.decode()
 
 
 def get_expected_output() -> str:
