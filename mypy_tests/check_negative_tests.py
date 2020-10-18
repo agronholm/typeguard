@@ -52,17 +52,20 @@ def main() -> None:
     if got_output != expected_output:
         with open(OUTPUT_FILE + ".expected", "w") as f:
             f.write(got_output)
-        raise RuntimeError(
-            "Got output did not match expected output. Expected output has been"
-            " updated. Rerun the test."
-        )
+        msg = " ".join([
+            "Mypy output did not match expected output.",
+            "{}.expected has been updated with the new mypy output.".format(OUTPUT_FILE),
+            "If this is intended, re-run the test with the new expected output.",
+            "If this is not intended, view the diff to see what's changed.",
+        ])
+        raise RuntimeError(msg)
 
     got_error_lines = get_mypy_error_lines(got_output)
     expected_error_lines = get_expected_error_lines()
     if got_error_lines != expected_error_lines:
         raise RuntimeError(
             "Expected error lines {} does not ".format(expected_error_lines) +
-            "match got error lines {}.".format(got_error_lines)
+            "match mypy error lines {}.".format(got_error_lines)
         )
 
 
