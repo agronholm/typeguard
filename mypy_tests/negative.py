@@ -6,6 +6,11 @@ def foo(x: int) -> int:
     return x + 1
 
 
+@typechecked
+def bar(x: int) -> int:
+    return str(x)  # Error
+
+
 def arg_type(x: int) -> str:
     return check_argument_types()  # Error
 

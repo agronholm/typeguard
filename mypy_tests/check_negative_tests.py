@@ -5,12 +5,13 @@ from typing import Set
 
 OUTPUT_FILE = "negative.output"
 SOURCE_FILE = "negative.py"
+EXPECTED_FILE = OUTPUT_FILE + ".expected"
 LINE_PATTERN = SOURCE_FILE + ":([0-9]+):"
 
 
 def get_mypy_output() -> str:
     try:
-        subprocess.check_call("mypy negative.py > " + OUTPUT_FILE, shell=True)
+        subprocess.check_call("mypy {} > {}".format(SOURCE_FILE, OUTPUT_FILE), shell=True)
     except subprocess.CalledProcessError:
         pass
 
@@ -19,10 +20,8 @@ def get_mypy_output() -> str:
 
 
 def get_expected_output() -> str:
-    expected_file = OUTPUT_FILE + ".expected"
-
-    if os.path.exists(expected_file):
-        with open(expected_file) as f:
+    if os.path.exists(EXPECTED_FILE):
+        with open(EXPECTED_FILE) as f:
             return f.read()
     else:
         return ""
@@ -37,7 +36,7 @@ def get_expected_error_lines() -> Set[int]:
     }
 
     # Sanity check.  Should update if negative.py changes.
-    assert len(error_lines) == 3
+    assert len(error_lines) == 4
     return error_lines
 
 
@@ -50,11 +49,11 @@ def main() -> None:
     expected_output = get_expected_output()
 
     if got_output != expected_output:
-        with open(OUTPUT_FILE + ".expected", "w") as f:
+        with open(EXPECTED_FILE, "w") as f:
             f.write(got_output)
         msg = " ".join([
             "Mypy output did not match expected output.",
-            "{}.expected has been updated with the new mypy output.".format(OUTPUT_FILE),
+            "{} has been updated with the new mypy output.".format(EXPECTED_FILE),
             "If this is intended, re-run the test with the new expected output.",
             "If this is not intended, view the diff to see what's changed.",
         ])
