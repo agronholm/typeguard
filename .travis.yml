@@ -4,7 +4,6 @@ language: python
 stages:
   - name: static analysis
   - name: test
-  - name: mypy_test
   - name: deploy to pypi
     if: type = push AND tag =~ ^\d+\.\d+\.\d+
 
@@ -40,26 +39,6 @@ jobs:
       env: TOXENV=py39
       python: "3.9-dev"
       after_success: *after_success
-
-    - stage: mypy_test
-      env: TOXENV=mypy
-      python: "3.5.3"
-
-    - stage: mypy_test
-      env: TOXENV=mypy
-      python: "3.6"
-
-    - stage: mypy_test
-      env: TOXENV=mypy
-      python: "3.7"
-
-    - stage: mypy_test
-      env: TOXENV=mypy
-      python: "3.8"
-
-    - stage: mypy_test
-      env: TOXENV=mypy
-      python: "3.9-dev"
 
     - stage: deploy to pypi
       install: skip

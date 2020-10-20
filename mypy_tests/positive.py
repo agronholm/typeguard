@@ -7,10 +7,6 @@ def foo(x: str) -> str:
     return "hello " + x
 
 
-def bar() -> str:
-    return foo("mypy")
-
-
 def takes_callable(f: Callable[[str], str]) -> str:
     return f("typeguard")
 
