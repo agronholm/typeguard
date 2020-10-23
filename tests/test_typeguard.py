@@ -1172,6 +1172,9 @@ class TestTypeChecked:
         @typechecked
         class Foo:
 
+            def __init__(self) -> None:
+                self.foo = 'foo'
+
             @property
             def prop(self) -> int:
                 """
@@ -1181,19 +1184,21 @@ class TestTypeChecked:
 
             @property
             def prop2(self) -> str:
-                return 'foo'
+                return self.foo
 
             @prop2.setter
             def prop2(self, value: str) -> None:
-                pass
+                self.foo = value
 
-        assert Foo().prop == 4
         assert Foo.__dict__["prop"].__doc__.strip() == "My property."
-        assert Foo().prop2 == 'foo'
-        Foo().prop2 = 'bar'
+        f = Foo()
+        assert f.prop == 4
+        assert f.prop2 == 'foo'
+        f.prop2 = 'bar'
+        assert f.prop2 == 'bar'
 
         with pytest.raises(TypeError) as raises:
-            Foo().prop2 = 3
+            f.prop2 = 3
         assert raises.value.args[0] == 'type of argument "value" must be str; got int instead'
 
     def test_decorator_factory_no_annotations(self):

@@ -48,7 +48,8 @@ function is to use the ``@typechecked`` decorator::
 
     @typechecked
     class SomeClass:
-        # All type annotated methods (including static and class methods) are type checked.
+        # All type annotated methods (including static and class methods and properties)
+        # are type checked.
         # Does not apply to inner classes!
         def method(x: int) -> int:
             ...
