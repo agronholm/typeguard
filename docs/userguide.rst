@@ -210,7 +210,7 @@ Type            Notes
                 more information); On Python 3.9.0 or ``typing_extensions``
                 <= 3.7.4.3, false positives can happen when constructing
                 ``TypedDict`` classes using old-style syntax (see
-               `issue 42059`_)
+                `issue 42059`_)
 ``TypeVar``     Constraints, bound types and co/contravariance are supported
                 but custom generic types are not (due to type erasure)
 ``Union``
