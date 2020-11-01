@@ -26,6 +26,7 @@ def ret_type() -> str:
 _ = arg_type(foo)  # noqa: E501 # error: Argument 1 to "arg_type" has incompatible type "Callable[[int], int]"; expected "int"
 _ = foo("typeguard")  # error: Argument 1 to "foo" has incompatible type "str"; expected "int"
 
+
 @typechecked
 class MyClass:
     def __init__(self, x: int = 0) -> None:
@@ -43,5 +44,5 @@ def create_myclass(x: int) -> MyClass:
     return MyClass(x)
 
 
-_ = get_value("foo")  # error: Argument 1 to "get_value" has incompatible type "str"; expected "MyClass"
-_ = MyClass(returns_str())  # error: Argument 1 to "MyClass" has incompatible type "str"; expected "int"
+_ = get_value("foo")  # noqa: E501 # error: Argument 1 to "get_value" has incompatible type "str"; expected "MyClass"
+_ = MyClass(returns_str())  # noqa: E501 # error: Argument 1 to "MyClass" has incompatible type "str"; expected "int"
