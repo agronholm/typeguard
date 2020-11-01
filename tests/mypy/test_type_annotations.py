@@ -3,6 +3,8 @@ import re
 import subprocess
 from typing import Dict, List
 
+import pytest
+
 POSITIVE_FILE = "positive.py"
 NEGATIVE_FILE = "negative.py"
 LINE_PATTERN = NEGATIVE_FILE + ":([0-9]+):"
@@ -13,6 +15,9 @@ def get_mypy_cmd(filename: str) -> List[str]:
 
 
 def get_negative_mypy_output() -> str:
+    """
+    Get the output from running mypy on the negative examples file.
+    """
     process = subprocess.run(
         get_mypy_cmd(NEGATIVE_FILE), stdout=subprocess.PIPE, check=False
     )
@@ -22,6 +27,9 @@ def get_negative_mypy_output() -> str:
 
 
 def get_expected_errors() -> Dict[int, str]:
+    """
+    Extract the expected errors from comments in the negative examples file.
+    """
     with open(NEGATIVE_FILE) as f:
         lines = f.readlines()
 
@@ -38,6 +46,9 @@ def get_expected_errors() -> Dict[int, str]:
 
 
 def get_mypy_errors() -> Dict[int, str]:
+    """
+    Extract the errors from running mypy on the negative examples file.
+    """
     mypy_output = get_negative_mypy_output()
 
     got = {}
@@ -50,18 +61,30 @@ def get_mypy_errors() -> Dict[int, str]:
     return got
 
 
-def main() -> None:
-    # Change to the directory for mypy tests. This is so that mypy treats imports
-    # from typeguard as external imports instead of source code (which is handled
-    # differently by mypy).
+@pytest.fixture
+def chdir_local() -> None:
+    """
+    Change to the local directory. This is so that mypy treats imports from
+    typeguard as external imports instead of source code (which is handled
+    differently by mypy).
+    """
     os.chdir(os.path.dirname(__file__))
 
-    # Run mypy on this file and the positive test file.  There should be no errors.
-    subprocess.check_call(get_mypy_cmd(os.path.basename(__file__)))
+
+@pytest.mark.usefixtures("chdir_local")
+def test_positive() -> None:
+    """
+    Run mypy on the positive test file.  There should be no errors.
+    """
     subprocess.check_call(get_mypy_cmd(POSITIVE_FILE))
 
-    # Run mypy on the negative test file. The errors from mypy should match the
-    # comments in the file.
+
+@pytest.mark.usefixtures("chdir_local")
+def test_negative() -> None:
+    """
+    Run mypy on the negative test file. This should fail. The errors from mypy
+    should match the comments in the file.
+    """
     got_errors = get_mypy_errors()
     expected_errors = get_expected_errors()
 
@@ -83,10 +106,5 @@ def main() -> None:
             "Got:      {}".format(got),
             sep="\n\t"
         )
-
     if mismatches:
         raise RuntimeError("Error messages changed")
-
-
-if __name__ == "__main__":
-    main()
