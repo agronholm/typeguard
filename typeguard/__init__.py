@@ -65,7 +65,7 @@ _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 _missing = object()
 
-T_CallableOrType = TypeVar('T_CallableOrType', Callable, Type[Any])
+T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
 
 class ForwardRefPolicy(Enum):
