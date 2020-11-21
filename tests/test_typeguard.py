@@ -1014,14 +1014,17 @@ class TestTypeChecked:
 
         with pytest.raises(TypeError) as raises:
             Foo().prop
+
         assert raises.value.args[0] == pattern
 
         with pytest.raises(TypeError) as raises:
             Foo().prop2
+
         assert raises.value.args[0] == pattern
 
         with pytest.raises(TypeError) as raises:
             Foo().prop2 = 'foo'
+
         assert raises.value.args[0] == 'type of argument "value" must be int; got str instead'
 
     @pytest.mark.parametrize('annotation', [
@@ -1199,6 +1202,7 @@ class TestTypeChecked:
 
         with pytest.raises(TypeError) as raises:
             f.prop2 = 3
+
         assert raises.value.args[0] == 'type of argument "value" must be str; got int instead'
 
     def test_decorator_factory_no_annotations(self):
