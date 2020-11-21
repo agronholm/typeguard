@@ -882,7 +882,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
                         property_func, always=always, _localns=func.__dict__
                     )
 
-               setattr(func, key, property(**kwargs))
+                setattr(func, key, property(**kwargs))
 
         return func
 
