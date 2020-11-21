@@ -848,8 +848,9 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
     If the ``__debug__`` global variable is set to ``False``, no wrapping and therefore no type
     checking is done, unless ``always`` is ``True``.
 
-    This can also be used as a class decorator. This will wrap all type annotated methods in the
-    class with this decorator.
+    This can also be used as a class decorator. This will wrap all type annotated methods,
+    including ``@classmethod``, ``@staticmethod``,  and ``@property`` decorated methods,
+    in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
     :param always: ``True`` to enable type checks even in optimized mode
@@ -871,6 +872,17 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
                 if getattr(attr.__func__, '__annotations__', None):
                     wrapped = typechecked(attr.__func__, always=always, _localns=func.__dict__)
                     setattr(func, key, type(attr)(wrapped))
+            elif isinstance(attr, property):
+                kwargs = dict(doc=attr.__doc__)
+                for name in ("fset", "fget", "fdel"):
+                    property_func = getattr(attr, name)
+                    if property_func is None:
+                        continue
+                    kwargs[name] = typechecked(
+                        property_func, always=always, _localns=func.__dict__
+                    )
+
+                setattr(func, key, property(**kwargs))
 
         return func
 

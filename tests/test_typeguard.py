@@ -995,10 +995,37 @@ class TestTypeChecked:
             def method(self) -> int:
                 return 'foo'
 
+            @property
+            def prop(self) -> int:
+                return 'foo'
+
+            @property
+            def prop2(self) -> int:
+                return 'foo'
+
+            @prop2.setter
+            def prop2(self, value: int) -> None:
+                pass
+
         pattern = 'type of the return value must be int; got str instead'
         pytest.raises(TypeError, Foo.staticmethod).match(pattern)
         pytest.raises(TypeError, Foo.classmethod).match(pattern)
         pytest.raises(TypeError, Foo().method).match(pattern)
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop
+
+        assert raises.value.args[0] == pattern
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop2
+
+        assert raises.value.args[0] == pattern
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop2 = 'foo'
+
+        assert raises.value.args[0] == 'type of argument "value" must be int; got str instead'
 
     @pytest.mark.parametrize('annotation', [
         Generator[int, str, List[str]],
@@ -1142,6 +1169,37 @@ class TestTypeChecked:
 
         assert Child.foo('bar') == 'Child'
         pytest.raises(TypeError, Child.foo, 1)
+
+    def test_class_property(self):
+        @typechecked
+        class Foo:
+            def __init__(self) -> None:
+                self.foo = 'foo'
+
+            @property
+            def prop(self) -> int:
+                """My property."""
+                return 4
+
+            @property
+            def prop2(self) -> str:
+                return self.foo
+
+            @prop2.setter
+            def prop2(self, value: str) -> None:
+                self.foo = value
+
+        assert Foo.__dict__["prop"].__doc__.strip() == "My property."
+        f = Foo()
+        assert f.prop == 4
+        assert f.prop2 == 'foo'
+        f.prop2 = 'bar'
+        assert f.prop2 == 'bar'
+
+        with pytest.raises(TypeError) as raises:
+            f.prop2 = 3
+
+        assert raises.value.args[0] == 'type of argument "value" must be str; got int instead'
 
     def test_decorator_factory_no_annotations(self):
         class CallableClass:
