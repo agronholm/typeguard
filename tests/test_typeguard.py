@@ -1171,18 +1171,14 @@ class TestTypeChecked:
         pytest.raises(TypeError, Child.foo, 1)
 
     def test_class_property(self):
-
         @typechecked
         class Foo:
-
             def __init__(self) -> None:
                 self.foo = 'foo'
 
             @property
             def prop(self) -> int:
-                """
-                My property.
-                """
+                """My property."""
                 return 4
 
             @property
