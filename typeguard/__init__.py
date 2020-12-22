@@ -753,8 +753,10 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator, memo: _CallMemo):
         rtype_args = []
-        if hasattr(memo.type_hints['return'], "__args__"):
-            rtype_args = memo.type_hints['return'].__args__
+        rtype = memo.type_hints['return']
+        if (hasattr(rtype, "__args__") and
+                rtype.__args__ not in (None, getattr(rtype, "__parameters__", None))):
+            rtype_args = rtype.__args__
 
         self.__wrapped = wrapped
         self.__memo = memo
