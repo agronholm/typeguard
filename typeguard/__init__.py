@@ -792,7 +792,13 @@ class TypeCheckedGenerator:
             check_type('return value', exc.value, self.__return_type, memo=self.__memo)
             raise
 
-        check_type('value yielded from generator', value, self.__yield_type, memo=self.__memo)
+        try:
+            check_type('value yielded from generator', value, self.__yield_type, memo=self.__memo)
+        except TypeError as exc:
+            # suppress unnecessarily long tracebacks
+            exc = exc.with_traceback(None)
+            # Raise exception from yield statement that produced the value
+            self.__wrapped.throw(exc)
         return value
 
 
