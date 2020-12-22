@@ -1069,6 +1069,15 @@ class TestTypeChecked:
 
         exc.match('type of value yielded from generator must be int; got str instead')
 
+    def test_generator_bare_covariant(self):
+        @typechecked
+        def genfunc() -> Generator:
+            yield "42"
+            yield 42
+
+        *values, = genfunc()
+        assert values == ["42", 42]
+
     def test_generator_bad_send(self):
         @typechecked
         def genfunc() -> Generator[int, str, None]:
