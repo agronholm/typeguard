@@ -12,11 +12,11 @@ from functools import wraps, partial
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
-from types import CodeType, FunctionType
+from types import CodeType, FunctionType, ModuleType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
-    AsyncIterator, AbstractSet)
+    AsyncIterator, AbstractSet, _allowed_types, _get_defaults, _GenericAlias)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
@@ -67,9 +67,6 @@ _missing = object()
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
-import types
-from typing import _allowed_types, _get_defaults, _GenericAlias
-
 
 def _eval_type(t, globalns, localns, postpone_evaluation=False):
     """Redefines typing _eval_type method"""
@@ -116,7 +113,7 @@ def get_type_hints(obj, globalns=None, localns=None, postpone_evaluation=False):
         return hints
 
     if globalns is None:
-        if isinstance(obj, types.ModuleType):
+        if isinstance(obj, ModuleType):
             globalns = obj.__dict__
         else:
             nsobj = obj
@@ -213,7 +210,8 @@ class _CallMemo(_TypeCheckMemo):
                     frame_locals = dict(frame_locals)
 
                 try:
-                    hints = get_type_hints(func, localns=frame_locals, postpone_evaluation=postpone_evaluation)
+                    hints = get_type_hints(func, localns=frame_locals,
+                                           postpone_evaluation=postpone_evaluation)
                 except NameError as exc:
                     if forward_refs_policy is ForwardRefPolicy.ERROR:
                         raise
@@ -422,7 +420,8 @@ def check_typed_dict(argname: str, value, expected_type, memo: _TypeCheckMemo) -
         keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
         raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
 
-    for key, argtype in get_type_hints(expected_type, postpone_evaluation=memo.postpone_evaluation).items():
+    for key, argtype in get_type_hints(expected_type,
+                                       postpone_evaluation=memo.postpone_evaluation).items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype, memo)
@@ -753,7 +752,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
 
     try:
         expected_type = resolve_forwardref(expected_type, memo)
-    except NameError as exc:
+    except NameError:
         if not memo.postpone_evaluation:
             raise
         # Try checking the class if class is cycle or value is FordwardRef
@@ -766,8 +765,9 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
             else:
                 if len(class_values) == 1:
                     class_values = class_values[0]
-                raise TypeError(
-                    'type of {} must be {}; got {} instead'.format(argname, class_name, class_values))
+                msg = 'type of {} must be {}; got {} instead'.format(
+                    argname, class_name, class_values)
+                raise TypeError(msg)
 
     origin_type = getattr(expected_type, '__origin__', None)
     if origin_type is not None:
@@ -802,7 +802,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
             if not isinstance(value, expected_type):
                 raise TypeError(
                     'type of {} must be {}; got {} instead'.
-                        format(argname, qualified_name(expected_type), qualified_name(value)))
+                    format(argname, qualified_name(expected_type), qualified_name(value)))
     elif isinstance(expected_type, TypeVar):
         # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
@@ -851,7 +851,8 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
-def check_argument_types(memo: Optional[_CallMemo] = None, postpone_evaluation: bool = True) -> bool:
+def check_argument_types(memo: Optional[_CallMemo] = None,
+                         postpone_evaluation: bool = True) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -968,16 +969,19 @@ class TypeCheckedAsyncGenerator:
 
 
 @overload
-def typechecked(*, always: bool = False, postpone_evaluation=True) -> Callable[[T_CallableOrType], T_CallableOrType]:
+def typechecked(*, always: bool = False,
+                postpone_evaluation=True) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
 
 
 @overload
-def typechecked(func: T_CallableOrType, *, always: bool = False, postpone_evaluation=True) -> T_CallableOrType:
+def typechecked(func: T_CallableOrType, *, always: bool = False,
+                postpone_evaluation=True) -> T_CallableOrType:
     ...
 
 
-def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None, postpone_evaluation=True):
+def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None,
+                postpone_evaluation=True):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 
@@ -1037,7 +1041,8 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         return func
 
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs, postpone_evaluation=postpone_evaluation)
+        memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs,
+                         postpone_evaluation=postpone_evaluation)
         check_argument_types(memo, postpone_evaluation=postpone_evaluation)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
