@@ -7,14 +7,20 @@ from io import StringIO, BytesIO
 from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type,
+    TYPE_CHECKING)
+
+from dummyclasses import dummy_object
+
+if TYPE_CHECKING:
+    from dummyclasses import DummyClass
 
 import pytest
 from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
+    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type, typeguard_config)
 
 try:
     from typing import Collection
@@ -1155,6 +1161,62 @@ class TestTypeChecked:
         @typechecked
         class LocalClass:
             some_callable = CallableClass()
+
+    def test_string_defined_class(self):
+        if sys.version_info < (3, 7, 0):
+            return
+
+        typeguard_config.postpone_evaluation = True
+
+        @typechecked
+        def foo(x: 'DummyClass') -> None:
+            return None
+
+        pytest.raises(TypeError, foo, Child())
+        assert foo(dummy_object) is None
+
+        @typechecked
+        def foo_union(x: Union['DummyClass', str]) -> None:
+            return None
+
+        pytest.raises(TypeError, foo_union, Child())
+        pytest.raises(TypeError, foo_union, 1)
+        assert foo_union(dummy_object) is None
+        assert foo_union('hi') is None
+
+        @typechecked
+        def foo_list(x: List[Union['DummyClass', str]]) -> None:
+            return None
+
+        pytest.raises(TypeError, foo_list, [1])
+        pytest.raises(TypeError, foo_list, [Child()])
+        pytest.raises(TypeError, foo_list, [dummy_object, 1])
+        assert foo_list([]) is None
+        assert foo_list([dummy_object, 'object']) is None
+        assert foo_list([dummy_object, dummy_object]) is None
+
+        @typechecked
+        def foo_dict(x: Dict[str, 'DummyClass']) -> None:
+            return None
+
+        pytest.raises(TypeError, foo_dict, {'1': Child()})
+        pytest.raises(TypeError, foo_dict, {'1': 1})
+        assert foo_dict({'1': dummy_object}) is None
+
+        @typechecked
+        def foo_dict_list(x: Dict[str, List[Union['DummyClass', str]]]) -> None:
+            return None
+
+        pytest.raises(TypeError, foo_dict_list, {'1': dummy_object})
+        pytest.raises(TypeError, foo_dict_list, {'1': '1'})
+        pytest.raises(TypeError, foo_dict_list, {'1': [1]})
+        pytest.raises(TypeError, foo_dict_list, {'1': [dummy_object, 1]})
+        pytest.raises(TypeError, foo_dict_list, {'1': ['1', 1]})
+        assert foo_dict_list({'1': []}) is None
+        assert foo_dict_list({'1': [dummy_object]}) is None
+        assert foo_dict_list({'1': [dummy_object, 'hi']}) is None
+
+        typeguard_config.postpone_evaluation = False
 
     def test_inherited_class_method(self):
         @typechecked
