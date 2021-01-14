@@ -56,6 +56,9 @@ class DummyClass(metaclass=Metaclass):
         pass
 
 
+dummy_object = DummyClass()
+
+
 def outer():
     class Inner:
         pass

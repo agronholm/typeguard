@@ -7,7 +7,12 @@ from io import StringIO, BytesIO
 from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type,
+    TYPE_CHECKING)
+from dummymodule import dummy_object
+
+if TYPE_CHECKING:
+    from dummymodule import DummyClass
 
 import pytest
 from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
@@ -1156,6 +1161,25 @@ class TestTypeChecked:
         class LocalClass:
             some_callable = CallableClass()
 
+    def test_string_defined_class(self):
+        @typechecked
+        def foo(x: 'DummyClass') -> None:
+            assert check_argument_types()
+            return None
+
+        pytest.raises(TypeError, foo, Child())
+        assert foo(dummy_object) is None
+
+        @typechecked
+        def foo_union(x: Union['DummyClass', str]) -> None:
+            assert check_argument_types()
+            return None
+
+        pytest.raises(TypeError, foo_union, Child())
+        pytest.raises(TypeError, foo_union, 1)
+        assert foo_union(dummy_object) is None
+        assert foo_union('hi') is None
+
     def test_inherited_class_method(self):
         @typechecked
         class Parent:
@@ -1487,6 +1511,7 @@ class TestTypeChecker:
             pass
 
         checker.annotation_policy = policy
+        checker.postpone_evaluation = False
         gc.collect()  # prevent find_function() from finding more than one instance of the function
         with checker, pytest.warns(TypeHintWarning) as record:
             unresolvable_annotation({})
@@ -1503,6 +1528,7 @@ class TestTypeChecker:
             pass
 
         checker.annotation_policy = ForwardRefPolicy.GUESS
+        checker.postpone_evaluation = False
         with checker, pytest.warns(TypeHintWarning) as record:
             unresolvable_annotation(collections.OrderedDict())
 
