@@ -1,5 +1,5 @@
 __all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
-           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
+           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker', 'typeguard_config')
 
 import collections.abc
 import gc
@@ -68,13 +68,21 @@ _missing = object()
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
 
-def _eval_type(t, globalns, localns, postpone_evaluation=False):
+class _TypeguardConfig:
+    def __init__(self):
+        self.postpone_evaluation = False
+
+
+typeguard_config = _TypeguardConfig()
+
+
+def _eval_type(t, globalns, localns):
     """Redefines typing _eval_type method"""
     if isinstance(t, ForwardRef):
         try:
             return t._evaluate(globalns, localns)
         except NameError as exc:
-            if not postpone_evaluation:
+            if not typeguard_config.postpone_evaluation:
                 raise
             typename = str(exc).split("'", 2)[1]
             if typename == t.__forward_arg__:
@@ -82,7 +90,7 @@ def _eval_type(t, globalns, localns, postpone_evaluation=False):
             else:
                 raise
     if isinstance(t, _GenericAlias):
-        ev_args = tuple(_eval_type(a, globalns, localns, postpone_evaluation) for a in t.__args__)
+        ev_args = tuple(_eval_type(a, globalns, localns) for a in t.__args__)
         if ev_args == t.__args__:
             return t
         res = t.copy_with(ev_args)
@@ -91,7 +99,7 @@ def _eval_type(t, globalns, localns, postpone_evaluation=False):
     return t
 
 
-def get_type_hints(obj, globalns=None, localns=None, postpone_evaluation=False):
+def get_type_hints(obj, globalns=None, localns=None):
     if getattr(obj, '__no_type_check__', None):
         return {}
     # Classes require a special treatment.
@@ -108,7 +116,7 @@ def get_type_hints(obj, globalns=None, localns=None, postpone_evaluation=False):
                     value = type(None)
                 if isinstance(value, str):
                     value = ForwardRef(value, is_argument=False)
-                value = _eval_type(value, base_globals, localns, postpone_evaluation)
+                value = _eval_type(value, base_globals, localns)
                 hints[name] = value
         return hints
 
@@ -141,9 +149,9 @@ def get_type_hints(obj, globalns=None, localns=None, postpone_evaluation=False):
         if isinstance(value, str):
             value = ForwardRef(value)
         try:
-            value = _eval_type(value, globalns, localns, postpone_evaluation)
+            value = _eval_type(value, globalns, localns)
         except NameError as exc:
-            if not isinstance(value, ForwardRef) or not postpone_evaluation:
+            if not isinstance(value, ForwardRef) or not typeguard_config.postpone_evaluation:
                 raise
             typename = str(exc).split("'", 2)[1]
             if typename == value.__forward_arg__:
@@ -174,13 +182,12 @@ class TypeHintWarning(UserWarning):
 
 
 class _TypeCheckMemo:
-    __slots__ = 'globals', 'locals', 'typevars', 'postpone_evaluation'
+    __slots__ = 'globals', 'locals', 'typevars'
 
     def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any]):
         self.globals = globals
         self.locals = locals
         self.typevars = {}  # type: Dict[Any, type]
-        self.postpone_evaluation = False
 
 
 class _CallMemo(_TypeCheckMemo):
@@ -188,13 +195,11 @@ class _CallMemo(_TypeCheckMemo):
 
     def __init__(self, func: Callable, frame_locals: Optional[Dict[str, Any]] = None,
                  args: tuple = None, kwargs: Dict[str, Any] = None,
-                 forward_refs_policy=ForwardRefPolicy.ERROR,
-                 postpone_evaluation: bool = False):
+                 forward_refs_policy=ForwardRefPolicy.ERROR):
         super().__init__(func.__globals__, frame_locals)
         self.func = func
         self.func_name = function_name(func)
         self.is_generator = isgeneratorfunction(func)
-        self.postpone_evaluation = postpone_evaluation
         signature = inspect.signature(func)
 
         if args is not None and kwargs is not None:
@@ -210,8 +215,7 @@ class _CallMemo(_TypeCheckMemo):
                     frame_locals = dict(frame_locals)
 
                 try:
-                    hints = get_type_hints(func, localns=frame_locals,
-                                           postpone_evaluation=postpone_evaluation)
+                    hints = get_type_hints(func, localns=frame_locals)
                 except NameError as exc:
                     if forward_refs_policy is ForwardRefPolicy.ERROR:
                         raise
@@ -420,8 +424,7 @@ def check_typed_dict(argname: str, value, expected_type, memo: _TypeCheckMemo) -
         keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
         raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
 
-    for key, argtype in get_type_hints(expected_type,
-                                       postpone_evaluation=memo.postpone_evaluation).items():
+    for key, argtype in get_type_hints(expected_type).items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             check_type('dict item "{}" for {}'.format(key, argname), argvalue, argtype, memo)
@@ -753,7 +756,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
     try:
         expected_type = resolve_forwardref(expected_type, memo)
     except NameError:
-        if not memo.postpone_evaluation:
+        if not typeguard_config.postpone_evaluation:
             raise
         # Try checking the class if class is cycle or value is FordwardRef
         if isinstance(expected_type, ForwardRef):
@@ -851,8 +854,7 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
     return True
 
 
-def check_argument_types(memo: Optional[_CallMemo] = None,
-                         postpone_evaluation: bool = True) -> bool:
+def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -860,7 +862,6 @@ def check_argument_types(memo: Optional[_CallMemo] = None,
     the previous stack frame (ie. from the function that called this).
 
     :param memo: memo object
-    :param postpone_evaluation: postpone evaluation of non defined ``ForwardRef`` objects
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
 
@@ -875,7 +876,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None,
         except LookupError:
             return True  # This can happen with the Pydev/PyCharm debugger extension installed
 
-        memo = _CallMemo(func, frame.f_locals, postpone_evaluation=postpone_evaluation)
+        memo = _CallMemo(func, frame.f_locals)
 
     for argname, expected_type in memo.type_hints.items():
         if argname != 'return' and argname in memo.arguments:
@@ -969,19 +970,16 @@ class TypeCheckedAsyncGenerator:
 
 
 @overload
-def typechecked(*, always: bool = False,
-                postpone_evaluation=True) -> Callable[[T_CallableOrType], T_CallableOrType]:
+def typechecked(*, always: bool = False) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
 
 
 @overload
-def typechecked(func: T_CallableOrType, *, always: bool = False,
-                postpone_evaluation=True) -> T_CallableOrType:
+def typechecked(func: T_CallableOrType, *, always: bool = False) -> T_CallableOrType:
     ...
 
 
-def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None,
-                postpone_evaluation=True):
+def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
 
@@ -996,7 +994,6 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
 
     :param func: the function or class to enable type checking for
     :param always: ``True`` to enable type checks even in optimized mode
-    :param postpone_evaluation: postpone evaluation of non defined ``ForwardRef`` objects
 
     """
     if func is None:
@@ -1041,9 +1038,8 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         return func
 
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs,
-                         postpone_evaluation=postpone_evaluation)
-        check_argument_types(memo, postpone_evaluation=postpone_evaluation)
+        memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
+        check_argument_types(memo)
         retval = func(*args, **kwargs)
         check_return_type(retval, memo)
 
@@ -1061,7 +1057,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
 
     async def async_wrapper(*args, **kwargs):
         memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
-        check_argument_types(memo, postpone_evaluation=postpone_evaluation)
+        check_argument_types(memo)
         retval = await func(*args, **kwargs)
         check_return_type(retval, memo)
         return retval
@@ -1133,21 +1129,18 @@ class TypeChecker:
     :param all_threads: ``True`` to check types in all threads created while the checker is
         running, ``False`` to only check in the current one
     :param forward_refs_policy: how to handle unresolvable forward references in annotations
-    :param postpone_evaluation: postpone evaluation of non defined ``ForwardRef`` objects
 
     .. deprecated:: 2.6
        Use :func:`~.importhook.install_import_hook` instead. This class will be removed in v3.0.
     """
 
     def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True,
-                 forward_refs_policy: ForwardRefPolicy = ForwardRefPolicy.ERROR,
-                 postpone_evaluation: bool = True):
-        assert check_argument_types(postpone_evaluation=postpone_evaluation)
+                 forward_refs_policy: ForwardRefPolicy = ForwardRefPolicy.ERROR):
+        assert check_argument_types()
         warn('TypeChecker has been deprecated and will be removed in v3.0. '
              'Use install_import_hook() or the pytest plugin instead.', DeprecationWarning)
         self.all_threads = all_threads
         self.annotation_policy = forward_refs_policy
-        self.postpone_evaluation = postpone_evaluation
         self._call_memos = {}  # type: Dict[Any, _CallMemo]
         self._previous_profiler = None
         self._previous_thread_profiler = None
@@ -1231,8 +1224,7 @@ class TypeChecker:
 
             if func is not None and self.should_check_type(func):
                 memo = self._call_memos[frame] = _CallMemo(
-                    func, frame.f_locals, forward_refs_policy=self.annotation_policy,
-                    postpone_evaluation=self.postpone_evaluation)
+                    func, frame.f_locals, forward_refs_policy=self.annotation_policy)
                 if memo.is_generator:
                     return_type_hint = memo.type_hints['return']
                     if return_type_hint is not None:
@@ -1242,7 +1234,7 @@ class TypeChecker:
                             memo.type_hints['return'] = return_type_hint.__args__[0]
                 else:
                     try:
-                        check_argument_types(memo, postpone_evaluation=self.postpone_evaluation)
+                        check_argument_types(memo)
                     except TypeError as exc:
                         warn(TypeWarning(memo, event, frame, exc))
 

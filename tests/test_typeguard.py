@@ -19,7 +19,7 @@ from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_ch
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
+    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type, typeguard_config)
 
 try:
     from typing import Collection
@@ -1162,9 +1162,10 @@ class TestTypeChecked:
             some_callable = CallableClass()
 
     def test_string_defined_class(self):
+        typeguard_config.postpone_evaluation = True
+
         @typechecked
         def foo(x: 'DummyClass') -> None:
-            assert check_argument_types()
             return None
 
         pytest.raises(TypeError, foo, Child())
@@ -1172,7 +1173,6 @@ class TestTypeChecked:
 
         @typechecked
         def foo_union(x: Union['DummyClass', str]) -> None:
-            assert check_argument_types()
             return None
 
         pytest.raises(TypeError, foo_union, Child())
@@ -1182,7 +1182,6 @@ class TestTypeChecked:
 
         @typechecked
         def foo_list(x: List[Union['DummyClass', str]]) -> None:
-            assert check_argument_types()
             return None
 
         pytest.raises(TypeError, foo_list, [1])
@@ -1194,7 +1193,6 @@ class TestTypeChecked:
 
         @typechecked
         def foo_dict(x: Dict[str, 'DummyClass']) -> None:
-            assert check_argument_types()
             return None
 
         pytest.raises(TypeError, foo_dict, {'1': Child()})
@@ -1203,7 +1201,6 @@ class TestTypeChecked:
 
         @typechecked
         def foo_dict_list(x: Dict[str, List[Union['DummyClass', str]]]) -> None:
-            assert check_argument_types()
             return None
 
         pytest.raises(TypeError, foo_dict_list, {'1': dummy_object})
@@ -1214,6 +1211,8 @@ class TestTypeChecked:
         assert foo_dict_list({'1': []}) is None
         assert foo_dict_list({'1': [dummy_object]}) is None
         assert foo_dict_list({'1': [dummy_object, 'hi']}) is None
+
+        typeguard_config.postpone_evaluation = False
 
     def test_inherited_class_method(self):
         @typechecked
