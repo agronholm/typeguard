@@ -1180,6 +1180,41 @@ class TestTypeChecked:
         assert foo_union(dummy_object) is None
         assert foo_union('hi') is None
 
+        @typechecked
+        def foo_list(x: List[Union['DummyClass', str]]) -> None:
+            assert check_argument_types()
+            return None
+
+        pytest.raises(TypeError, foo_list, [1])
+        pytest.raises(TypeError, foo_list, [Child()])
+        pytest.raises(TypeError, foo_list, [dummy_object, 1])
+        assert foo_list([]) is None
+        assert foo_list([dummy_object, 'object']) is None
+        assert foo_list([dummy_object, dummy_object]) is None
+
+        @typechecked
+        def foo_dict(x: Dict[str, 'DummyClass']) -> None:
+            assert check_argument_types()
+            return None
+
+        pytest.raises(TypeError, foo_dict, {'1': Child()})
+        pytest.raises(TypeError, foo_dict, {'1': 1})
+        assert foo_dict({'1': dummy_object}) is None
+
+        @typechecked
+        def foo_dict_list(x: Dict[str, List[Union['DummyClass', str]]]) -> None:
+            assert check_argument_types()
+            return None
+
+        pytest.raises(TypeError, foo_dict_list, {'1': dummy_object})
+        pytest.raises(TypeError, foo_dict_list, {'1': '1'})
+        pytest.raises(TypeError, foo_dict_list, {'1': [1]})
+        pytest.raises(TypeError, foo_dict_list, {'1': [dummy_object, 1]})
+        pytest.raises(TypeError, foo_dict_list, {'1': ['1', 1]})
+        assert foo_dict_list({'1': []}) is None
+        assert foo_dict_list({'1': [dummy_object]}) is None
+        assert foo_dict_list({'1': [dummy_object, 'hi']}) is None
+
     def test_inherited_class_method(self):
         @typechecked
         class Parent:
