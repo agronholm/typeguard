@@ -1,33 +1,37 @@
 import gc
 import sys
+import traceback
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
 from io import StringIO, BytesIO
-import traceback
+from unittest.mock import Mock, MagicMock
 from typing import (
     Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, SupportsInt, AbstractSet)
+    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
 
 import pytest
+from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
     check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
 
 try:
-    from typing import Type
-except ImportError:
-    Type = List  # don't worry, Type is not actually used if this happens!
-
-try:
     from typing import Collection
 except ImportError:
+    # Python 3.6.0+
     Collection = None
 
 
 TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
+JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
+
+DummyDict = TypedDict('DummyDict', {'x': int}, total=False)
+issue_42059 = pytest.mark.xfail(bool(DummyDict.__required_keys__),
+                                reason='Fails due to upstream bug BPO-42059')
+del DummyDict
 
 
 class Parent:
@@ -37,6 +41,22 @@ class Parent:
 class Child(Parent):
     def method(self, a: int):
         pass
+
+
+class StaticProtocol(Protocol):
+    def meth(self) -> None:
+        ...
+
+
+@runtime_checkable
+class RuntimeProtocol(Protocol):
+    def meth(self) -> None:
+        ...
+
+
+@pytest.fixture(params=[Mock, MagicMock], ids=['mock', 'magicmock'])
+def mock_class(request):
+    return request.param
 
 
 @pytest.mark.parametrize('inputval, expected', [
@@ -61,6 +81,16 @@ def test_check_type_no_memo_fail():
         match(r'type of foo\[0\] must be int; got str instead')
 
 
+@pytest.mark.parametrize('value', ['bar', b'bar'], ids=['str', 'bytes'])
+def test_check_type_anystr(value):
+    check_type('foo', value, AnyStr)
+
+
+def test_check_type_anystr_fail():
+    pytest.raises(TypeError, check_type, 'foo', int, AnyStr).\
+        match(r'type of foo must be one of \(bytes, str\); got type instead')
+
+
 def test_check_return_type():
     def foo() -> int:
         assert check_return_type(0)
@@ -77,12 +107,25 @@ def test_check_return_type_fail():
     pytest.raises(TypeError, foo).match('type of the return value must be int; got str instead')
 
 
+def test_check_recursive_type():
+    check_type('foo', {'a': [1, 2, 3]}, JSONType)
+    pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
+        match(r'type of foo must be one of \(str, int, float, (bool, )?NoneType, '
+              r'List, Dict\); got dict instead')
+
+
 class TestCheckArgumentTypes:
     def test_any_type(self):
         def foo(a: Any):
             assert check_argument_types()
 
         foo('aa')
+
+    def test_mock_value(self, mock_class):
+        def foo(a: str, b: int, c: dict, d: Any) -> int:
+            assert check_argument_types()
+
+        foo(mock_class(), mock_class(), mock_class(), mock_class())
 
     def test_callable_exact_arg_count(self):
         def foo(a: Callable[[int, str], int]):
@@ -562,6 +605,16 @@ class TestCheckArgumentTypes:
         gen = generate(1)
         next(gen)
 
+    def test_wrapped_generator_no_return_type_annotation(self):
+        """Test that return type checking works in a generator function too."""
+        @typechecked
+        def generate(a: int):
+            yield a
+            yield a + 1
+
+        gen = generate(1)
+        next(gen)
+
     def test_varargs(self):
         def foo(*args: int):
             assert check_argument_types()
@@ -661,6 +714,15 @@ class TestCheckArgumentTypes:
         with tmpdir.join('testfile').open('w') as f:
             foo(f)
 
+    def test_recursive_type(self):
+        def foo(arg: JSONType) -> None:
+            assert check_argument_types()
+
+        foo({'a': [1, 2, 3]})
+        pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
+            match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
+                  r'List, Dict\); got dict instead')
+
 
 class TestTypeChecked:
     def test_typechecked(self):
@@ -722,6 +784,13 @@ class TestTypeChecked:
 
         exc = pytest.raises(TypeError, foo)
         assert str(exc.value) == 'type of the return value must be NoneType; got str instead'
+
+    def test_return_type_magicmock(self, mock_class):
+        @typechecked
+        def foo() -> str:
+            return mock_class()
+
+        foo()
 
     @pytest.mark.parametrize('typehint', [
         Callable[..., int],
@@ -853,8 +922,8 @@ class TestTypeChecked:
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
         Type[Parent],
-        Type[TypeVar('UnboundType')],
-        Type[TypeVar('BoundType', bound=Parent)],
+        Type[TypeVar('UnboundType')],  # noqa: F821
+        Type[TypeVar('BoundType', bound=Parent)],  # noqa: F821
         Type,
         type
     ], ids=['parametrized', 'unbound-typevar', 'bound-typevar', 'unparametrized', 'plain'])
@@ -927,10 +996,37 @@ class TestTypeChecked:
             def method(self) -> int:
                 return 'foo'
 
+            @property
+            def prop(self) -> int:
+                return 'foo'
+
+            @property
+            def prop2(self) -> int:
+                return 'foo'
+
+            @prop2.setter
+            def prop2(self, value: int) -> None:
+                pass
+
         pattern = 'type of the return value must be int; got str instead'
         pytest.raises(TypeError, Foo.staticmethod).match(pattern)
         pytest.raises(TypeError, Foo.classmethod).match(pattern)
         pytest.raises(TypeError, Foo().method).match(pattern)
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop
+
+        assert raises.value.args[0] == pattern
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop2
+
+        assert raises.value.args[0] == pattern
+
+        with pytest.raises(TypeError) as raises:
+            Foo().prop2 = 'foo'
+
+        assert raises.value.args[0] == 'type of argument "value" must be int; got str instead'
 
     @pytest.mark.parametrize('annotation', [
         Generator[int, str, List[str]],
@@ -1075,6 +1171,37 @@ class TestTypeChecked:
         assert Child.foo('bar') == 'Child'
         pytest.raises(TypeError, Child.foo, 1)
 
+    def test_class_property(self):
+        @typechecked
+        class Foo:
+            def __init__(self) -> None:
+                self.foo = 'foo'
+
+            @property
+            def prop(self) -> int:
+                """My property."""
+                return 4
+
+            @property
+            def prop2(self) -> str:
+                return self.foo
+
+            @prop2.setter
+            def prop2(self, value: str) -> None:
+                self.foo = value
+
+        assert Foo.__dict__["prop"].__doc__.strip() == "My property."
+        f = Foo()
+        assert f.prop == 4
+        assert f.prop2 == 'foo'
+        f.prop2 = 'bar'
+        assert f.prop2 == 'bar'
+
+        with pytest.raises(TypeError) as raises:
+            f.prop2 = 3
+
+        assert raises.value.args[0] == 'type of argument "value" must be str; got int instead'
+
     def test_decorator_factory_no_annotations(self):
         class CallableClass:
             def __call__(self):
@@ -1103,14 +1230,102 @@ class TestTypeChecked:
         func(Child())
         pytest.raises(TypeError, func, 'foo')
 
-    @pytest.mark.parametrize('value, error_re', [
-        (1, None),
-        ('foo',
-         r'type of argument "arg" \(str\) is not compatible with the SupportsInt protocol')
-    ], ids=['int', 'str'])
-    def test_protocol(self, value, error_re):
+    @pytest.mark.parametrize('protocol_cls', [RuntimeProtocol, StaticProtocol])
+    def test_protocol(self, protocol_cls):
         @typechecked
-        def foo(arg: SupportsInt):
+        def foo(arg: protocol_cls) -> None:
+            pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        foo(Foo())
+
+    def test_protocol_fail(self):
+        @typechecked
+        def foo(arg: RuntimeProtocol) -> None:
+            pass
+
+        pytest.raises(TypeError, foo, object()).\
+            match(r'type of argument "arg" \(object\) is not compatible with the RuntimeProtocol '
+                  'protocol')
+
+    def test_noreturn(self):
+        @typechecked
+        def foo() -> NoReturn:
+            pass
+
+        pytest.raises(TypeError, foo).match(r'foo\(\) was declared never to return but it did')
+
+    def test_recursive_type(self):
+        @typechecked
+        def foo(arg: JSONType) -> None:
+            pass
+
+        foo({'a': [1, 2, 3]})
+        pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
+            match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
+                  r'List, Dict\); got dict instead')
+
+    def test_literal(self):
+        from http import HTTPStatus
+
+        @typechecked
+        def foo(a: Literal[1, True, 'x', b'y', HTTPStatus.ACCEPTED]):
+            pass
+
+        foo(HTTPStatus.ACCEPTED)
+        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, True, 'x', b'y', "
+                                               r"<HTTPStatus.ACCEPTED: 202>\); got 4 instead$")
+
+    def test_literal_union(self):
+        @typechecked
+        def foo(a: Union[str, Literal[1, 6, 8]]):
+            pass
+
+        foo(6)
+        pytest.raises(TypeError, foo, 4).\
+            match(r'must be one of \(str, typing(_extensions)?.Literal\[1, 6, 8\]\); '
+                  r'got int instead$')
+
+    def test_literal_nested(self):
+        @typechecked
+        def foo(a: Literal[1, Literal['x', 'a', Literal['z']], 6, 8]):
+            pass
+
+        foo('z')
+        pytest.raises(TypeError, foo, 4).match(r"must be one of \(1, 'x', 'a', 'z', 6, 8\); "
+                                               r"got 4 instead$")
+
+    def test_literal_illegal_value(self):
+        @typechecked
+        def foo(a: Literal[1, 1.1]):
+            pass
+
+        pytest.raises(TypeError, foo, 4).match(r"Illegal literal value: 1.1$")
+
+    @pytest.mark.parametrize('value, total, error_re', [
+        pytest.param({'x': 6, 'y': 'foo'}, True, None, id='correct'),
+        pytest.param({'y': 'foo'}, True, r'required key\(s\) \("x"\) missing from argument "arg"',
+                     id='missing_x'),
+        pytest.param({'x': 6, 'y': 3}, True,
+                     'type of dict item "y" for argument "arg" must be str; got int instead',
+                     id='wrong_y'),
+        pytest.param({'x': 6}, True, r'required key\(s\) \("y"\) missing from argument "arg"',
+                     id='missing_y_error'),
+        pytest.param({'x': 6}, False, None, id='missing_y_ok', marks=[issue_42059]),
+        pytest.param({'x': 'abc'}, False,
+                     'type of dict item "x" for argument "arg" must be int; got str instead',
+                     id='wrong_x', marks=[issue_42059]),
+        pytest.param({'x': 6, 'foo': 'abc'}, False, r'extra key\(s\) \("foo"\) in argument "arg"',
+                     id='unknown_key')
+    ])
+    def test_typed_dict(self, value, total, error_re):
+        DummyDict = TypedDict('DummyDict', {'x': int, 'y': str}, total=total)
+
+        @typechecked
+        def foo(arg: DummyDict):
             pass
 
         if error_re:

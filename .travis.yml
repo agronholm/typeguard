@@ -11,14 +11,11 @@ jobs:
   include:
     - stage: static analysis
       env: TOXENV=flake8
-
-    - stage: test
-      env: TOXENV=pypy3
-      python: pypy3
+      python: "3.8"
 
     - stage: test
       env: TOXENV=py35
-      python: "3.5.2"
+      python: "3.5.3"
       after_success: &after_success
         - pip install coveralls
         - coveralls
@@ -38,6 +35,11 @@ jobs:
       python: "3.8"
       after_success: *after_success
 
+    - stage: test
+      env: TOXENV=py39
+      python: "3.9-dev"
+      after_success: *after_success
+
     - stage: deploy to pypi
       install: skip
       script: skip
@@ -53,3 +55,10 @@ jobs:
 install: pip install tox
 
 script: tox
+
+env:
+  global:
+    - COVERALLS_PARALLEL=true
+
+notifications:
+  webhooks: https://coveralls.io/webhook

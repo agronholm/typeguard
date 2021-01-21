@@ -1,5 +1,4 @@
 import ast
-import re
 import sys
 from importlib.machinery import SourceFileLoader
 from importlib.abc import MetaPathFinder
@@ -94,7 +93,7 @@ class TypeguardFinder(MetaPathFinder):
     """
 
     def __init__(self, packages, original_pathfinder):
-        self._package_exprs = [re.compile(r'^%s\.?' % pkg) for pkg in packages]
+        self.packages = packages
         self._original_pathfinder = original_pathfinder
 
     def find_spec(self, fullname, path=None, target=None):
@@ -113,8 +112,8 @@ class TypeguardFinder(MetaPathFinder):
         :param module_name: full name of the module that is about to be imported (e.g. ``xyz.abc``)
 
         """
-        for expr in self._package_exprs:
-            if expr.match(module_name):
+        for package in self.packages:
+            if module_name == package or module_name.startswith(package + '.'):
                 return True
 
         return False

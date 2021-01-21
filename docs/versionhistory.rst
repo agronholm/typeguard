@@ -3,6 +3,42 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**2.10.0** (2020-10-17)
+
+- Added support for Python 3.9 (PR by Csergő Bálint)
+- Added support for nested ``Literal``
+- Added support for ``TypedDict`` inheritance (with some caveats; see the user guide on that for
+  details)
+- An appropriate ``TypeError`` is now raised when encountering an illegal ``Literal`` value
+- Fixed checking ``NoReturn`` on Python < 3.8 when ``typing_extensions`` was not installed
+- Fixed import hook matching unwanted modules (PR by Wouter Bolsterlee)
+- Install the pytest plugin earlier in the test run to support more use cases
+  (PR by Wouter Bolsterlee)
+
+**2.9.1** (2020-06-07)
+
+- Fixed ``ImportError`` on Python < 3.8 when ``typing_extensions`` was not installed
+
+**2.9.0** (2020-06-06)
+
+- Upped the minimum Python version from 3.5.2 to 3.5.3
+- Added support for ``typing.NoReturn``
+- Added full support for ``typing_extensions`` (now equivalent to support of the ``typing`` module)
+- Added the option of supplying ``check_type()`` with globals/locals for correct resolution of
+  forward references
+- Fixed erroneous ``TypeError`` when trying to check against non-runtime ``typing.Protocol``
+  (skips the check for now until a proper compatibility check has been implemented)
+- Fixed forward references in ``TypedDict`` not being resolved
+- Fixed checking against recursive types
+
+**2.8.0** (2020-06-02)
+
+- Added support for the ``Mock`` and ``MagicMock`` types (PR by prescod)
+- Added support for ``typing_extensions.Literal`` (PR by Ryan Rowe)
+- Fixed unintended wrapping of untyped generators (PR by prescod)
+- Fixed checking against bound type variables with ``check_type()`` without a call memo
+- Fixed error message when checking against a ``Union`` containing a ``Literal``
+
 **2.7.1** (2019-12-27)
 
 - Fixed ``@typechecked`` returning ``None`` when called with ``always=True`` and Python runs in

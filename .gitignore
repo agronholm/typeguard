@@ -12,3 +12,4 @@ docs/_build/
 dist/
 build/
 .pre-commit-config.yaml
+.mypy_cache/
