@@ -1,5 +1,6 @@
 import gc
 import sys
+import traceback
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps, partial, lru_cache
@@ -1509,3 +1510,18 @@ class TestTypeChecker:
         assert len(record) == 1
         assert str(record[0].message).startswith("Replaced forward declaration 'OrderedDict' in")
         assert unresolvable_annotation.__annotations__['x'] is collections.OrderedDict
+
+
+class TestTracebacks:
+    def test_short_tracebacks(self):
+        def foo(a: Callable[..., int]):
+            assert check_argument_types()
+
+        try:
+            foo(1)
+        except TypeError:
+            _, _, tb = sys.exc_info()
+            parts = traceback.extract_tb(tb)
+            typeguard_lines = [part for part in parts
+                               if part.filename.endswith("typeguard/__init__.py")]
+            assert len(typeguard_lines) == 1
