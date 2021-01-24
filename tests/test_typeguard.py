@@ -1514,7 +1514,6 @@ class TestTypeChecker:
 
 class TestTracebacks:
     def test_short_tracebacks(self):
-
         def foo(a: Callable[..., int]):
             assert check_argument_types()
 
