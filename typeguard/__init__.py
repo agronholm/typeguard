@@ -6,8 +6,6 @@ import gc
 import inspect
 import sys
 import threading
-import typing
-import typing_extensions
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps, partial
@@ -18,10 +16,15 @@ from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
-    AsyncIterator, AbstractSet)
+    AsyncIterator, AbstractSet, __name__ as _typing_module_name)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
+
+try:
+    from typing_extensions import __name__ as _typing_ext_module_name
+except ImportError:
+    _typing_ext_module_name = None
 
 # Python 3.8+
 try:
@@ -185,7 +188,7 @@ def resolve_forwardref(maybe_ref, memo: _TypeCheckMemo):
 
 
 def get_type_name(type_):
-    if type_.__module__ in [typing.__name__, typing_extensions.__name__]:
+    if type_.__module__ == _typing_module_name or type_.__module__ == _typing_ext_module_name:
         return str(type_)  # __repr__ of `typing` types is more detailed than __name__
 
     return getattr(type_, '__name__', None) or str(type_)
