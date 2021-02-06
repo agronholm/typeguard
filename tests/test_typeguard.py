@@ -111,8 +111,8 @@ def test_check_recursive_type():
     check_type('foo', {'a': [1, 2, 3]}, JSONType)
     pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
         match(r'type of foo must be one of \(str, int, float, (bool, )?NoneType, '
-              r'typing.List\[ForwardRef\(\'JSONType\'\)\], '
-              r'typing.Dict\[str, ForwardRef\(\'JSONType\'\)\]\); '
+              r'typing.List\[_?ForwardRef\(\'JSONType\'\)\], '
+              r'typing.Dict\[str, _?ForwardRef\(\'JSONType\'\)\]\); '
               r'got dict instead')
 
 
@@ -458,7 +458,7 @@ class TestCheckArgumentTypes:
             'type of argument "a" must be one of (str, int); got {} instead'.
             format(value.__class__.__name__))
 
-    def test_union_generic_type_fail(self):
+    def test_union_nested_type_fail(self):
         def foo(a: Union[None, List[int]]):
             assert check_argument_types()
 
@@ -732,11 +732,11 @@ class TestCheckArgumentTypes:
         pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
             match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
                   r'typing.List\[typing.Union\[str, int, float, (bool, )?NoneType, '
-                  r'typing.List\[ForwardRef\(\'JSONType\'\)\], '
-                  r'typing.Dict\[str, ForwardRef\(\'JSONType\'\)\]\]\], '
+                  r'typing.List\[_?ForwardRef\(\'JSONType\'\)\], '
+                  r'typing.Dict\[str, _?ForwardRef\(\'JSONType\'\)\]\]\], '
                   r'typing.Dict\[str, typing.Union\[str, int, float, (bool, )?NoneType, '
-                  r'typing.List\[ForwardRef\(\'JSONType\'\)\], '
-                  r'typing.Dict\[str, ForwardRef\(\'JSONType\'\)\]\]\]\); '
+                  r'typing.List\[_?ForwardRef\(\'JSONType\'\)\], '
+                  r'typing.Dict\[str, _?ForwardRef\(\'JSONType\'\)\]\]\]\); '
                   r'got dict instead')
 
 
@@ -1283,11 +1283,11 @@ class TestTypeChecked:
         pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
             match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
                   r'typing.List\[typing.Union\[str, int, float, (bool, )?NoneType, '
-                  r'typing.List\[ForwardRef\(\'JSONType\'\)\], '
-                  r'typing.Dict\[str, ForwardRef\(\'JSONType\'\)\]\]\], '
+                  r'typing.List\[_?ForwardRef\(\'JSONType\'\)\], '
+                  r'typing.Dict\[str, _?ForwardRef\(\'JSONType\'\)\]\]\], '
                   r'typing.Dict\[str, typing.Union\[str, int, float, (bool, )?NoneType, '
-                  r'typing.List\[ForwardRef\(\'JSONType\'\)\], '
-                  r'typing.Dict\[str, ForwardRef\(\'JSONType\'\)\]\]\]\); '
+                  r'typing.List\[_?ForwardRef\(\'JSONType\'\)\], '
+                  r'typing.Dict\[str, _?ForwardRef\(\'JSONType\'\)\]\]\]\); '
                   r'got dict instead')
 
     def test_literal(self):

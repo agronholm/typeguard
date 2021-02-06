@@ -6,6 +6,8 @@ import gc
 import inspect
 import sys
 import threading
+import typing
+import typing_extensions
 from collections import OrderedDict
 from enum import Enum
 from functools import wraps, partial
@@ -183,7 +185,9 @@ def resolve_forwardref(maybe_ref, memo: _TypeCheckMemo):
 
 
 def get_type_name(type_):
-    # typing.* types don't have a __name__ on Python 3.7+
+    if type_.__module__ in [typing.__name__, typing_extensions.__name__]:
+        return str(type_)  # __repr__ of `typing` types is more detailed than __name__
+
     return getattr(type_, '__name__', None) or str(type_)
 
 
