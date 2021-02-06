@@ -458,7 +458,7 @@ class TestCheckArgumentTypes:
             'type of argument "a" must be one of (str, int); got {} instead'.
             format(value.__class__.__name__))
 
-    def test_union_nested_type_fail(self):
+    def test_union_generic_type_fail(self):
         def foo(a: Union[None, List[int]]):
             assert check_argument_types()
 
