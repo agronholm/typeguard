@@ -7,6 +7,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Added support for type checking class properties (PR by Ethan Pronovost)
 - Fixed static type checking of ``@typechecked`` decorators (PR by Kenny Stauffer)
+- Fixed wrong error message when type check against a ``bytes`` declaration fails
 - Shortened tracebacks (PR by prescod)
 
 **2.10.0** (2020-10-17)

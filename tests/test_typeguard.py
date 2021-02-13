@@ -76,6 +76,11 @@ def test_check_type_no_memo():
     check_type('foo', [1], List[int])
 
 
+def test_check_type_bytes():
+    pytest.raises(TypeError, check_type, 'foo', 7, bytes).\
+        match(r'type of foo must be bytes-like; got int instead')
+
+
 def test_check_type_no_memo_fail():
     pytest.raises(TypeError, check_type, 'foo', ['a'], List[int]).\
         match(r'type of foo\[0\] must be int; got str instead')
