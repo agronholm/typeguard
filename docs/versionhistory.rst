@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.11.0** (2021-02-13)
 
 - Added support for type checking class properties (PR by Ethan Pronovost)
 - Fixed static type checking of ``@typechecked`` decorators (PR by Kenny Stauffer)
