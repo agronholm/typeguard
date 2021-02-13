@@ -3,6 +3,12 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Added support for type checking class properties (PR by Ethan Pronovost)
+- Fixed static type checking of ``@typechecked`` decorators (PR by Kenny Stauffer)
+- Shortened tracebacks (PR by prescod)
+
 **2.10.0** (2020-10-17)
 
 - Added support for Python 3.9 (PR by Csergő Bálint)
