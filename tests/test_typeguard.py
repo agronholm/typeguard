@@ -987,6 +987,14 @@ class TestTypeChecked:
 
         foo(bytearray([1]))
 
+    def test_bytearray_memoryview(self):
+        """Test that a bytearray is accepted where bytes are expected."""
+        @typechecked
+        def foo(x: bytes) -> None:
+            pass
+
+        foo(memoryview(b'foo'))
+
     def test_class_decorator(self):
         @typechecked
         class Foo:

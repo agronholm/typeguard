@@ -662,7 +662,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
 
             if expected_type is bytes:
                 # As per https://github.com/python/typing/issues/552
-                if not isinstance(value, (bytearray, bytes)):
+                if not isinstance(value, (bytearray, bytes, memoryview)):
                     raise TypeError('type of {} must be bytes-like; got {} instead'
                                     .format(argname, qualified_name(value)))
             elif not isinstance(value, expected_type):
