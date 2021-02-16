@@ -1,5 +1,5 @@
 __all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
-           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
+           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker', 'typeguard_config')
 
 import collections.abc
 import gc
@@ -12,9 +12,9 @@ from functools import wraps, partial
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
 from traceback import extract_stack, print_stack
-from types import CodeType, FunctionType
+from types import CodeType, FunctionType, ModuleType
 from typing import (
-    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
+    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
     AsyncIterator, AbstractSet)
 from unittest.mock import Mock
@@ -60,12 +60,146 @@ except ImportError:
     from typing import _ForwardRef as ForwardRef
     evaluate_forwardref = ForwardRef._eval_type
 
+if sys.version_info >= (3, 7, 0):
+    from typing import _GenericAlias, _allowed_types, _get_defaults
+
 
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 _missing = object()
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
+
+
+class _TypeguardConfig:
+    def __init__(self):
+        # valid only in python 3.7+, if True undefined ForwardRef variables will be evaluated
+        # if them don't exist. Typeguard will compare the class inheritance and check if the
+        # given value class is correct
+        self.postpone_evaluation = False
+
+
+typeguard_config = _TypeguardConfig()
+
+# Define get_type_hints
+if sys.version_info >= (3, 9, 0):
+    from typing import GenericAlias
+
+    def _eval_type(t, globalns, localns, recursive_guard=frozenset()):
+        if isinstance(t, ForwardRef):
+            try:
+                return t._evaluate(globalns, localns, recursive_guard)
+            except NameError as exc:
+                if not typeguard_config.postpone_evaluation:
+                    raise
+                typename = str(exc).split("'", 2)[1]
+                if typename == t.__forward_arg__:
+                    return t
+                else:
+                    raise
+        if isinstance(t, (_GenericAlias, GenericAlias)):
+            ev_args = tuple(_eval_type(a, globalns, localns, recursive_guard) for a in t.__args__)
+            if ev_args == t.__args__:
+                return t
+            if isinstance(t, GenericAlias):
+                return GenericAlias(t.__origin__, ev_args)
+            else:
+                return t.copy_with(ev_args)
+        return t
+
+elif (3, 9, 0) > sys.version_info >= (3, 7, 0):
+
+    def _eval_type(t, globalns, localns):
+        """Redefines typing _eval_type method"""
+        if isinstance(t, ForwardRef):
+            try:
+                return t._evaluate(globalns, localns)
+            except NameError as exc:
+                if not typeguard_config.postpone_evaluation:
+                    raise
+                typename = str(exc).split("'", 2)[1]
+                if typename == t.__forward_arg__:
+                    return t
+                else:
+                    raise
+        if isinstance(t, _GenericAlias):
+            ev_args = tuple(_eval_type(a, globalns, localns) for a in t.__args__)
+            if ev_args == t.__args__:
+                return t
+            res = t.copy_with(ev_args)
+            res._special = t._special
+            return res
+        return t
+
+
+if sys.version_info >= (3, 7, 0):
+
+    def get_type_hints(obj, globalns=None, localns=None):
+        if getattr(obj, '__no_type_check__', None):
+            return {}
+        # Classes require a special treatment.
+        if isinstance(obj, type):
+            hints = {}
+            for base in reversed(obj.__mro__):
+                if globalns is None:
+                    base_globals = sys.modules[base.__module__].__dict__
+                else:
+                    base_globals = globalns
+                ann = base.__dict__.get('__annotations__', {})
+                for name, value in ann.items():
+                    if value is None:
+                        value = type(None)
+                    if isinstance(value, str):
+                        value = ForwardRef(value, is_argument=False)
+                    value = _eval_type(value, base_globals, localns)
+                    hints[name] = value
+            return hints
+
+        if globalns is None:
+            if isinstance(obj, ModuleType):
+                globalns = obj.__dict__
+            else:
+                nsobj = obj
+                # Find globalns for the unwrapped object.
+                while hasattr(nsobj, '__wrapped__'):
+                    nsobj = nsobj.__wrapped__
+                globalns = getattr(nsobj, '__globals__', {})
+            if localns is None:
+                localns = globalns
+        elif localns is None:
+            localns = globalns
+        hints = getattr(obj, '__annotations__', None)
+        if hints is None:
+            # Return empty annotations for something that _could_ have them.
+            if isinstance(obj, _allowed_types):
+                return {}
+            else:
+                raise TypeError('{!r} is not a module, class, method, '
+                                'or function.'.format(obj))
+        defaults = _get_defaults(obj)
+        hints = dict(hints)
+        for name, value in hints.items():
+            if value is None:
+                value = type(None)
+            if isinstance(value, str):
+                value = ForwardRef(value)
+            try:
+                value = _eval_type(value, globalns, localns)
+            except NameError as exc:
+                if not isinstance(value, ForwardRef) or not typeguard_config.postpone_evaluation:
+                    raise
+                typename = str(exc).split("'", 2)[1]
+                if typename == value.__forward_arg__:
+                    pass
+                else:
+                    raise
+            if name in defaults and defaults[name] is None:
+                value = Optional[value]
+            hints[name] = value
+        return hints
+
+else:
+    from typing import get_type_hints
 
 
 class ForwardRefPolicy(Enum):
@@ -598,6 +732,29 @@ if hasattr(collections.abc, 'AsyncGenerator'):
     asyncgen_origin_types += (collections.abc.AsyncGenerator,)
 
 
+def get_class_name(an_object):
+    if not inspect.isclass(an_object):
+        an_object = an_object.__class__
+    return an_object.__name__
+
+
+def get_super_class_names(an_object):
+    super_class_names = []
+    if not inspect.isclass(an_object):
+        an_object = an_object.__class__
+    classes = inspect.getmro(an_object)
+    for cl in classes:
+        s = str(cl).replace('\'', '').replace('>', '')
+        if '__main__.' in s:
+            super_class_names.append(s.split('.', 1)[1])
+    cl_name = str(an_object.__name__)
+    if cl_name in super_class_names:
+        super_class_names.remove(cl_name)
+    if len(super_class_names) == 0:
+        super_class_names = []
+    return super_class_names
+
+
 def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo] = None, *,
                globals: Optional[Dict[str, Any]] = None,
                locals: Optional[Dict[str, Any]] = None) -> None:
@@ -633,7 +790,25 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
 
         memo = _TypeCheckMemo(globals, locals)
 
-    expected_type = resolve_forwardref(expected_type, memo)
+    try:
+        expected_type = resolve_forwardref(expected_type, memo)
+    except NameError:
+        if not typeguard_config.postpone_evaluation:
+            raise
+        # Try checking the class if class is cycle or value is FordwardRef
+        if isinstance(expected_type, ForwardRef):
+            class_name = expected_type.__forward_arg__
+            class_values = get_super_class_names(value)
+            class_values.append(get_class_name(value))
+            if class_name in class_values:
+                return
+            else:
+                if len(class_values) == 1:
+                    class_values = class_values[0]
+                msg = 'type of {} must be {}; got {} instead'.format(
+                    argname, class_name, class_values)
+                raise TypeError(msg)
+
     origin_type = getattr(expected_type, '__origin__', None)
     if origin_type is not None:
         checker_func = origin_type_checkers.get(origin_type)
