@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 import subprocess
 from typing import Dict, List
@@ -8,6 +9,9 @@ import pytest
 POSITIVE_FILE = "positive.py"
 NEGATIVE_FILE = "negative.py"
 LINE_PATTERN = NEGATIVE_FILE + ":([0-9]+):"
+
+pytestmark = [pytest.mark.skipif(platform.python_implementation() == 'PyPy',
+                                 reason='MyPy does not work with PyPy yet')]
 
 
 def get_mypy_cmd(filename: str) -> List[str]:
