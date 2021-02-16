@@ -19,7 +19,7 @@ jobs:
         path: ~/.cache/pip
         key: pip-lint
     - name: Install dependencies
-      run: pip install flake8 mypy
+      run: pip install flake8 mypy pytest
     - name: Run flake8
       run: flake8 src tests
     - name: Run mypy
