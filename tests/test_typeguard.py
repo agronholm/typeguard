@@ -23,15 +23,35 @@ except ImportError:
     # Python 3.6.0+
     Collection = None
 
+try:
+    from typing import NewType
+except ImportError:
+    myint = None
+else:
+    myint = NewType("myint", int)
+
 
 TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
+TIntStr = TypeVar('TIntStr', int, str)
+TIntCollection = TypeVar('TIntCollection', int, Collection)
+TParent = TypeVar('TParent', bound='Parent')
+TChild = TypeVar('TChild', bound='Child')
+TCovariant = TypeVar('TCovariant', covariant=True)
+TContravariant = TypeVar('TContravariant', contravariant=True)
+T_Foo = TypeVar('T_Foo')
 JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
 
 DummyDict = TypedDict('DummyDict', {'x': int}, total=False)
 issue_42059 = pytest.mark.xfail(bool(DummyDict.__required_keys__),
                                 reason='Fails due to upstream bug BPO-42059')
 del DummyDict
+
+Employee = NamedTuple('Employee', [('name', str), ('id', int)])
+
+
+class FooGeneric(Generic[T_Foo]):
+    pass
 
 
 class Parent:
@@ -411,16 +431,12 @@ class TestCheckArgumentTypes:
             'type of argument "a"[2] must be int; got str instead')
 
     def test_namedtuple(self):
-        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
-
         def foo(bar: Employee):
             assert check_argument_types()
 
         foo(Employee('bob', 1))
 
     def test_namedtuple_type_mismatch(self):
-        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
-
         def foo(bar: Employee):
             assert check_argument_types()
 
@@ -429,8 +445,6 @@ class TestCheckArgumentTypes:
                   r'(test_typeguard\.)?Employee; got tuple instead')
 
     def test_namedtuple_wrong_field_type(self):
-        Employee = NamedTuple('Employee', [('name', str), ('id', int)])
-
         def foo(bar: Employee):
             assert check_argument_types()
 
@@ -466,26 +480,20 @@ class TestCheckArgumentTypes:
         ('aa', 'bb')
     ], ids=['int', 'str'])
     def test_typevar_constraints(self, values):
-        T = TypeVar('T', int, str)
-
-        def foo(a: T, b: T):
+        def foo(a: TIntStr, b: TIntStr):
             assert check_argument_types()
 
         foo(*values)
 
     def test_typevar_constraints_fail_typing_type(self):
-        T = TypeVar('T', int, Collection)
-
-        def foo(a: T, b: T):
+        def foo(a: TIntCollection, b: TIntCollection):
             assert check_argument_types()
 
         with pytest.raises(TypeError):
             foo('aa', 'bb')
 
     def test_typevar_constraints_fail(self):
-        T = TypeVar('T', int, str)
-
-        def foo(a: T, b: T):
+        def foo(a: TIntStr, b: TIntStr):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2.5, 'aa')
@@ -493,17 +501,13 @@ class TestCheckArgumentTypes:
                                   'instead')
 
     def test_typevar_bound(self):
-        T = TypeVar('T', bound=Parent)
-
-        def foo(a: T, b: T):
+        def foo(a: TParent, b: TParent):
             assert check_argument_types()
 
         foo(Child(), Child())
 
     def test_typevar_bound_fail(self):
-        T = TypeVar('T', bound=Child)
-
-        def foo(a: T, b: T):
+        def foo(a: TChild, b: TChild):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Parent())
@@ -511,26 +515,20 @@ class TestCheckArgumentTypes:
                                   'its subclasses; got test_typeguard.Parent instead')
 
     def test_typevar_invariant_fail(self):
-        T = TypeVar('T', int, str)
-
-        def foo(a: T, b: T):
+        def foo(a: TIntStr, b: TIntStr):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2, 3.6)
         assert str(exc.value) == 'type of argument "b" must be exactly int; got float instead'
 
     def test_typevar_covariant(self):
-        T = TypeVar('T', covariant=True)
-
-        def foo(a: T, b: T):
+        def foo(a: TCovariant, b: TCovariant):
             assert check_argument_types()
 
         foo(Parent(), Child())
 
     def test_typevar_covariant_fail(self):
-        T = TypeVar('T', covariant=True)
-
-        def foo(a: T, b: T):
+        def foo(a: TCovariant, b: TCovariant):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Child(), Parent())
@@ -538,17 +536,13 @@ class TestCheckArgumentTypes:
                                   'its subclasses; got test_typeguard.Parent instead')
 
     def test_typevar_contravariant(self):
-        T = TypeVar('T', contravariant=True)
-
-        def foo(a: T, b: T):
+        def foo(a: TContravariant, b: TContravariant):
             assert check_argument_types()
 
         foo(Child(), Parent())
 
     def test_typevar_contravariant_fail(self):
-        T = TypeVar('T', contravariant=True)
-
-        def foo(a: T, b: T):
+        def foo(a: TContravariant, b: TContravariant):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, Parent(), Child())
@@ -647,24 +641,13 @@ class TestCheckArgumentTypes:
         exc.match(r'type of argument "kwargs"\[\'b\'\] must be int; got str instead')
 
     def test_generic(self):
-        T_Foo = TypeVar('T_Foo')
-
-        class FooGeneric(Generic[T_Foo]):
-            pass
-
         def foo(a: FooGeneric[str]):
             assert check_argument_types()
 
         foo(FooGeneric[str]())
 
+    @pytest.mark.skipif(myint is None, reason='NewType is not present in the typing module')
     def test_newtype(self):
-        try:
-            from typing import NewType
-        except ImportError:
-            pytest.skip('Skipping newtype test since no NewType in current typing library')
-
-        myint = NewType("myint", int)
-
         def foo(a: myint) -> int:
             assert check_argument_types()
             return 42

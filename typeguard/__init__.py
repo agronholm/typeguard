@@ -94,6 +94,13 @@ class _TypeCheckMemo:
         self.typevars = {}  # type: Dict[Any, type]
 
 
+def _strip_annotation(annotation):
+    if isinstance(annotation, str):
+        return annotation.strip("'")
+    else:
+        return annotation
+
+
 class _CallMemo(_TypeCheckMemo):
     __slots__ = 'func', 'func_name', 'arguments', 'is_generator', 'type_hints'
 
@@ -126,7 +133,7 @@ class _CallMemo(_TypeCheckMemo):
 
                     typename = str(exc).split("'", 2)[1]
                     for param in signature.parameters.values():
-                        if param.annotation == typename:
+                        if _strip_annotation(param.annotation) == typename:
                             break
                     else:
                         raise
@@ -135,10 +142,11 @@ class _CallMemo(_TypeCheckMemo):
                     if forward_refs_policy is ForwardRefPolicy.GUESS:
                         if param.name in self.arguments:
                             argtype = self.arguments[param.name].__class__
-                            if param.annotation == argtype.__qualname__:
+                            stripped = _strip_annotation(param.annotation)
+                            if stripped == argtype.__qualname__:
                                 func.__annotations__[param.name] = argtype
                                 msg = ('Replaced forward declaration {!r} in {} with {!r}'
-                                       .format(param.annotation, func_name, argtype))
+                                       .format(stripped, func_name, argtype))
                                 warn(TypeHintWarning(msg))
                                 continue
 

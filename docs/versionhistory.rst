@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed compatibility with Python 3.10
+
 **2.11.0** (2021-02-13)
 
 - Added support for type checking class properties (PR by Ethan Pronovost)
