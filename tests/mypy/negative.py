@@ -1,4 +1,4 @@
-from typeguard import check_argument_types, check_return_type, typechecked
+from typeguard import check_argument_types, check_return_type, typechecked, typeguard_ignore
 
 
 @typechecked
@@ -8,6 +8,11 @@ def foo(x: int) -> int:
 
 @typechecked
 def bar(x: int) -> int:
+    return str(x)  # error: Incompatible return value type (got "str", expected "int")
+
+
+@typeguard_ignore
+def non_typeguard_checked_func(x: int) -> int:
     return str(x)  # error: Incompatible return value type (got "str", expected "int")
 
 
