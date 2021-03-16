@@ -1,5 +1,6 @@
 __all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
-           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker')
+           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker',
+           'typeguard_ignore')
 
 import collections.abc
 import gc
@@ -16,7 +17,7 @@ from types import CodeType, FunctionType
 from typing import (
     Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
     Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
-    AsyncIterator, AbstractSet)
+    AsyncIterator, AbstractSet, TYPE_CHECKING)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
@@ -59,6 +60,16 @@ try:
 except ImportError:
     from typing import _ForwardRef as ForwardRef
     evaluate_forwardref = ForwardRef._eval_type
+
+
+if TYPE_CHECKING:
+    _F = TypeVar("_F")
+
+    def typeguard_ignore(f: _F) -> _F:
+        """This decorator is a noop during static type-checking."""
+        return f
+else:
+    from typing import no_type_check as typeguard_ignore
 
 
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
