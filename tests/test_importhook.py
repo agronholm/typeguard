@@ -50,6 +50,10 @@ def test_non_type_checked_decorated_func(dummymodule):
     assert dummymodule.non_type_checked_decorated_func('bah', 9) == 'foo'
 
 
+def test_typeguard_ignored_func(dummymodule):
+    assert dummymodule.non_typeguard_checked_func('bah', 9) == 'foo'
+
+
 def test_type_checked_method(dummymodule):
     instance = dummymodule.DummyClass()
     pytest.raises(TypeError, instance.type_checked_method, 'bah', 9).\

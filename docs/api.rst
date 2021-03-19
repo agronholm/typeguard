@@ -14,6 +14,8 @@ API reference
 
 .. autodecorator:: typechecked
 
+.. autodecorator:: typeguard_ignore
+
 .. autoclass:: TypeChecker
 
 .. autoexception:: TypeHintWarning

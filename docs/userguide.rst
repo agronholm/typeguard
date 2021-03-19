@@ -153,6 +153,17 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
+To exclude specific functions or classes from run time type checking, use the ``@typeguard_ignore`` decorator::
+
+    from typeguard import typeguard_ignore
+
+    @typeguard_ignore
+    def f(x: int) -> int:
+        return str(x)
+
+Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type checking.
+
+
 Using the pytest plugin
 -----------------------
 

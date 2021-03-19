@@ -45,7 +45,7 @@ def get_expected_errors() -> Dict[int, str]:
             expected[idx + 1] = line[line.index("# error") + 2:]
 
     # Sanity check.  Should update if negative.py changes.
-    assert len(expected) == 8
+    assert len(expected) == 9
     return expected
 
 

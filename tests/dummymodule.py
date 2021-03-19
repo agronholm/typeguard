@@ -4,6 +4,8 @@ from __future__ import division
 
 from typing import no_type_check, no_type_check_decorator
 
+from typeguard import typeguard_ignore
+
 
 @no_type_check_decorator
 def dummy_decorator(func):
@@ -21,6 +23,11 @@ def non_type_checked_func(x: int, y: str) -> 6:
 
 @dummy_decorator
 def non_type_checked_decorated_func(x: int, y: str) -> 6:
+    return 'foo'
+
+
+@typeguard_ignore
+def non_typeguard_checked_func(x: int, y: str) -> 6:
     return 'foo'
 
 
