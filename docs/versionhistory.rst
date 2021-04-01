@@ -3,12 +3,12 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.12.0** (2021-04-01)
 
 - Added ``@typeguard_ignore`` decorator to exclude specific functions and classes from
   runtime type checking (PR by Claudio Jolowicz)
 
-**2.11.1 (2021-02-16)**
+**2.11.1** (2021-02-16)
 
 - Fixed compatibility with Python 3.10
 
