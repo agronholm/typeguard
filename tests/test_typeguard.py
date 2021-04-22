@@ -15,7 +15,7 @@ from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_ch
 
 from typeguard import (
     typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
+    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type, register_override)
 
 try:
     from typing import Collection
@@ -1521,3 +1521,16 @@ class TestTracebacks:
             typeguard_lines = [part for part in parts
                                if part.filename.endswith("typeguard/__init__.py")]
             assert len(typeguard_lines) == 1
+
+class TestOverride:
+    def test_override(self):
+
+        def foo(x:int):
+            assert check_argument_types()
+            return x
+
+        def no_check(*args):
+            return
+
+        register_override(int, no_check)
+        foo(1.2)

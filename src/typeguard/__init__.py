@@ -75,8 +75,34 @@ else:
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 _missing = object()
+_overrides = {}
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
+
+
+def register_override(expected_type: Type,
+                      check_function: Callable[[str, Any, Any, Any], None]):
+    """ Register a function to be used for checking a specific expected type
+
+    :param expected_type: a python class. When found in a function annotation,
+      any actual value found during runtime will be checked using `check_function`.
+    :param check_function: a callable with signature
+      `argname: str, value: Any, expected_type: Any, memo: Any`
+      If the check is successful it returns `None`, if not it raises `TypeError`
+
+
+    The provided function will override typeguard's default behaviour for that
+    type. The override is type specific, subtypes of that type will not be affected.
+
+    Example: overriding `int` checking to accept numpy integers.
+    .. code-block:: python
+
+       def check_int(argname: str, value: Any, expected_type: Any, memo: Any):
+           if expected_type is int and not isinstance(value, (int, np.signedinteger)):
+               raise TypeError('type of {} must be either python int or numpy int: got {} instead'.format(argname, value.__class__))
+
+    """
+    _overrides[expected_type] = check_function
 
 
 class ForwardRefPolicy(Enum):
@@ -661,7 +687,10 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
         else:
             check_type(argname, value, origin_type, memo)
     elif isclass(expected_type):
-        if issubclass(expected_type, Tuple):
+        if expected_type in _overrides:
+            check_fc = _overrides[expected_type]
+            check_fc(argname, value, expected_type, memo)
+        elif issubclass(expected_type, Tuple):
             check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, (float, complex)):
             check_number(argname, value, expected_type)

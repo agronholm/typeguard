@@ -230,3 +230,27 @@ Type            Notes
 
 .. _#101: https://github.com/agronholm/typeguard/issues/101
 .. _issue 42059: https://bugs.python.org/issue42059
+
+Overriding default checking
+---------------------------
+
+Occasionally, a project might need to override typeguard's default checking
+behaviour for a specific type.
+
+The `register_override` function provides the user the ability to submit a
+function that performs the type check for a given type.
+The override is type specific, subtypes of that type will not be affected.
+
+Overriding type checking can be necessary when working with libraries that
+rely on duck typing, without making that behaviour explicit in their
+type annotations. For example, Numpy has several integer types (e.g. `int64`)
+which are treated as equivalent to Python's built-in `int`. However, using
+them as equivalent will lead to typeguard raising an error about `int64` and
+`int` not being the same type.
+
+Example: overriding `int` checking to accept numpy integers.
+.. code-block:: python
+
+   def check_int(argname: str, value: Any, expected_type: Any, memo: Any):
+       if expected_type is int and not isinstance(value, (int, np.signedinteger)):
+           raise TypeError('type of {} must be either python int or numpy int: got {} instead'.format(argname, value.__class__))

@@ -25,6 +25,9 @@ API reference
 .. autoclass:: ForwardRefPolicy
     :members:
 
+.. autofunction:: register_override
+
+
 :mod:`typeguard.importhook`
 ---------------------------
 
