@@ -1522,10 +1522,11 @@ class TestTracebacks:
                                if part.filename.endswith("typeguard/__init__.py")]
             assert len(typeguard_lines) == 1
 
+
 class TestOverride:
     def test_override(self):
 
-        def foo(x:int):
+        def foo(x: int):
             assert check_argument_types()
             return x
 
