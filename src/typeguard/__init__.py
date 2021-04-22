@@ -99,7 +99,8 @@ def register_override(expected_type: Type,
 
        def check_int(argname: str, value: Any, expected_type: Any, memo: Any):
            if expected_type is int and not isinstance(value, (int, np.signedinteger)):
-               raise TypeError('type of {} must be either python int or numpy int: got {} instead'.format(argname, value.__class__))
+               raise TypeError('type of {} must be either python or numpy int: got {} instead'
+               .format(argname, value.__class__))
 
     """
     _overrides[expected_type] = check_function
