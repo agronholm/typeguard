@@ -75,7 +75,7 @@ else:
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 _missing = object()
-_overrides: Dict[Type, Callable[[str, Any, Any, Any], None]] = {}
+_overrides = {} # type: Dict[Type, Callable[[str, Any, Any, Any], None]]
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
@@ -104,6 +104,12 @@ def register_override(expected_type: Type,
 
     """
     _overrides[expected_type] = check_function
+
+
+def remove_override(expected_type: Type):
+    """ Restore default checking behaviour for the specified type
+    """
+    del _overrides[expected_type]
 
 
 class ForwardRefPolicy(Enum):

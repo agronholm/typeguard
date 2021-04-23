@@ -27,6 +27,7 @@ API reference
 
 .. autofunction:: register_override
 
+.. autofunction:: remove_override
 
 :mod:`typeguard.importhook`
 ---------------------------
