@@ -75,7 +75,7 @@ else:
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 _missing = object()
-_overrides = {}
+_overrides: Dict[Type, Callable[[str, Any, Any, Any], None]] = {}
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
