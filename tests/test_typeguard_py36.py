@@ -1,5 +1,5 @@
 import warnings
-from typing import AsyncGenerator, AsyncIterable, AsyncIterator
+from typing import AsyncGenerator, AsyncIterable, AsyncIterator, Callable
 
 import pytest
 from typing_extensions import Protocol, runtime_checkable
@@ -134,6 +134,24 @@ class TestTypeChecker:
             func()
 
         assert len(record) == 0
+
+    def test_callable(self):
+        class command:
+            # we need an __annotations__ attribute to trigger the code path
+            whatever: float
+
+            def __init__(self, function: Callable[[int], int]):
+                self.function = function
+
+            def __call__(self, arg: int) -> None:
+                self.function(arg)
+
+        @typechecked
+        @command
+        def function(arg: int) -> None:
+            pass
+
+        function(1)
 
 
 def test_protocol_non_method_members():

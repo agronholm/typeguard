@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``AttributeError`` when ``__code__`` is missing from the checked callable (PR by epenet)
+
 **2.12.0** (2021-04-01)
 
 - Added ``@typeguard_ignore`` decorator to exclude specific functions and classes from
