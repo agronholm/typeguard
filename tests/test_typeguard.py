@@ -1507,6 +1507,24 @@ class TestTypeChecker:
         assert str(record[0].message).startswith("Replaced forward declaration 'OrderedDict' in")
         assert unresolvable_annotation.__annotations__['x'] is collections.OrderedDict
 
+    def test_callable(self):
+        class command:
+            # we need an __annotations__ attribute to trigger the code path
+            whatever: float
+
+            def __init__(self, function: Callable[[int], int]):
+                self.function = function
+
+            def __call__(self, arg: int) -> None:
+                self.function(arg)
+
+        @typechecked
+        @command
+        def function(arg: int) -> None:
+            pass
+
+        function(1)
+
 
 class TestTracebacks:
     def test_short_tracebacks(self):
