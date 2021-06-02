@@ -1,5 +1,5 @@
 import warnings
-from typing import AsyncGenerator, AsyncIterable, AsyncIterator
+from typing import AsyncGenerator, AsyncIterable, AsyncIterator, Callable
 
 import pytest
 from typing_extensions import Protocol, runtime_checkable
