@@ -906,7 +906,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
 
         return func
 
-    if not getattr(func, '__annotations__', None):
+    if getattr(func, "__annotations__", None) is None:
         warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
