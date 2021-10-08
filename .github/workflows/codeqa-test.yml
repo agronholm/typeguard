@@ -19,9 +19,9 @@ jobs:
         path: ~/.cache/pip
         key: pip-lint
     - name: Install dependencies
-      run: pip install flake8 mypy pytest
+      run: pip install pyproject-flake8 mypy pytest
     - name: Run flake8
-      run: flake8 src tests
+      run: pflake8 src tests
     - name: Run mypy
       run: mypy tests/mypy/test_type_annotations.py
 

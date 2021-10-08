@@ -19,3 +19,13 @@ source = ["typeguard"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.flake8]
+max-line-length = 99
+ignore = ["E251", "W504"]
+
+[tool.mypy]
+python_version = "3.5"
+ignore_missing_imports = true
+strict = true
+pretty = true
