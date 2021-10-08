@@ -9,15 +9,15 @@ import sys
 import threading
 from collections import OrderedDict
 from enum import Enum
-from functools import wraps, partial
+from functools import partial, wraps
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
-from io import TextIOBase, RawIOBase, IOBase, BufferedIOBase
+from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
-    Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence, get_type_hints, TextIO,
-    Optional, IO, BinaryIO, Type, Generator, overload, Iterable, AsyncIterable, Iterator,
-    AsyncIterator, AbstractSet, TYPE_CHECKING)
+    IO, TYPE_CHECKING, AbstractSet, Any, AsyncIterable, AsyncIterator, BinaryIO, Callable, Dict,
+    Generator, Iterable, Iterator, List, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar,
+    Union, get_type_hints, overload)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
@@ -42,7 +42,7 @@ except ImportError:
 
 # Python 3.6+
 try:
-    from inspect import isasyncgenfunction, isasyncgen
+    from inspect import isasyncgen, isasyncgenfunction
     from typing import AsyncGenerator
 except ImportError:
     AsyncGenerator = None

@@ -1,4 +1,5 @@
 from typing import Callable
+
 from typeguard import check_argument_types, check_return_type, typechecked
 
 

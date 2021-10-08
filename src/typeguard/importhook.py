@@ -1,8 +1,8 @@
 import ast
 import sys
-from importlib.machinery import SourceFileLoader
 from importlib.abc import MetaPathFinder
-from importlib.util import decode_source, cache_from_source
+from importlib.machinery import SourceFileLoader
+from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from typing import Iterable, Type
 from unittest.mock import patch

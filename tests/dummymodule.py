@@ -1,6 +1,5 @@
 """Module docstring."""
-from __future__ import absolute_import
-from __future__ import division
+from __future__ import absolute_import, division
 
 from typing import no_type_check, no_type_check_decorator
 

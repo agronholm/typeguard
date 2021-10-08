@@ -3,19 +3,19 @@ import sys
 import traceback
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from functools import wraps, partial, lru_cache
-from io import StringIO, BytesIO
-from unittest.mock import Mock, MagicMock
+from functools import lru_cache, partial, wraps
+from io import BytesIO, StringIO
 from typing import (
-    Any, Callable, Dict, List, Set, Tuple, Union, TypeVar, Sequence, NamedTuple, Iterable,
-    Container, Generic, BinaryIO, TextIO, Generator, Iterator, AbstractSet, AnyStr, Type)
+    AbstractSet, Any, AnyStr, BinaryIO, Callable, Container, Dict, Generator, Generic, Iterable,
+    Iterator, List, NamedTuple, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
+from unittest.mock import MagicMock, Mock
 
 import pytest
-from typing_extensions import NoReturn, Protocol, Literal, TypedDict, runtime_checkable
+from typing_extensions import Literal, NoReturn, Protocol, TypedDict, runtime_checkable
 
 from typeguard import (
-    typechecked, check_argument_types, qualified_name, TypeChecker, TypeWarning, function_name,
-    check_type, TypeHintWarning, ForwardRefPolicy, check_return_type)
+    ForwardRefPolicy, TypeChecker, TypeHintWarning, TypeWarning, check_argument_types,
+    check_return_type, check_type, function_name, qualified_name, typechecked)
 
 try:
     from typing import Collection
