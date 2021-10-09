@@ -16,8 +16,8 @@ from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
     IO, TYPE_CHECKING, AbstractSet, Any, AsyncIterable, AsyncIterator, BinaryIO, Callable, Dict,
-    Generator, Iterable, Iterator, List, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar,
-    Union, get_type_hints, overload)
+    Generator, Iterable, Iterator, List, NewType, Optional, Sequence, Set, TextIO, Tuple, Type,
+    TypeVar, Union, get_type_hints, overload)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
@@ -697,11 +697,14 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
     elif isinstance(expected_type, Literal.__class__):
         # Only happens on < 3.7 when using Literal from typing_extensions
         check_literal(argname, value, expected_type, memo)
+    elif expected_type.__class__ is NewType:
+        # typing.NewType on Python 3.10+
+        return check_type(argname, value, expected_type.__supertype__, memo)
     elif (isfunction(expected_type) and
             getattr(expected_type, "__module__", None) == "typing" and
             getattr(expected_type, "__qualname__", None).startswith("NewType.") and
             hasattr(expected_type, "__supertype__")):
-        # typing.NewType, should check against supertype (recursively)
+        # typing.NewType on Python 3.9 and below
         return check_type(argname, value, expected_type.__supertype__, memo)
 
 
