@@ -5,6 +5,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Dropped Python 3.5 and 3.6 support
 - Fixed error message when a check against a ``Literal`` fails in a union on Python 3.10
 - Fixed ``NewType`` not being checked on Python 3.10
 

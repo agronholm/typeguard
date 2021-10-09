@@ -6,30 +6,17 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from typing import (
-    AbstractSet, Any, AnyStr, BinaryIO, Callable, Container, Dict, Generator, Generic, Iterable,
-    Iterator, List, NamedTuple, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
+    AbstractSet, Any, AnyStr, AsyncGenerator, AsyncIterable, AsyncIterator, BinaryIO, Callable,
+    Collection, Container, Dict, Generator, Generic, Iterable, Iterator, List, NamedTuple, NewType,
+    NoReturn, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
 from unittest.mock import MagicMock, Mock
 
 import pytest
-from typing_extensions import Literal, NoReturn, Protocol, TypedDict, runtime_checkable
+from typing_extensions import Literal, Protocol, TypedDict, runtime_checkable
 
 from typeguard import (
     ForwardRefPolicy, TypeChecker, TypeHintWarning, TypeWarning, check_argument_types,
     check_return_type, check_type, function_name, qualified_name, typechecked)
-
-try:
-    from typing import Collection
-except ImportError:
-    # Python 3.6.0+
-    Collection = None
-
-try:
-    from typing import NewType
-except ImportError:
-    myint = None
-else:
-    myint = NewType("myint", int)
-
 
 TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
@@ -41,6 +28,7 @@ TCovariant = TypeVar('TCovariant', covariant=True)
 TContravariant = TypeVar('TContravariant', contravariant=True)
 T_Foo = TypeVar('T_Foo')
 JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
+myint = NewType("myint", int)
 
 DummyDict = TypedDict('DummyDict', {'x': int}, total=False)
 issue_42059 = pytest.mark.xfail(bool(DummyDict.__required_keys__),
@@ -70,6 +58,8 @@ class StaticProtocol(Protocol):
 
 @runtime_checkable
 class RuntimeProtocol(Protocol):
+    member: int
+
     def meth(self) -> None:
         ...
 
@@ -137,6 +127,20 @@ def test_check_recursive_type():
     pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
         match(r'type of foo must be one of \(str, int, float, (bool, )?NoneType, '
               r'List, Dict\); got dict instead')
+
+
+def test_protocol_non_method_members():
+    @typechecked
+    def foo(a: RuntimeProtocol):
+        pass
+
+    class Foo:
+        member = 1
+
+        def meth(self) -> None:
+            pass
+
+    foo(Foo())
 
 
 class TestCheckArgumentTypes:
@@ -549,7 +553,6 @@ class TestCheckArgumentTypes:
         assert str(exc.value) == ('type of argument "b" must be test_typeguard.Parent or one of '
                                   'its superclasses; got test_typeguard.Child instead')
 
-    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     def test_class_bad_subclass(self):
         def foo(a: Type[Child]):
             assert check_argument_types()
@@ -646,7 +649,6 @@ class TestCheckArgumentTypes:
 
         foo(FooGeneric[str]())
 
-    @pytest.mark.skipif(myint is None, reason='NewType is not present in the typing module')
     def test_newtype(self):
         def foo(a: myint) -> int:
             assert check_argument_types()
@@ -656,7 +658,6 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, "a")
         assert str(exc.value) == 'type of argument "a" must be int; got str instead'
 
-    @pytest.mark.skipif(Collection is None, reason='typing.Collection is not available')
     def test_collection(self):
         def foo(a: Collection):
             assert check_argument_types()
@@ -907,7 +908,6 @@ class TestTypeChecked:
 
         foo(())
 
-    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     @pytest.mark.parametrize('typehint', [
         Type[Parent],
         Type[TypeVar('UnboundType')],  # noqa: F821
@@ -922,7 +922,6 @@ class TestTypeChecked:
 
         foo(Child)
 
-    @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     def test_class_not_a_class(self):
         @typechecked
         def foo(a: Type[dict]):
@@ -1233,6 +1232,8 @@ class TestTypeChecked:
             pass
 
         class Foo:
+            member = 1
+
             def meth(self) -> None:
                 pass
 
@@ -1328,6 +1329,91 @@ class TestTypeChecked:
             pytest.raises(TypeError, foo, value).match(error_re)
         else:
             foo(value)
+
+    @pytest.mark.parametrize('annotation', [
+        AsyncGenerator[int, str],
+        AsyncIterable[int],
+        AsyncIterator[int]
+    ], ids=['generator', 'iterable', 'iterator'])
+    def test_async_generator(self, annotation):
+        async def run_generator():
+            @typechecked
+            async def genfunc() -> annotation:
+                values.append((yield 2))
+                values.append((yield 3))
+                values.append((yield 4))
+
+            gen = genfunc()
+
+            value = await gen.asend(None)
+            with pytest.raises(StopAsyncIteration):
+                while True:
+                    value = await gen.asend(str(value))
+                    assert isinstance(value, int)
+
+        values = []
+        coro = run_generator()
+        try:
+            for elem in coro.__await__():
+                print(elem)
+        except StopAsyncIteration as exc:
+            values = exc.value
+
+        assert values == ['2', '3', '4']
+
+    @pytest.mark.parametrize('annotation', [
+        AsyncGenerator[int, str],
+        AsyncIterable[int],
+        AsyncIterator[int]
+    ], ids=['generator', 'iterable', 'iterator'])
+    def test_async_generator_bad_yield(self, annotation):
+        @typechecked
+        async def genfunc() -> annotation:
+            yield 'foo'
+
+        gen = genfunc()
+        with pytest.raises(TypeError) as exc:
+            next(gen.__anext__().__await__())
+
+        exc.match('type of value yielded from generator must be int; got str instead')
+
+    def test_async_generator_bad_send(self):
+        @typechecked
+        async def genfunc() -> AsyncGenerator[int, str]:
+            yield 1
+            yield 2
+
+        gen = genfunc()
+        pytest.raises(StopIteration, next, gen.__anext__().__await__())
+        with pytest.raises(TypeError) as exc:
+            next(gen.asend(2).__await__())
+
+        exc.match('type of value sent to generator must be str; got int instead')
+
+    def test_return_async_generator(self):
+        @typechecked
+        async def genfunc() -> AsyncGenerator[int, None]:
+            yield 1
+
+        @typechecked
+        def foo() -> AsyncGenerator[int, None]:
+            return genfunc()
+
+        foo()
+
+    def test_typeddict_inherited(self):
+        class ParentDict(TypedDict):
+            x: int
+
+        class ChildDict(ParentDict, total=False):
+            y: int
+
+        @typechecked
+        def foo(arg: ChildDict):
+            pass
+
+        foo({'x': 1})
+        pytest.raises(TypeError, foo, {'y': 1})
 
 
 class TestTypeChecker:

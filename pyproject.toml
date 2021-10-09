@@ -31,7 +31,7 @@ max-line-length = 99
 ignore = ["E251", "W504"]
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.7"
 ignore_missing_imports = true
 strict = true
 pretty = true

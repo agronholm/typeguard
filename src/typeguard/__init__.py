@@ -10,55 +10,26 @@ import threading
 from collections import OrderedDict
 from enum import Enum
 from functools import partial, wraps
-from inspect import Parameter, isclass, isfunction, isgeneratorfunction
+from inspect import (
+    Parameter, isasyncgen, isasyncgenfunction, isclass, isfunction, isgeneratorfunction)
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
-    IO, TYPE_CHECKING, AbstractSet, Any, AsyncIterable, AsyncIterator, BinaryIO, Callable, Dict,
-    Generator, Iterable, Iterator, List, NewType, Optional, Sequence, Set, TextIO, Tuple, Type,
-    TypeVar, Union, get_type_hints, overload)
+    IO, TYPE_CHECKING, AbstractSet, Any, AsyncGenerator, AsyncIterable, AsyncIterator, BinaryIO,
+    Callable, Dict, Generator, Iterable, Iterator, List, NewType, NoReturn, Optional, Sequence,
+    Set, TextIO, Tuple, Type, TypeVar, Union, get_type_hints, overload)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
-# Python 3.8+
-try:
-    from typing_extensions import Literal
-except ImportError:
-    try:
-        from typing import Literal
-    except ImportError:
-        Literal = None
-
-# Python 3.5.4+ / 3.6.2+
-try:
-    from typing_extensions import NoReturn
-except ImportError:
-    try:
-        from typing import NoReturn
-    except ImportError:
-        NoReturn = None
-
-# Python 3.6+
-try:
-    from inspect import isasyncgen, isasyncgenfunction
-    from typing import AsyncGenerator
-except ImportError:
-    AsyncGenerator = None
-
-    def isasyncgen(obj):
-        return False
-
-    def isasyncgenfunction(func):
-        return False
-
-# Python 3.8+
-try:
-    from typing import ForwardRef
+if sys.version_info >= (3, 8):
+    from typing import ForwardRef, Literal
     evaluate_forwardref = ForwardRef._evaluate
-except ImportError:
+else:
     from typing import _ForwardRef as ForwardRef
+
+    from typing_extensions import Literal
     evaluate_forwardref = ForwardRef._eval_type
 
 
@@ -279,16 +250,8 @@ def check_callable(argname: str, value, expected_type, memo: _TypeCheckMemo) -> 
         except (TypeError, ValueError):
             return
 
-        if hasattr(expected_type, '__result__'):
-            # Python 3.5
-            argument_types = expected_type.__args__
-            check_args = argument_types is not Ellipsis
-        else:
-            # Python 3.6
-            argument_types = expected_type.__args__[:-1]
-            check_args = argument_types != (Ellipsis,)
-
-        if check_args:
+        argument_types = expected_type.__args__[:-1]
+        if argument_types != (Ellipsis,):
             # The callable must not have keyword-only arguments without defaults
             unfulfilled_kwonlyargs = [
                 param.name for param in signature.parameters.values() if
@@ -423,11 +386,7 @@ def check_tuple(argname: str, value, expected_type, memo: _TypeCheckMemo) -> Non
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
 
-    if getattr(expected_type, '__tuple_params__', None):
-        # Python 3.5
-        use_ellipsis = expected_type.__tuple_use_ellipsis__
-        tuple_params = expected_type.__tuple_params__
-    elif getattr(expected_type, '__args__', None):
+    if getattr(expected_type, '__args__', None):
         # Python 3.6+
         use_ellipsis = expected_type.__args__[-1] is Ellipsis
         tuple_params = expected_type.__args__[:-1 if use_ellipsis else None]
@@ -613,11 +572,8 @@ generator_origin_types = (Generator, collections.abc.Generator,
                           Iterator, collections.abc.Iterator,
                           Iterable, collections.abc.Iterable)
 asyncgen_origin_types = (AsyncIterator, collections.abc.AsyncIterator,
-                         AsyncIterable, collections.abc.AsyncIterable)
-if AsyncGenerator is not None:
-    asyncgen_origin_types += (AsyncGenerator,)
-if hasattr(collections.abc, 'AsyncGenerator'):
-    asyncgen_origin_types += (collections.abc.AsyncGenerator,)
+                         AsyncIterable, collections.abc.AsyncIterable,
+                         AsyncGenerator, collections.abc.AsyncGenerator)
 
 
 def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo] = None, *,
@@ -641,10 +597,6 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
     """
     if expected_type is Any or isinstance(value, Mock):
         return
-
-    if expected_type is None:
-        # Only happens on < 3.6
-        expected_type = type(None)
 
     if memo is None:
         frame = sys._getframe(1)
@@ -692,10 +644,8 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
                     'type of {} must be {}; got {} instead'.
                     format(argname, qualified_name(expected_type), qualified_name(value)))
     elif isinstance(expected_type, TypeVar):
-        # Only happens on < 3.6
         check_typevar(argname, value, expected_type, memo)
     elif isinstance(expected_type, Literal.__class__):
-        # Only happens on < 3.7 when using Literal from typing_extensions
         check_literal(argname, value, expected_type, memo)
     elif expected_type.__class__ is NewType:
         # typing.NewType on Python 3.10+
