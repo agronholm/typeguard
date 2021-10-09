@@ -1,8 +1,5 @@
-import gc
 import sys
 import traceback
-import warnings
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from typing import (
@@ -15,8 +12,8 @@ import pytest
 from typing_extensions import Literal, Protocol, TypedDict, runtime_checkable
 
 from typeguard import (
-    ForwardRefPolicy, TypeChecker, TypeHintWarning, TypeWarning, check_argument_types,
-    check_return_type, check_type, function_name, qualified_name, typechecked)
+    check_argument_types, check_return_type, check_type, function_name, qualified_name,
+    typechecked)
 
 TBound = TypeVar('TBound', bound='Parent')
 TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
@@ -1414,184 +1411,6 @@ class TestTypeChecked:
 
         foo({'x': 1})
         pytest.raises(TypeError, foo, {'y': 1})
-
-
-class TestTypeChecker:
-    @pytest.fixture
-    def executor(self):
-        executor = ThreadPoolExecutor(1)
-        yield executor
-        executor.shutdown()
-
-    @pytest.fixture
-    def checker(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', DeprecationWarning)
-            return TypeChecker(__name__)
-
-    @staticmethod
-    def generatorfunc() -> Generator[int, None, None]:
-        yield 1
-
-    @staticmethod
-    def bad_generatorfunc() -> Generator[int, None, None]:
-        yield 1
-        yield 'foo'
-
-    @staticmethod
-    def error_function() -> float:
-        return 1 / 0
-
-    def test_check_call_args(self, checker: TypeChecker):
-        def foo(a: int):
-            pass
-
-        with checker, pytest.warns(TypeWarning) as record:
-            assert checker.active
-            foo(1)
-            foo('x')
-
-        assert not checker.active
-        foo('x')
-
-        assert len(record) == 1
-        warning = record[0].message
-        assert warning.error == 'type of argument "a" must be int; got str instead'
-        assert warning.func is foo
-        assert isinstance(warning.stack, list)
-        buffer = StringIO()
-        warning.print_stack(buffer)
-        assert len(buffer.getvalue()) > 100
-
-    def test_check_return_value(self, checker: TypeChecker):
-        def foo() -> int:
-            return 'x'
-
-        with checker, pytest.warns(TypeWarning) as record:
-            foo()
-
-        assert len(record) == 1
-        assert record[0].message.error == 'type of the return value must be int; got str instead'
-
-    def test_threaded_check_call_args(self, checker: TypeChecker, executor):
-        def foo(a: int):
-            pass
-
-        with checker, pytest.warns(TypeWarning) as record:
-            executor.submit(foo, 1).result()
-            executor.submit(foo, 'x').result()
-
-        executor.submit(foo, 'x').result()
-
-        assert len(record) == 1
-        warning = record[0].message
-        assert warning.error == 'type of argument "a" must be int; got str instead'
-        assert warning.func is foo
-
-    def test_double_start(self, checker: TypeChecker):
-        """Test that the same type checker can't be started twice while running."""
-        with checker:
-            pytest.raises(RuntimeError, checker.start).match('type checker already running')
-
-    def test_nested(self):
-        """Test that nesting of type checker context managers works as expected."""
-        def foo(a: int):
-            pass
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore', DeprecationWarning)
-            parent = TypeChecker(__name__)
-            child = TypeChecker(__name__)
-
-        with parent, pytest.warns(TypeWarning) as record:
-            foo('x')
-            with child:
-                foo('x')
-
-        assert len(record) == 3
-
-    def test_existing_profiler(self, checker: TypeChecker):
-        """
-        Test that an existing profiler function is chained with the type checker and restored after
-        the block is exited.
-
-        """
-        def foo(a: int):
-            pass
-
-        def profiler(frame, event, arg):
-            nonlocal profiler_run_count
-            if event in ('call', 'return'):
-                profiler_run_count += 1
-
-            if old_profiler:
-                old_profiler(frame, event, arg)
-
-        profiler_run_count = 0
-        old_profiler = sys.getprofile()
-        sys.setprofile(profiler)
-        try:
-            with checker, pytest.warns(TypeWarning) as record:
-                foo(1)
-                foo('x')
-
-            assert sys.getprofile() is profiler
-        finally:
-            sys.setprofile(old_profiler)
-
-        assert profiler_run_count
-        assert len(record) == 1
-
-    def test_generator(self, checker):
-        with checker, pytest.warns(None) as record:
-            gen = self.generatorfunc()
-            assert next(gen) == 1
-
-        assert len(record) == 0
-
-    def test_generator_wrong_yield(self, checker):
-        with checker, pytest.warns(TypeWarning) as record:
-            gen = self.bad_generatorfunc()
-            assert list(gen) == [1, 'foo']
-
-        assert len(record) == 1
-        assert 'type of yielded value must be int; got str instead' in str(record[0].message)
-
-    def test_exception(self, checker):
-        with checker, pytest.warns(None) as record:
-            pytest.raises(ZeroDivisionError, self.error_function)
-
-        assert len(record) == 0
-
-    @pytest.mark.parametrize('policy', [ForwardRefPolicy.WARN, ForwardRefPolicy.GUESS],
-                             ids=['warn', 'guess'])
-    def test_forward_ref_policy_resolution_fails(self, checker, policy):
-        def unresolvable_annotation(x: 'OrderedDict'):  # noqa
-            pass
-
-        checker.annotation_policy = policy
-        gc.collect()  # prevent find_function() from finding more than one instance of the function
-        with checker, pytest.warns(TypeHintWarning) as record:
-            unresolvable_annotation({})
-
-        assert len(record) == 1
-        assert ("unresolvable_annotation: name 'OrderedDict' is not defined"
-                in str(record[0].message))
-        assert 'x' not in unresolvable_annotation.__annotations__
-
-    def test_forward_ref_policy_guess(self, checker):
-        import collections
-
-        def unresolvable_annotation(x: 'OrderedDict'):  # noqa
-            pass
-
-        checker.annotation_policy = ForwardRefPolicy.GUESS
-        with checker, pytest.warns(TypeHintWarning) as record:
-            unresolvable_annotation(collections.OrderedDict())
-
-        assert len(record) == 1
-        assert str(record[0].message).startswith("Replaced forward declaration 'OrderedDict' in")
-        assert unresolvable_annotation.__annotations__['x'] is collections.OrderedDict
 
 
 class TestTracebacks:

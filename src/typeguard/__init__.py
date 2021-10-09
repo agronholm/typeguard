@@ -1,6 +1,5 @@
 __all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
-           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker',
-           'typeguard_ignore')
+           'check_argument_types', 'check_type', 'TypeWarning', 'typeguard_ignore')
 
 import collections.abc
 import gc
@@ -10,8 +9,7 @@ import threading
 from collections import OrderedDict
 from enum import Enum
 from functools import partial, wraps
-from inspect import (
-    Parameter, isasyncgen, isasyncgenfunction, isclass, isfunction, isgeneratorfunction)
+from inspect import Parameter, isasyncgen, isclass, isfunction, isgeneratorfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
@@ -962,147 +960,3 @@ class TypeWarning(UserWarning):
 
         """
         print_stack(self.frame, limit, file)
-
-
-class TypeChecker:
-    """
-    A type checker that collects type violations by hooking into :func:`sys.setprofile`.
-
-    :param packages: list of top level modules and packages or modules to include for type checking
-    :param all_threads: ``True`` to check types in all threads created while the checker is
-        running, ``False`` to only check in the current one
-    :param forward_refs_policy: how to handle unresolvable forward references in annotations
-
-    .. deprecated:: 2.6
-       Use :func:`~.importhook.install_import_hook` instead. This class will be removed in v3.0.
-    """
-
-    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True,
-                 forward_refs_policy: ForwardRefPolicy = ForwardRefPolicy.ERROR):
-        assert check_argument_types()
-        warn('TypeChecker has been deprecated and will be removed in v3.0. '
-             'Use install_import_hook() or the pytest plugin instead.', DeprecationWarning)
-        self.all_threads = all_threads
-        self.annotation_policy = forward_refs_policy
-        self._call_memos = {}  # type: Dict[Any, _CallMemo]
-        self._previous_profiler = None
-        self._previous_thread_profiler = None
-        self._active = False
-
-        if isinstance(packages, str):
-            self._packages = (packages,)
-        else:
-            self._packages = tuple(packages)
-
-    @property
-    def active(self) -> bool:
-        """Return ``True`` if currently collecting type violations."""
-        return self._active
-
-    def should_check_type(self, func: Callable) -> bool:
-        if not func.__annotations__:
-            # No point in checking if there are no type hints
-            return False
-        elif isasyncgenfunction(func):
-            # Async generators cannot be supported because the return arg is of an opaque builtin
-            # type (async_generator_wrapped_value)
-            return False
-        else:
-            # Check types if the module matches any of the package prefixes
-            return any(func.__module__ == package or func.__module__.startswith(package + '.')
-                       for package in self._packages)
-
-    def start(self):
-        if self._active:
-            raise RuntimeError('type checker already running')
-
-        self._active = True
-
-        # Install this instance as the current profiler
-        self._previous_profiler = sys.getprofile()
-        sys.setprofile(self)
-
-        # If requested, set this instance as the default profiler for all future threads
-        # (does not affect existing threads)
-        if self.all_threads:
-            self._previous_thread_profiler = threading._profile_hook
-            threading.setprofile(self)
-
-    def stop(self):
-        if self._active:
-            if sys.getprofile() is self:
-                sys.setprofile(self._previous_profiler)
-            else:  # pragma: no cover
-                warn('the system profiling hook has changed unexpectedly')
-
-            if self.all_threads:
-                if threading._profile_hook is self:
-                    threading.setprofile(self._previous_thread_profiler)
-                else:  # pragma: no cover
-                    warn('the threading profiling hook has changed unexpectedly')
-
-            self._active = False
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def __call__(self, frame, event: str, arg) -> None:  # pragma: no cover
-        if not self._active:
-            # This happens if all_threads was enabled and a thread was created when the checker was
-            # running but was then stopped. The thread's profiler callback can't be reset any other
-            # way but this.
-            sys.setprofile(self._previous_thread_profiler)
-            return
-
-        # If an actual profiler is running, don't include the type checking times in its results
-        if event == 'call':
-            try:
-                func = find_function(frame)
-            except Exception:
-                func = None
-
-            if func is not None and self.should_check_type(func):
-                memo = self._call_memos[frame] = _CallMemo(
-                    func, frame.f_locals, forward_refs_policy=self.annotation_policy)
-                if memo.is_generator:
-                    return_type_hint = memo.type_hints['return']
-                    if return_type_hint is not None:
-                        origin = getattr(return_type_hint, '__origin__', None)
-                        if origin in generator_origin_types:
-                            # Check the types of the yielded values
-                            memo.type_hints['return'] = return_type_hint.__args__[0]
-                else:
-                    try:
-                        check_argument_types(memo)
-                    except TypeError as exc:
-                        warn(TypeWarning(memo, event, frame, exc))
-
-            if self._previous_profiler is not None:
-                self._previous_profiler(frame, event, arg)
-        elif event == 'return':
-            if self._previous_profiler is not None:
-                self._previous_profiler(frame, event, arg)
-
-            if arg is None:
-                # a None return value might mean an exception is being raised but we have no way of
-                # checking
-                return
-
-            memo = self._call_memos.get(frame)
-            if memo is not None:
-                try:
-                    if memo.is_generator:
-                        check_type('yielded value', arg, memo.type_hints['return'], memo)
-                    else:
-                        check_return_type(arg, memo)
-                except TypeError as exc:
-                    warn(TypeWarning(memo, event, frame, exc))
-
-                if not memo.is_generator:
-                    del self._call_memos[frame]
-        elif self._previous_profiler is not None:
-            self._previous_profiler(frame, event, arg)
