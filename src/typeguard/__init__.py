@@ -78,6 +78,60 @@ _missing = object()
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
+# Lifted from mypy.sharedparse
+BINARY_MAGIC_METHODS = {
+    "__add__",
+    "__and__",
+    "__cmp__",
+    "__divmod__",
+    "__div__",
+    "__eq__",
+    "__floordiv__",
+    "__ge__",
+    "__gt__",
+    "__iadd__",
+    "__iand__",
+    "__idiv__",
+    "__ifloordiv__",
+    "__ilshift__",
+    "__imatmul__",
+    "__imod__",
+    "__imul__",
+    "__ior__",
+    "__ipow__",
+    "__irshift__",
+    "__isub__",
+    "__itruediv__",
+    "__ixor__",
+    "__le__",
+    "__lshift__",
+    "__lt__",
+    "__matmul__",
+    "__mod__",
+    "__mul__",
+    "__ne__",
+    "__or__",
+    "__pow__",
+    "__radd__",
+    "__rand__",
+    "__rdiv__",
+    "__rfloordiv__",
+    "__rlshift__",
+    "__rmatmul__",
+    "__rmod__",
+    "__rmul__",
+    "__ror__",
+    "__rpow__",
+    "__rrshift__",
+    "__rshift__",
+    "__rsub__",
+    "__rtruediv__",
+    "__rxor__",
+    "__sub__",
+    "__truediv__",
+    "__xor__",
+}
+
 
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
@@ -737,6 +791,13 @@ def check_return_type(retval, memo: Optional[_CallMemo] = None) -> bool:
         try:
             check_type('the return value', retval, memo.type_hints['return'], memo)
         except TypeError as exc:  # suppress unnecessarily long tracebacks
+            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
+            if retval is NotImplemented and memo.type_hints['return'] is bool:
+                # This does (and cannot) not check if it's actually a method
+                func_name = memo.func_name.rsplit('.', 1)[-1]
+                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
+                    return True
+
             raise TypeError(*exc.args) from None
 
     return True

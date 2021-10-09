@@ -132,6 +132,15 @@ def test_check_return_type_fail():
     pytest.raises(TypeError, foo).match('type of the return value must be int; got str instead')
 
 
+def test_check_return_notimplemented():
+    class Foo:
+        def __eq__(self, other) -> bool:
+            assert check_return_type(NotImplemented)
+            return NotImplemented
+
+    assert Foo().__eq__(1) is NotImplemented
+
+
 def test_check_recursive_type():
     check_type('foo', {'a': [1, 2, 3]}, JSONType)
     pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
