@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed error message when a check against a ``Literal`` fails in a union on Python 3.10
+
 **2.12.1** (2021-06-04)
 
 - Fixed ``AttributeError`` when ``__code__`` is missing from the checked callable (PR by epenet)
