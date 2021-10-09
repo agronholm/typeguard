@@ -830,7 +830,7 @@ class TypeCheckedAsyncGenerator:
         self.__send_type = rtype_args[1] if len(rtype_args) > 1 else Any
         self.__initialized = False
 
-    async def __aiter__(self):
+    def __aiter__(self):
         return self
 
     def __anext__(self):

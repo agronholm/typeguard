@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``NewType`` not being checked on Python 3.10
 - Fixed unwarranted warning when ``@typechecked`` is applied to a class that contains unannotated
   properties
+- Fixed ``TypeError`` in the async generator wrapper due to changes in ``__aiter__()`` protocol
 
 **2.12.1** (2021-06-04)
 

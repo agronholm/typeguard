@@ -92,6 +92,12 @@ class TestTypeChecked:
 
         foo()
 
+    def test_async_generator_iterate(self):
+        asyncgen = typechecked(asyncgenfunc)()
+        aiterator = asyncgen.__aiter__()
+        exc = pytest.raises(StopIteration, aiterator.__anext__().send, None)
+        assert exc.value.value == 1
+
     def test_typeddict_inherited(self):
         class ParentDict(TypedDict):
             x: int
