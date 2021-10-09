@@ -637,6 +637,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
         (defaults to the calling frame's globals)
     :param locals: dictionary of local variables to use for resolving forward references
         (defaults to the calling frame's locals)
+    :raises TypeError: if there is a type mismatch
 
     """
     if expected_type is Any or isinstance(value, Mock):
