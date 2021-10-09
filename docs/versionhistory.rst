@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed error message when a check against a ``Literal`` fails in a union on Python 3.10
 - Fixed ``NewType`` not being checked on Python 3.10
+- Fixed unwarranted warning when ``@typechecked`` is applied to a class that contains unannotated
+  properties
 
 **2.12.1** (2021-06-04)
 

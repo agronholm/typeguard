@@ -902,11 +902,10 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
                 kwargs = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
                     property_func = getattr(attr, name)
-                    if property_func is None:
-                        continue
-                    kwargs[name] = typechecked(
-                        property_func, always=always, _localns=func.__dict__
-                    )
+                    if property_func is not None and property_func.__annotations__:
+                        kwargs[name] = typechecked(
+                            property_func, always=always, _localns=func.__dict__
+                        )
 
                 setattr(func, key, property(**kwargs))
 
