@@ -264,9 +264,9 @@ def function_name(func: Callable) -> str:
 
     """
     # For partial functions and objects with __call__ defined, __qualname__ does not exist
-    module = func.__module__
-    qualname = getattr(func, '__qualname__', repr(func))
-    return qualname if module == 'builtins' else '{}.{}'.format(module, qualname)
+    module = getattr(func, '__module__', '')
+    qualname = (module + '.') if module not in ('builtins', '') else ''
+    return qualname + getattr(func, '__qualname__', repr(func))
 
 
 def check_callable(argname: str, value, expected_type, memo: _TypeCheckMemo) -> None:
