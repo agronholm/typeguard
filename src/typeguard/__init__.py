@@ -15,20 +15,19 @@ from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType
 from typing import (
     IO, TYPE_CHECKING, AbstractSet, Any, AsyncGenerator, AsyncIterable, AsyncIterator, BinaryIO,
-    Callable, Dict, Generator, Iterable, Iterator, List, NewType, NoReturn, Optional, Sequence,
-    Set, TextIO, Tuple, Type, TypeVar, Union, get_type_hints, overload)
+    Callable, Dict, ForwardRef, Generator, Iterable, Iterator, List, NewType, NoReturn, Optional,
+    Sequence, Set, TextIO, Tuple, Type, TypeVar, Union, get_type_hints, overload)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 if sys.version_info >= (3, 8):
-    from typing import ForwardRef, Literal
-    evaluate_forwardref = ForwardRef._evaluate
+    from typing import Literal
 else:
-    from typing import _ForwardRef as ForwardRef
-
-    from typing_extensions import Literal
-    evaluate_forwardref = ForwardRef._eval_type
+    try:
+        from typing_extensions import Literal
+    except ModuleNotFoundError:
+        Literal = None
 
 
 if TYPE_CHECKING:
@@ -162,10 +161,9 @@ class _CallMemo(_TypeCheckMemo):
 def resolve_forwardref(maybe_ref, memo: _TypeCheckMemo):
     if isinstance(maybe_ref, ForwardRef):
         if sys.version_info < (3, 9, 0):
-            return evaluate_forwardref(maybe_ref, memo.globals, memo.locals)
+            return maybe_ref._evaluate(memo.globals, memo.locals)
         else:
-            return evaluate_forwardref(maybe_ref, memo.globals, memo.locals, frozenset())
-
+            return maybe_ref._evaluate(memo.globals, memo.locals, frozenset())
     else:
         return maybe_ref
 
@@ -643,8 +641,6 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
                     format(argname, qualified_name(expected_type), qualified_name(value)))
     elif isinstance(expected_type, TypeVar):
         check_typevar(argname, value, expected_type, memo)
-    elif isinstance(expected_type, Literal.__class__):
-        check_literal(argname, value, expected_type, memo)
     elif expected_type.__class__ is NewType:
         # typing.NewType on Python 3.10+
         return check_type(argname, value, expected_type.__supertype__, memo)
