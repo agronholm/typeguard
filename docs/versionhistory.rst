@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Added support for returning ``NotImplemented`` from binary magic methods (``__eq__()`` et al)
+- Added support for checking union types (e.g. ``Type[Union[X, Y]]``)
 - Fixed error message when a check against a ``Literal`` fails in a union on Python 3.10
 - Fixed ``NewType`` not being checked on Python 3.10
 - Fixed unwarranted warning when ``@typechecked`` is applied to a class that contains unannotated

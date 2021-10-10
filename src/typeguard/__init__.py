@@ -550,17 +550,30 @@ def check_class(argname: str, value, expected_type, memo: _TypeCheckMemo) -> Non
     if expected_type is Type:
         return
 
-    expected_class = None
-    if hasattr(expected_type, "__args__") and expected_type.__args__:
+    if getattr(expected_type, '__origin__', None) in (Type, type):
         expected_class = expected_type.__args__[0]
-    if expected_class:
-        if expected_class is Any:
-            return
-        elif isinstance(expected_class, TypeVar):
-            check_typevar(argname, value, expected_class, memo, True)
-        elif not issubclass(value, expected_class):
-            raise TypeError('{} must be a subclass of {}; got {} instead'.format(
-                argname, qualified_name(expected_class), qualified_name(value)))
+    else:
+        expected_class = expected_type
+
+    if expected_class is Any:
+        return
+    elif isinstance(expected_class, TypeVar):
+        check_typevar(argname, value, expected_class, memo, True)
+    elif getattr(expected_class, '__origin__', None) is Union:
+        for arg in expected_class.__args__:
+            try:
+                check_class(argname, value, arg, memo)
+                break
+            except TypeError:
+                pass
+        else:
+            formatted_args = ', '.join(get_type_name(arg) for arg in expected_class.__args__)
+            raise TypeError('{} must match one of the following: ({}); got {} instead'.format(
+                argname, formatted_args, qualified_name(value)
+            ))
+    elif not issubclass(value, expected_class):
+        raise TypeError('{} must be a subclass of {}; got {} instead'.format(
+            argname, qualified_name(expected_class), qualified_name(value)))
 
 
 def check_typevar(argname: str, value, typevar: TypeVar, memo: _TypeCheckMemo,

@@ -547,6 +547,15 @@ class TestCheckArgumentTypes:
 
         foo(str)
 
+    def test_class_union(self):
+        def foo(a: Type[Union[str, int]]):
+            assert check_argument_types()
+
+        foo(str)
+        foo(int)
+        pytest.raises(TypeError, foo, tuple).\
+            match(r'"a" must match one of the following: \(str, int\); got tuple instead')
+
     def test_wrapped_function(self):
         def decorator(func):
             @wraps(func)
