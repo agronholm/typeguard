@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.13.0** (2021-10-11)
 
 - Added support for returning ``NotImplemented`` from binary magic methods (``__eq__()`` et al)
 - Added support for checking union types (e.g. ``Type[Union[X, Y]]``)
