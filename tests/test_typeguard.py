@@ -32,13 +32,12 @@ else:
 
 
 TBound = TypeVar('TBound', bound='Parent')
-TConstrained = TypeVar('TConstrained', 'Parent', 'Child')
+TConstrained = TypeVar('TConstrained', 'Parent', int)
+TTypingConstrained = TypeVar('TTypingConstrained', List[int], AbstractSet[str])
 TIntStr = TypeVar('TIntStr', int, str)
 TIntCollection = TypeVar('TIntCollection', int, Collection)
 TParent = TypeVar('TParent', bound='Parent')
 TChild = TypeVar('TChild', bound='Child')
-TCovariant = TypeVar('TCovariant', covariant=True)
-TContravariant = TypeVar('TContravariant', contravariant=True)
 T_Foo = TypeVar('T_Foo')
 JSONType = Union[str, int, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
 
@@ -113,7 +112,7 @@ def test_check_type_anystr(value):
 
 def test_check_type_anystr_fail():
     pytest.raises(TypeError, check_type, 'foo', int, AnyStr).\
-        match(r'type of foo must be one of \(bytes, str\); got type instead')
+        match(r'type of foo must match one of the constraints \(bytes, str\); got type instead')
 
 
 def test_check_return_type():
@@ -145,7 +144,7 @@ def test_check_recursive_type():
     check_type('foo', {'a': [1, 2, 3]}, JSONType)
     pytest.raises(TypeError, check_type, 'foo', {'a': (1, 2, 3)}, JSONType, globals=globals()).\
         match(r'type of foo must be one of \(str, int, float, (bool, )?NoneType, '
-              r'List, Dict\); got dict instead')
+              r'List\[JSONType\], Dict\[str, JSONType\]\); got dict instead')
 
 
 class TestCheckArgumentTypes:
@@ -494,20 +493,31 @@ class TestCheckArgumentTypes:
 
         foo(*values)
 
-    def test_typevar_constraints_fail_typing_type(self):
-        def foo(a: TIntCollection, b: TIntCollection):
+    @pytest.mark.parametrize('value', [
+        [6, 7],
+        {'aa', 'bb'}
+    ], ids=['int', 'str'])
+    def test_typevar_collection_constraints(self, value):
+        def foo(a: TTypingConstrained):
             assert check_argument_types()
 
-        with pytest.raises(TypeError):
-            foo('aa', 'bb')
+        foo(value)
+
+    def test_typevar_collection_constraints_fail(self):
+        def foo(a: TTypingConstrained):
+            assert check_argument_types()
+
+        pytest.raises(TypeError, foo, {1, 2}).\
+            match(r'type of argument "a" must match one of the constraints \(List\[int\], '
+                  r'AbstractSet\[str\]\); got set instead')
 
     def test_typevar_constraints_fail(self):
         def foo(a: TIntStr, b: TIntStr):
             assert check_argument_types()
 
         exc = pytest.raises(TypeError, foo, 2.5, 'aa')
-        assert str(exc.value) == ('type of argument "a" must be one of (int, str); got float '
-                                  'instead')
+        assert str(exc.value) == ('type of argument "a" must match one of the constraints '
+                                  '(int, str); got float instead')
 
     def test_typevar_bound(self):
         def foo(a: TParent, b: TParent):
@@ -522,41 +532,6 @@ class TestCheckArgumentTypes:
         exc = pytest.raises(TypeError, foo, Parent(), Parent())
         assert str(exc.value) == ('type of argument "a" must be test_typeguard.Child or one of '
                                   'its subclasses; got test_typeguard.Parent instead')
-
-    def test_typevar_invariant_fail(self):
-        def foo(a: TIntStr, b: TIntStr):
-            assert check_argument_types()
-
-        exc = pytest.raises(TypeError, foo, 2, 3.6)
-        assert str(exc.value) == 'type of argument "b" must be exactly int; got float instead'
-
-    def test_typevar_covariant(self):
-        def foo(a: TCovariant, b: TCovariant):
-            assert check_argument_types()
-
-        foo(Parent(), Child())
-
-    def test_typevar_covariant_fail(self):
-        def foo(a: TCovariant, b: TCovariant):
-            assert check_argument_types()
-
-        exc = pytest.raises(TypeError, foo, Child(), Parent())
-        assert str(exc.value) == ('type of argument "b" must be test_typeguard.Child or one of '
-                                  'its subclasses; got test_typeguard.Parent instead')
-
-    def test_typevar_contravariant(self):
-        def foo(a: TContravariant, b: TContravariant):
-            assert check_argument_types()
-
-        foo(Child(), Parent())
-
-    def test_typevar_contravariant_fail(self):
-        def foo(a: TContravariant, b: TContravariant):
-            assert check_argument_types()
-
-        exc = pytest.raises(TypeError, foo, Parent(), Child())
-        assert str(exc.value) == ('type of argument "b" must be test_typeguard.Parent or one of '
-                                  'its superclasses; got test_typeguard.Child instead')
 
     @pytest.mark.skipif(Type is List, reason='typing.Type could not be imported')
     def test_class_bad_subclass(self):
@@ -718,7 +693,10 @@ class TestCheckArgumentTypes:
         foo({'a': [1, 2, 3]})
         pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
             match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
-                  r'List, Dict\); got dict instead')
+                  r'List\[Union\[str, int, float, (bool, )?NoneType, List\[JSONType\], '
+                  r'Dict\[str, JSONType\]\]\], '
+                  r'Dict\[str, Union\[str, int, float, (bool, )?NoneType, List\[JSONType\], '
+                  r'Dict\[str, JSONType\]\]\]\); got dict instead')
 
 
 class TestTypeChecked:
@@ -759,8 +737,9 @@ class TestTypeChecked:
         def foo(a: T, b: T) -> T:
             return 'a'
 
-        exc = pytest.raises(TypeError, foo, 4, 2)
-        assert str(exc.value) == 'type of the return value must be exactly int; got str instead'
+        pytest.raises(TypeError, foo, 4, 2).\
+            match(r'type of the return value must match one of the constraints \(int, float\); '
+                  r'got str instead')
 
     def test_typechecked_no_annotations(self, recwarn):
         def foo(a, b):
@@ -1271,7 +1250,10 @@ class TestTypeChecked:
         foo({'a': [1, 2, 3]})
         pytest.raises(TypeError, foo, {'a': (1, 2, 3)}).\
             match(r'type of argument "arg" must be one of \(str, int, float, (bool, )?NoneType, '
-                  r'List, Dict\); got dict instead')
+                  r'List\[Union\[str, int, float, (bool, )?NoneType, List\[JSONType\], '
+                  r'Dict\[str, JSONType\]\]\], '
+                  r'Dict\[str, Union\[str, int, float, (bool, )?NoneType, List\[JSONType\], '
+                  r'Dict\[str, JSONType\]\]\]\); got dict instead')
 
     def test_literal(self):
         from http import HTTPStatus
@@ -1291,8 +1273,7 @@ class TestTypeChecked:
 
         foo(6)
         pytest.raises(TypeError, foo, 4).\
-            match(r'must be one of \(str, typing(_extensions)?.Literal\[1, 6, 8\]\); '
-                  r'got int instead$')
+            match(r'must be one of \(str, Literal\[1, 6, 8\]\); got int instead$')
 
     def test_literal_nested(self):
         @typechecked

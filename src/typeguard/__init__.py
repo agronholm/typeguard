@@ -151,12 +151,11 @@ class TypeHintWarning(UserWarning):
 
 
 class _TypeCheckMemo:
-    __slots__ = 'globals', 'locals', 'typevars'
+    __slots__ = 'globals', 'locals'
 
     def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any]):
         self.globals = globals
         self.locals = locals
-        self.typevars = {}  # type: Dict[Any, type]
 
 
 def _strip_annotation(annotation):
@@ -256,11 +255,28 @@ def resolve_forwardref(maybe_ref, memo: _TypeCheckMemo):
 
 
 def get_type_name(type_):
-    name = getattr(type_, '__name__', None) or getattr(type_, '_name', None)
-    if name is None or name == 'Literal':
-        return str(type_)
-    else:
-        return name
+    name = (getattr(type_, '__name__', None) or getattr(type_, '_name', None) or
+            getattr(type_, '__forward_arg__', None))
+    if name is None:
+        origin = getattr(type_, '__origin__', None)
+        name = getattr(origin, '_name', None)
+        if name is None and not inspect.isclass(type_):
+            name = type_.__class__.__name__.strip('_')
+
+    args = getattr(type_, '__args__', ()) or getattr(type_, '__values__', ())
+    if args != getattr(type_, '__parameters__', ()):
+        if name == 'Literal':
+            formatted_args = ', '.join(str(arg) for arg in args)
+        else:
+            formatted_args = ', '.join(get_type_name(arg) for arg in args)
+
+        name = '{}[{}]'.format(name, formatted_args)
+
+    module = getattr(type_, '__module__', None)
+    if module not in (None, 'typing', 'typing_extensions', 'builtins'):
+        name = module + '.' + name
+
+    return name
 
 
 def find_function(frame) -> Optional[Callable]:
@@ -549,37 +565,29 @@ def check_class(argname: str, value, expected_type, memo: _TypeCheckMemo) -> Non
 
 def check_typevar(argname: str, value, typevar: TypeVar, memo: _TypeCheckMemo,
                   subclass_check: bool = False) -> None:
-    bound_type = resolve_forwardref(memo.typevars.get(typevar, typevar.__bound__), memo)
     value_type = value if subclass_check else type(value)
     subject = argname if subclass_check else 'type of ' + argname
-    if bound_type is None:
-        # The type variable hasn't been bound yet -- check that the given value matches the
-        # constraints of the type variable, if any
-        if typevar.__constraints__:
-            constraints = [resolve_forwardref(c, memo) for c in typevar.__constraints__]
-            if value_type not in constraints:
-                typelist = ', '.join(get_type_name(t) for t in constraints if t is not object)
-                raise TypeError('{} must be one of ({}); got {} instead'.
-                                format(subject, typelist, qualified_name(value_type)))
-    elif typevar.__covariant__ or typevar.__bound__:
+
+    if typevar.__bound__ is not None:
+        bound_type = resolve_forwardref(typevar.__bound__, memo)
         if not issubclass(value_type, bound_type):
             raise TypeError(
-                '{} must be {} or one of its subclasses; got {} instead'.
-                format(subject, qualified_name(bound_type), qualified_name(value_type)))
-    elif typevar.__contravariant__:
-        if not issubclass(bound_type, value_type):
-            raise TypeError(
-                '{} must be {} or one of its superclasses; got {} instead'.
-                format(subject, qualified_name(bound_type), qualified_name(value_type)))
-    else:  # invariant
-        if value_type is not bound_type:
-            raise TypeError(
-                '{} must be exactly {}; got {} instead'.
-                format(subject, qualified_name(bound_type), qualified_name(value_type)))
-
-    if typevar not in memo.typevars:
-        # Bind the type variable to a concrete type
-        memo.typevars[typevar] = value_type
+                '{} must be {} or one of its subclasses; got {} instead'
+                .format(subject, qualified_name(bound_type), qualified_name(value_type)))
+    elif typevar.__constraints__:
+        constraints = [resolve_forwardref(c, memo) for c in typevar.__constraints__]
+        for constraint in constraints:
+            try:
+                check_type(argname, value, constraint, memo)
+            except TypeError:
+                pass
+            else:
+                break
+        else:
+            formatted_constraints = ', '.join(get_type_name(constraint)
+                                              for constraint in constraints)
+            raise TypeError('{} must match one of the constraints ({}); got {} instead'
+                            .format(subject, formatted_constraints, qualified_name(value_type)))
 
 
 def check_literal(argname: str, value, expected_type, memo: _TypeCheckMemo):

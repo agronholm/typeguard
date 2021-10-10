@@ -11,6 +11,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed unwarranted warning when ``@typechecked`` is applied to a class that contains unannotated
   properties
 - Fixed ``TypeError`` in the async generator wrapper due to changes in ``__aiter__()`` protocol
+- Fixed broken ``TypeVar`` checks – variance is now (correctly) disregarded, and only bound types
+  and constraints are checked against (but type variable resolution is not done)
 
 **2.12.1** (2021-06-04)
 
