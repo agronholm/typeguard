@@ -154,9 +154,6 @@ class _CallMemo(_TypeCheckMemo):
         self.type_hints = _type_hints_map.get(func)
         if self.type_hints is None:
             while True:
-                if sys.version_info < (3, 5, 3):
-                    frame_locals = dict(frame_locals)
-
                 try:
                     hints = get_type_hints(func, localns=frame_locals)
                 except NameError as exc:
@@ -635,7 +632,6 @@ origin_type_checkers = {
     Type: check_class,
     Union: check_union
 }
-_subclass_check_unions = hasattr(Union, '__union_set_params__')
 if Literal is not None:
     origin_type_checkers[Literal] = check_literal
 
@@ -692,8 +688,6 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
             check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, (float, complex)):
             check_number(argname, value, expected_type)
-        elif _subclass_check_unions and issubclass(expected_type, Union):
-            check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
             check_typevar(argname, value, expected_type, memo)
         elif issubclass(expected_type, IO):
