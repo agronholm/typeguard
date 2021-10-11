@@ -61,6 +61,10 @@ class DummyClass(metaclass=Metaclass):
     def undocumented_staticmethod(x, y):
         pass
 
+    @property
+    def unannotated_property(self):
+        return None
+
 
 def outer():
     class Inner:

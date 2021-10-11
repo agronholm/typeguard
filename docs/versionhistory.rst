@@ -7,8 +7,18 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
+
+**2.13.0** (2021-10-11)
+
+- Added support for returning ``NotImplemented`` from binary magic methods (``__eq__()`` et al)
+- Added support for checking union types (e.g. ``Type[Union[X, Y]]``)
 - Fixed error message when a check against a ``Literal`` fails in a union on Python 3.10
 - Fixed ``NewType`` not being checked on Python 3.10
+- Fixed unwarranted warning when ``@typechecked`` is applied to a class that contains unannotated
+  properties
+- Fixed ``TypeError`` in the async generator wrapper due to changes in ``__aiter__()`` protocol
+- Fixed broken ``TypeVar`` checks – variance is now (correctly) disregarded, and only bound types
+  and constraints are checked against (but type variable resolution is not done)
 
 **2.12.1** (2021-06-04)
 
