@@ -2,6 +2,7 @@ import gc
 import sys
 import traceback
 import warnings
+from abc import abstractproperty
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
@@ -1327,6 +1328,17 @@ class TestTypeChecked:
             pytest.raises(TypeError, foo, value).match(error_re)
         else:
             foo(value)
+
+    def test_class_abstract_property(self):
+        """Regression test for #206."""
+
+        @typechecked
+        class Foo:
+            @abstractproperty
+            def dummyproperty(self):
+                pass
+
+        assert isinstance(Foo.dummyproperty, abstractproperty)
 
 
 class TestTypeChecker:

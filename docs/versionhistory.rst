@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``@typechecked`` replacing abstract properties with regular properties
+
 **2.13.0** (2021-10-11)
 
 - Added support for returning ``NotImplemented`` from binary magic methods (``__eq__()`` et al)
