@@ -7,6 +7,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
+- Fixed ``@typechecked`` replacing abstract properties with regular properties
 
 **2.13.0** (2021-10-11)
 

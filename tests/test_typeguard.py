@@ -1,5 +1,6 @@
 import sys
 import traceback
+from abc import abstractproperty
 from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from typing import (
@@ -1325,6 +1326,17 @@ class TestTypeChecked:
             pytest.raises(TypeError, foo, value).match(error_re)
         else:
             foo(value)
+
+    def test_class_abstract_property(self):
+        """Regression test for #206."""
+
+        @typechecked
+        class Foo:
+            @abstractproperty
+            def dummyproperty(self):
+                pass
+
+        assert isinstance(Foo.dummyproperty, abstractproperty)
 
     @pytest.mark.parametrize('annotation', [
         AsyncGenerator[int, str],
