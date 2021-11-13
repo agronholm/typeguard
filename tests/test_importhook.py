@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from typeguard import TypeCheckError
 from typeguard.importhook import TypeguardFinder, install_import_hook
 
 this_dir = Path(__file__).parent
@@ -38,8 +39,8 @@ def test_type_checked_func(dummymodule):
 
 
 def test_type_checked_func_error(dummymodule):
-    pytest.raises(TypeError, dummymodule.type_checked_func, 2, '3').\
-        match('"y" must be int; got str instead')
+    pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, '3').\
+        match('argument "y" is not an instance of int')
 
 
 def test_non_type_checked_func(dummymodule):
@@ -56,28 +57,28 @@ def test_typeguard_ignored_func(dummymodule):
 
 def test_type_checked_method(dummymodule):
     instance = dummymodule.DummyClass()
-    pytest.raises(TypeError, instance.type_checked_method, 'bah', 9).\
-        match('"x" must be int; got str instead')
+    pytest.raises(TypeCheckError, instance.type_checked_method, 'bah', 9).\
+        match('argument "x" is not an instance of int')
 
 
 def test_type_checked_classmethod(dummymodule):
-    pytest.raises(TypeError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
-        match('"x" must be int; got str instead')
+    pytest.raises(TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
+        match('argument "x" is not an instance of int')
 
 
 def test_type_checked_staticmethod(dummymodule):
-    pytest.raises(TypeError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
-        match('"x" must be int; got str instead')
+    pytest.raises(TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
+        match('argument "x" is not an instance of int')
 
 
 @pytest.mark.parametrize('argtype, returntype, error', [
     (int, str, None),
-    (str, str, '"x" must be str; got int instead'),
-    (int, int, 'type of the return value must be int; got str instead')
+    (str, str, 'argument "x" is not an instance of str'),
+    (int, int, 'the return value is not an instance of int')
 ], ids=['correct', 'bad_argtype', 'bad_returntype'])
 def test_dynamic_type_checking_func(dummymodule, argtype, returntype, error):
     if error:
-        exc = pytest.raises(TypeError, dummymodule.dynamic_type_checking_func, 4, argtype,
+        exc = pytest.raises(TypeCheckError, dummymodule.dynamic_type_checking_func, 4, argtype,
                             returntype)
         exc.match(error)
     else:
