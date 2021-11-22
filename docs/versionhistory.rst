@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**2.13.1** (2021-11-23)
 
 - Fixed ``@typechecked`` replacing abstract properties with regular properties
 - Fixed any generic type subclassing ``Dict`` being mistakenly checked as ``TypedDict`` on
