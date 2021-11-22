@@ -1,5 +1,5 @@
 import warnings
-from typing import AsyncGenerator, AsyncIterable, AsyncIterator, Callable
+from typing import Any, AsyncGenerator, AsyncIterable, AsyncIterator, Callable, Dict
 
 import pytest
 from typing_extensions import Protocol, runtime_checkable
@@ -111,6 +111,18 @@ class TestTypeChecked:
 
         foo({'x': 1})
         pytest.raises(TypeError, foo, {'y': 1})
+
+    def test_mapping_is_not_typeddict(self):
+        """Regression test for #216."""
+
+        class Foo(Dict[str, Any]):
+            pass
+
+        @typechecked
+        def foo(arg: Foo):
+            pass
+
+        foo(Foo({'x': 1}))
 
 
 async def asyncgenfunc() -> AsyncGenerator[int, None]:

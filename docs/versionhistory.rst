@@ -6,6 +6,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Fixed ``@typechecked`` replacing abstract properties with regular properties
+- Fixed any generic type subclassing ``Dict`` being mistakenly checked as ``TypedDict`` on
+  Python 3.10
 
 **2.13.0** (2021-10-11)
 

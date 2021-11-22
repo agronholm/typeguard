@@ -61,6 +61,19 @@ except ImportError:
     from typing import _ForwardRef as ForwardRef
     evaluate_forwardref = ForwardRef._eval_type
 
+if sys.version_info >= (3, 10):
+    from typing import is_typeddict
+elif sys.version_info >= (3, 9):
+    def is_typeddict(tp) -> bool:
+        from typing import _TypedDictMeta
+
+        return isinstance(tp, _TypedDictMeta)
+else:
+    def is_typeddict(tp) -> bool:
+        from typing_extensions import _TypedDictMeta
+
+        return isinstance(tp, _TypedDictMeta)
+
 
 if TYPE_CHECKING:
     _F = TypeVar("_F")
@@ -750,7 +763,7 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
             check_typevar(argname, value, expected_type, memo)
         elif issubclass(expected_type, IO):
             check_io(argname, value, expected_type)
-        elif issubclass(expected_type, dict) and hasattr(expected_type, '__annotations__'):
+        elif is_typeddict(expected_type):
             check_typed_dict(argname, value, expected_type, memo)
         elif getattr(expected_type, '_is_protocol', False):
             check_protocol(argname, value, expected_type)
