@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**2.13.2** (2021-11-23)
+
+- Fixed ``typing_extensions`` being imported unconditionally on Python < 3.9
+  (bug introduced in 2.13.1)
+
 **2.13.1** (2021-11-23)
 
 - Fixed ``@typechecked`` replacing abstract properties with regular properties

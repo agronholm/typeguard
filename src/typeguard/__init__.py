@@ -69,10 +69,14 @@ elif sys.version_info >= (3, 9):
 
         return isinstance(tp, _TypedDictMeta)
 else:
-    def is_typeddict(tp) -> bool:
+    try:
         from typing_extensions import _TypedDictMeta
-
-        return isinstance(tp, _TypedDictMeta)
+    except ImportError:
+        def is_typeddict(tp) -> bool:
+            return False
+    else:
+        def is_typeddict(tp) -> bool:
+            return isinstance(tp, _TypedDictMeta)
 
 
 if TYPE_CHECKING:
