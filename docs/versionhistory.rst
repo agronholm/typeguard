@@ -7,7 +7,17 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
+
+**2.13.2** (2021-11-23)
+
+- Fixed ``typing_extensions`` being imported unconditionally on Python < 3.9
+  (bug introduced in 2.13.1)
+
+**2.13.1** (2021-11-23)
+
 - Fixed ``@typechecked`` replacing abstract properties with regular properties
+- Fixed any generic type subclassing ``Dict`` being mistakenly checked as ``TypedDict`` on
+  Python 3.10
 
 **2.13.0** (2021-10-11)
 
