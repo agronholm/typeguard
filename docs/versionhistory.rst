@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``TypedDict`` causing ``TypeError: TypedDict does not support instance and class checks``
+  on Python 3.8 with standard library (not ``typing_extensions``) typed dicts
+
 **2.13.2** (2021-11-23)
 
 - Fixed ``typing_extensions`` being imported unconditionally on Python < 3.9

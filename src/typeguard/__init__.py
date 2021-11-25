@@ -72,11 +72,15 @@ else:
     try:
         from typing_extensions import _TypedDictMeta
     except ImportError:
-        def is_typeddict(tp) -> bool:
-            return False
-    else:
-        def is_typeddict(tp) -> bool:
-            return isinstance(tp, _TypedDictMeta)
+        _TypedDictMeta = None
+
+    def is_typeddict(tp) -> bool:
+        # Check for the typing_extensions version first
+        if _TypedDictMeta is not None:
+            if isinstance(tp, _TypedDictMeta):
+                return True
+
+        return issubclass(tp, dict) and hasattr(tp, '__annotations__')
 
 
 if TYPE_CHECKING:
