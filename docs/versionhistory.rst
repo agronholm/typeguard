@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
+- Added a configuration system
+- Added support for custom type checking functions
 
 **2.13.2** (2021-11-23)
 

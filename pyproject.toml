@@ -33,5 +33,5 @@ ignore = ["E251", "W504"]
 [tool.mypy]
 python_version = "3.7"
 ignore_missing_imports = true
-strict = true
+#strict = true
 pretty = true

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
+from .checkers import TypeCheckLookupCallback
 from .exceptions import TypeCheckError, TypeCheckWarning
 from .memo import TypeCheckMemo
 
-TypecheckFailCallback = Callable[[TypeCheckError, str, TypeCheckMemo], Any]
+TypeCheckFailCallback = Callable[[TypeCheckError, str, TypeCheckMemo], Any]
 
 
 def __getattr__(name: str) -> TypeCheckConfiguration:
@@ -21,11 +22,9 @@ def __getattr__(name: str) -> TypeCheckConfiguration:
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
 
-    ERROR = 1  #: propagate the :exc:`NameError` from :func:`~typing.get_type_hints`
-    WARN = 2  #: remove the annotation and emit a TypeHintWarning
-    #: replace the annotation with the argument's class if the qualified name matches, else remove
-    #: the annotation
-    GUESS = 3
+    ERROR = 1  #: propagate the :exc:`NameError` when the forward reference lookup fails
+    WARN = 2  #: emit a TypeHintWarning if the forward reference lookup fails
+    IGNORE = 3  #: silently skip checks for unresolveable forward references
 
 
 def warn_on_error(exc: TypeCheckError, argname, memo: TypeCheckMemo) -> Any:
@@ -43,8 +42,14 @@ class TypeguardPlugin:
 
 @dataclass
 class TypeCheckConfiguration:
-    forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.GUESS
-    typecheck_fail_callback: TypecheckFailCallback = raise_on_error
+    forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
+    checker_lookup_functions: List[TypeCheckLookupCallback] = field(default_factory=list)
+    typecheck_fail_callback: TypeCheckFailCallback = raise_on_error
+
+    def __post_init__(self):
+        from typeguard.checkers import builtin_checker_lookup
+
+        self.checker_lookup_functions.append(builtin_checker_lookup)
 
 
 _config = TypeCheckConfiguration()

@@ -6,41 +6,27 @@ from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from textwrap import indent
 from typing import (
-    IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, NewType, Sequence, Set,
-    TextIO, Tuple, Type, TypeVar, Union)
+    IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, NewType, Optional, Sequence,
+    Set, TextIO, Tuple, Type, TypeVar, Union)
 
 from .exceptions import TypeCheckError
 from .memo import TypeCheckMemo
-from .utils import get_args, get_origin, get_type_name, qualified_name
+from .utils import (
+    evaluate_forwardref, get_args, get_origin, get_type_name, is_typeddict, qualified_name)
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated, get_type_hints
+else:
+    from typing_extensions import Annotated, get_type_hints
 
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
 
-if sys.version_info >= (3, 9):
-    from typing import Annotated, get_type_hints
 
-    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(memo.globals, memo.locals, frozenset())
-else:
-    from typing_extensions import Annotated, get_type_hints
-
-    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(memo.globals, memo.locals)
-
-if sys.version_info >= (3, 10):
-    from typing import is_typeddict
-elif sys.version_info >= (3, 8):
-    def is_typeddict(tp) -> bool:
-        from typing import _TypedDictMeta
-
-        return isinstance(tp, _TypedDictMeta)
-else:
-    def is_typeddict(tp) -> bool:
-        from typing_extensions import _TypedDictMeta
-
-        return isinstance(tp, _TypedDictMeta)
+TypeCheckerCallable = Callable[[Any, Any, TypeCheckMemo], Any]
+TypeCheckLookupCallback = Callable[[Any, tuple, tuple], Optional[TypeCheckerCallable]]
 
 # Sentinel
 _missing = object()
@@ -391,27 +377,74 @@ def check_byteslike(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
         raise TypeCheckError('is not bytes-like')
 
 
-def get_checker_func(origin_type: Any) -> Union[bool, None, Callable]:
-    # origin_type = get_origin(annotation) or annotation
+def check_instanceof(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
+    origin_type = get_origin(annotation) or annotation
+    if not isinstance(value, origin_type):
+        raise TypeCheckError(f'is not an instance of {qualified_name(origin_type)}')
+
+
+def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
+    from . import config
+
+    if isinstance(annotation, ForwardRef):
+        annotation = evaluate_forwardref(annotation, memo)
+
+    origin_type = get_origin(annotation)
+    if origin_type is None:
+        origin_type = annotation
+    elif origin_type is Annotated:
+        annotation, *extras = annotation.__args__
+        origin_type = get_origin(annotation) or annotation
+
+    for lookup_func in config._config.checker_lookup_functions:
+        checker = lookup_func(origin_type)
+        if checker:
+            checker(value, annotation, memo)
+            return
+
+    if not isinstance(value, origin_type):
+        raise TypeCheckError(f'is not an instance of {qualified_name(origin_type)}')
+
+
+# Equality checks are applied to these
+origin_type_checkers = {
+    bytes: check_byteslike,
+    AbstractSet: check_set,
+    BinaryIO: check_io,
+    Callable: check_callable,
+    collections.abc.Callable: check_callable,
+    complex: check_number,
+    dict: check_dict,
+    Dict: check_dict,
+    float: check_number,
+    IO: check_io,
+    list: check_list,
+    List: check_list,
+    Literal: check_literal,
+    Sequence: check_sequence,
+    collections.abc.Sequence: check_sequence,
+    collections.abc.Set: check_set,
+    set: check_set,
+    Set: check_set,
+    TextIO: check_io,
+    tuple: check_tuple,
+    Tuple: check_tuple,
+    type: check_class,
+    Type: check_class,
+    Union: check_union
+}
+
+
+def builtin_checker_lookup(origin_type: Any) -> Optional[TypeCheckerCallable]:
     checker = origin_type_checkers.get(origin_type)
     if checker is not None:
         return checker
-
-    if isclass(origin_type):
-        if issubclass(origin_type, Tuple):
-            return check_tuple
-        elif issubclass(origin_type, (float, complex)):
-            return check_number
-        elif issubclass(origin_type, bytes):
-            return check_byteslike
-        elif issubclass(origin_type, IO):
-            return check_io
-        elif is_typeddict(origin_type):
-            return check_typed_dict
-        elif getattr(origin_type, '_is_protocol', False):
-            return check_protocol
-        else:
-            return check_instance
+    elif is_typeddict(origin_type):
+        return check_typed_dict
+    elif isclass(origin_type) and issubclass(origin_type, Tuple):  # NamedTuple
+        return check_tuple
+    elif getattr(origin_type, '_is_protocol', False):
+        return check_protocol
     elif isinstance(origin_type, TypeVar):
         return check_typevar
     elif origin_type.__class__ is NewType:
@@ -424,41 +457,4 @@ def get_checker_func(origin_type: Any) -> Union[bool, None, Callable]:
         # typing.NewType on Python 3.9 and below
         return check_newtype
 
-
-def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
-    if isinstance(annotation, ForwardRef):
-        annotation = evaluate_forwardref(annotation, memo)
-
-    origin_type = get_origin(annotation)
-    if origin_type is None:
-        origin_type = annotation
-    elif origin_type is Annotated:
-        annotation, *extras = annotation.__args__
-        origin_type = get_origin(annotation) or annotation
-
-    checker_func = get_checker_func(origin_type)
-    if checker_func is not None:
-        checker_func(value, annotation, memo)
-
-
-# Equality checks are applied to these
-origin_type_checkers = {
-    AbstractSet: check_set,
-    Callable: check_callable,
-    collections.abc.Callable: check_callable,
-    dict: check_dict,
-    Dict: check_dict,
-    list: check_list,
-    List: check_list,
-    Literal: check_literal,
-    Sequence: check_sequence,
-    collections.abc.Sequence: check_sequence,
-    collections.abc.Set: check_set,
-    set: check_set,
-    Set: check_set,
-    tuple: check_tuple,
-    Tuple: check_tuple,
-    type: check_class,
-    Type: check_class,
-    Union: check_union
-}
+    return None

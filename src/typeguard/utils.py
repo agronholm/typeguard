@@ -3,33 +3,42 @@ from __future__ import annotations
 import gc
 import inspect
 import sys
-from types import CodeType, FunctionType
-from typing import Any, Callable, Dict, Optional, Tuple, get_type_hints
+from types import CodeType, FrameType, FunctionType
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef
 from weakref import WeakValueDictionary
 
-from .memo import TypeCheckMemo
+if TYPE_CHECKING:
+    from .memo import TypeCheckMemo
+
+if sys.version_info >= (3, 10):
+    from typing import is_typeddict
+else:
+    _typed_dict_meta_types = ()
+    if sys.version_info >= (3, 8):
+        from typing import _TypedDictMeta
+        _typed_dict_meta_types += (_TypedDictMeta,)
+
+    try:
+        from typing_extensions import _TypedDictMeta
+        _typed_dict_meta_types += (_TypedDictMeta,)
+    except ImportError:
+        pass
+
+    def is_typeddict(tp) -> bool:
+        return isinstance(tp, _typed_dict_meta_types)
 
 if sys.version_info >= (3, 9):
-    from typing import Annotated, get_args, get_origin
+    from typing import get_args, get_origin
+
+    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
+        return forwardref._evaluate(memo.globals, memo.locals, frozenset())
 else:
-    from typing_extensions import Annotated, get_args, get_origin
+    from typing_extensions import get_args, get_origin
+
+    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
+        return forwardref._evaluate(memo.globals, memo.locals)
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
-
-
-def get_type_hints_with_extra(
-    annotation: Any, memo: TypeCheckMemo
-) -> Dict[str, Tuple[Any, Tuple]]:
-    type_hints: Dict[str, Tuple[Any, Tuple]] = {}
-    result = get_type_hints(annotation, memo.globals, memo.locals)
-    for key, value in result.items():
-        origin = get_origin(value)
-        if origin is Annotated:
-            type_hints[key] = value.__args__[0], value.__metadata__
-        else:
-            type_hints[key] = value, ()
-
-    return type_hints
 
 
 def get_type_name(type_) -> str:
@@ -57,7 +66,7 @@ def get_type_name(type_) -> str:
     return name
 
 
-def find_function(frame) -> Optional[Callable]:
+def find_function(frame: FrameType) -> Callable:
     """
     Return a function object from the garbage collector that matches the frame's code object.
 
@@ -66,7 +75,8 @@ def find_function(frame) -> Optional[Callable]:
     having different type annotations is a very rare occurrence.
 
     :param frame: a frame object
-    :return: a function object if one was found, ``None`` if not
+    :return: a function object
+    :raises LookupError: if not exactly one matching function object was found
 
     """
     func = _functions_map.get(frame.f_code)
@@ -78,7 +88,8 @@ def find_function(frame) -> Optional[Callable]:
                     func = obj
                 else:
                     # A second match was found
-                    return None
+                    raise LookupError(f'two functions matched: {qualified_name(func)} and '
+                                      f'{qualified_name(obj)}')
 
         # Cache the result for future lookups
         if func is not None:

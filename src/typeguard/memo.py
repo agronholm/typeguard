@@ -78,7 +78,7 @@ class CallMemo(TypeCheckMemo):
                         raise
 
                     func_name = function_name(func)
-                    if self.config.forward_ref_policy is ForwardRefPolicy.GUESS:
+                    if self.config.forward_ref_policy is ForwardRefPolicy.IGNORE:
                         if param.name in self.arguments:
                             argtype = self.arguments[param.name].__class__
                             stripped = _strip_annotation(param.annotation)
