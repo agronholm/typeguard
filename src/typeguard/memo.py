@@ -15,7 +15,7 @@ else:
     from typing_extensions import get_type_hints
 
 if TYPE_CHECKING:
-    from . import config as typeguard_config
+    from .config import TypeCheckConfiguration
 
 _type_hints_map: WeakKeyDictionary[FunctionType, Dict[str, Any]] = WeakKeyDictionary()
 
@@ -31,7 +31,7 @@ class TypeCheckMemo:
     __slots__ = 'globals', 'locals', 'config'
 
     def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any],
-                 config: Optional[typeguard_config.TypeCheckConfiguration] = None):
+                 config: Optional[TypeCheckConfiguration] = None):
         from .config import config as global_config
 
         self.globals = globals
@@ -44,7 +44,7 @@ class CallMemo(TypeCheckMemo):
 
     def __init__(self, func: Callable, frame_locals: Optional[Dict[str, Any]] = None,
                  args: tuple = None, kwargs: Dict[str, Any] = None,
-                 config: Optional[typeguard_config.TypeCheckConfiguration] = None):
+                 config: Optional[TypeCheckConfiguration] = None):
         from .config import ForwardRefPolicy
         from .exceptions import TypeHintWarning
         from .utils import function_name
