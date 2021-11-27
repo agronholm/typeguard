@@ -148,6 +148,19 @@ def test_check_recursive_type():
               r'List\[JSONType\], Dict\[str, JSONType\]\); got dict instead')
 
 
+def test_exec_no_namespace():
+    from textwrap import dedent
+
+    exec(dedent("""
+        from typeguard import typechecked
+
+        @typechecked
+        def f():
+            pass
+
+        """), {})
+
+
 class TestCheckArgumentTypes:
     def test_any_type(self):
         def foo(a: Any):
