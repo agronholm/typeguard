@@ -355,7 +355,8 @@ def function_name(func: Callable) -> str:
 
     """
     # For partial functions and objects with __call__ defined, __qualname__ does not exist
-    module = getattr(func, '__module__', '')
+    # For functions run in `exec` with a custom namespace, __module__ can be None
+    module = getattr(func, '__module__', '') or ''
     qualname = (module + '.') if module not in ('builtins', '') else ''
     return qualname + getattr(func, '__qualname__', repr(func))
 

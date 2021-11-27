@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Fixed ``TypeError`` when using typeguard within ``exec()`` (where ``__module__`` is ``None``)
+  (PR by Andy Jones)
 - Fixed ``TypedDict`` causing ``TypeError: TypedDict does not support instance and class checks``
   on Python 3.8 with standard library (not ``typing_extensions``) typed dicts
 
