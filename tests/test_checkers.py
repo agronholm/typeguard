@@ -1,15 +1,17 @@
 import sys
+from contextlib import nullcontext
 from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import (
-    IO, AbstractSet, Any, AnyStr, BinaryIO, Callable, Collection, Dict, Iterator, List, Optional,
-    Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
+    IO, AbstractSet, Any, AnyStr, BinaryIO, Callable, Collection, ContextManager, Dict, ForwardRef,
+    Iterator, List, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
 from unittest.mock import Mock
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
-from typeguard import check_type
+from typeguard import ForwardRefPolicy, TypeHintWarning, check_type, config
 from typeguard.exceptions import TypeCheckError
 
 from . import (
@@ -566,6 +568,18 @@ class TestAnnotated:
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, Annotated[str, 'blah']).\
             match('value is not an instance of str')
+
+
+@pytest.mark.parametrize('policy, contextmanager', [
+    pytest.param(ForwardRefPolicy.ERROR, pytest.raises(NameError), id='error'),
+    pytest.param(ForwardRefPolicy.WARN, pytest.warns(TypeHintWarning), id='warn'),
+    pytest.param(ForwardRefPolicy.IGNORE, nullcontext(), id='ignore')
+])
+def test_forward_reference_policy(policy: ForwardRefPolicy, contextmanager: ContextManager,
+                                  monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(config.config, 'forward_ref_policy', policy)
+    with contextmanager:
+        check_type(1, ForwardRef('Foo'))
 
 
 def test_any():

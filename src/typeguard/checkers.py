@@ -1,6 +1,7 @@
 import collections.abc
 import inspect
 import sys
+import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
@@ -9,7 +10,7 @@ from typing import (
     IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, NewType, Optional, Sequence,
     Set, TextIO, Tuple, Type, TypeVar, Union)
 
-from .exceptions import TypeCheckError
+from .exceptions import TypeCheckError, TypeHintWarning
 from .memo import TypeCheckMemo
 from .utils import (
     evaluate_forwardref, get_args, get_origin, get_type_name, is_typeddict, qualified_name)
@@ -387,7 +388,15 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
     from . import config
 
     if isinstance(annotation, ForwardRef):
-        annotation = evaluate_forwardref(annotation, memo)
+        try:
+            annotation = evaluate_forwardref(annotation, memo)
+        except NameError:
+            if config._config.forward_ref_policy is config.ForwardRefPolicy.ERROR:
+                raise
+            elif config._config.forward_ref_policy is config.ForwardRefPolicy.WARN:
+                warnings.warn(f'Cannot resolve forward reference {annotation}', TypeHintWarning)
+
+            return
 
     origin_type = get_origin(annotation)
     if origin_type is None:
