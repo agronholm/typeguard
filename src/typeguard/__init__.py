@@ -87,10 +87,9 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
         if argname != 'return' and argname in memo.arguments:
             value = memo.arguments[argname]
             try:
-                check_type(value, expected_type, argname=f'argument "{argname}"', memo=memo)
+                check_type_internal(value, expected_type, memo=memo)
             except TypeCheckError as exc:
-                # suppress unnecessarily long tracebacks
-                raise TypeCheckError(str(exc)) from None
+                memo.config.typecheck_fail_callback(exc, f'argument "{argname}"', memo)
 
     return True
 
@@ -121,7 +120,7 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
             raise TypeCheckError(f'{memo.func_name}() was declared never to return but it did')
 
         try:
-            check_type(retval, memo.type_hints['return'], argname='the return value', memo=memo)
+            check_type_internal(retval, memo.type_hints['return'], memo)
         except TypeCheckError as exc:
             # Allow NotImplemented if this is a binary magic method (__eq__() et al)
             if retval is NotImplemented and memo.type_hints['return'] is bool:
@@ -130,8 +129,7 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
                     return True
 
-            # suppress unnecessarily long tracebacks
-            raise TypeCheckError(str(exc)) from None
+            memo.config.typecheck_fail_callback(exc, 'the return value', memo)
 
     return True
 
