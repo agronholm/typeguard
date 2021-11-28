@@ -1395,7 +1395,7 @@ class TestTypeChecker:
         assert len(record) == 1
         warning = record[0].message
         assert warning.error == 'type of argument "a" must be int; got str instead'
-        assert warning.func is foo
+        assert warning.func.__closure__ is foo.__closure__
         assert isinstance(warning.stack, list)
         buffer = StringIO()
         warning.print_stack(buffer)
