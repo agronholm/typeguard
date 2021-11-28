@@ -1,3 +1,4 @@
+import asyncio
 from typing import (
     AsyncGenerator, AsyncIterable, AsyncIterator, Generator, Iterable, Iterator, List)
 
@@ -5,6 +6,31 @@ import pytest
 
 from typeguard import typechecked
 from typeguard.exceptions import TypeCheckError
+
+
+class TestCoroutineFunction:
+    def test_success(self):
+        @typechecked
+        async def foo(a: int) -> str:
+            return 'test'
+
+        assert asyncio.run(foo(1)) == 'test'
+
+    def test_bad_arg(self):
+        @typechecked
+        async def foo(a: int) -> str:
+            return 'test'
+
+        with pytest.raises(TypeCheckError, match='argument "a" is not an instance of int'):
+            asyncio.run(foo('foo'))
+
+    def test_bad_return(self):
+        @typechecked
+        async def foo(a: int) -> str:
+            return 1
+
+        with pytest.raises(TypeCheckError, match='return value is not an instance of str'):
+            asyncio.run(foo(1))
 
 
 class TestGenerator:
