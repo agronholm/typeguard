@@ -399,14 +399,20 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
             return
 
     origin_type = get_origin(annotation)
-    if origin_type is None:
-        origin_type = annotation
-    elif origin_type is Annotated:
+    if origin_type is Annotated:
         annotation, *extras = annotation.__args__
-        origin_type = get_origin(annotation) or annotation
+        origin_type = get_origin(annotation)
+    else:
+        extras = ()
+
+    if origin_type is not None:
+        args = annotation.__args__
+    else:
+        origin_type = annotation
+        args = ()
 
     for lookup_func in config._config.checker_lookup_functions:
-        checker = lookup_func(origin_type)
+        checker = lookup_func(origin_type, args, extras)
         if checker:
             checker(value, annotation, memo)
             return
@@ -444,7 +450,9 @@ origin_type_checkers = {
 }
 
 
-def builtin_checker_lookup(origin_type: Any) -> Optional[TypeCheckerCallable]:
+def builtin_checker_lookup(
+    origin_type: Any, args: tuple, extras: tuple
+) -> Optional[TypeCheckerCallable]:
     checker = origin_type_checkers.get(origin_type)
     if checker is not None:
         return checker
