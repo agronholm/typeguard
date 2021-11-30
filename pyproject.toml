@@ -19,6 +19,10 @@ source = ["typeguard"]
 
 [tool.coverage.report]
 show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:"
+]
 
 [tool.isort]
 src_paths = ["src"]
