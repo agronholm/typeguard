@@ -26,8 +26,9 @@ else:
     from typing_extensions import Literal
 
 
-TypeCheckerCallable = Callable[[Any, Any, TypeCheckMemo], Any]
-TypeCheckLookupCallback = Callable[[Any, tuple, tuple], Optional[TypeCheckerCallable]]
+TypeCheckerCallable = Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]
+TypeCheckLookupCallback = Callable[[Any, Tuple[Any, ...], Tuple[Any, ...]],
+                                   Optional[TypeCheckerCallable]]
 
 # Sentinel
 _missing = object()
