@@ -358,9 +358,18 @@ class TestUnion:
                   '  str: is not an instance of str\n'
                   '  Collection: is not an instance of collections.abc.Collection')
 
-    @pytest.mark.parametrize('value', [6.5, b'aa'])
-    def test_union_fail(self, value):
-        pytest.raises(TypeCheckError, check_type, value, Union[str, int]).\
+    @pytest.mark.parametrize('annotation', [
+        pytest.param(Union[str, int], id='pep484'),
+        pytest.param(ForwardRef('str | int'), id='pep604',
+                     marks=[pytest.mark.skipif(sys.version_info < (3, 10),
+                                               reason='Requires Python 3.10+')])
+    ])
+    @pytest.mark.parametrize('value', [
+        pytest.param(6.5, id='float'),
+        pytest.param(b'aa', id='bytes')
+    ])
+    def test_union_fail(self, annotation, value):
+        pytest.raises(TypeCheckError, check_type, value, annotation).\
             match("value did not match any element in the union:\n"
                   "  str: is not an instance of str\n"
                   "  int: is not an instance of int")

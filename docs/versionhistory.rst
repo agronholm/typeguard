@@ -9,6 +9,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Dropped the deprecated profiler hook (``TypeChecker``)
 - Added a configuration system
 - Added support for custom type checking functions
+- Added support for PEP 604 union types (``X | Y``) on Python 3.10+
 - Much improved error messages showing where the type check failed
 
 **2.13.2** (2021-11-23)

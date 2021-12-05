@@ -1,6 +1,7 @@
 import collections.abc
 import inspect
 import sys
+import types
 import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
@@ -284,6 +285,20 @@ def check_union(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeC
     raise TypeCheckError(f'did not match any element in the union:\n{formatted_errors}')
 
 
+def check_uniontype(value: Any, origin_type: Any, args: Tuple[Any, ...],
+                    memo: TypeCheckMemo) -> None:
+    errors: Dict[str, TypeCheckError] = {}
+    for type_ in args:
+        try:
+            check_type_internal(value, type_, memo)
+            return
+        except TypeCheckError as exc:
+            errors[get_type_name(type_)] = exc
+
+    formatted_errors = indent('\n'.join(f'{key}: {error}' for key, error in errors.items()), '  ')
+    raise TypeCheckError(f'did not match any element in the union:\n{formatted_errors}')
+
+
 def check_class(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
     if not isclass(value):
         raise TypeCheckError('is not a class')
@@ -471,6 +486,8 @@ origin_type_checkers = {
     Type: check_class,
     Union: check_union
 }
+if sys.version_info >= (3, 10):
+    origin_type_checkers[types.UnionType] = check_uniontype
 
 
 def builtin_checker_lookup(
