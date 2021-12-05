@@ -129,14 +129,23 @@ def check_callable(value: Any, origin_type: Any, args: Tuple[Any, ...],
 
 def check_dict(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
     if not isinstance(value, dict):
-        raise TypeCheckError('value is not a dict')
+        raise TypeCheckError('is not a dict')
 
     if args:
         key_type, value_type = args
         if key_type is not Any or value_type is not Any:
             for k, v in value.items():
-                check_type_internal(k, key_type, memo)
-                check_type_internal(v, value_type, memo)
+                try:
+                    check_type_internal(k, key_type, memo)
+                except TypeCheckError as exc:
+                    exc.append_path_element(f'key {k!r}')
+                    raise
+
+                try:
+                    check_type_internal(v, value_type, memo)
+                except TypeCheckError as exc:
+                    exc.append_path_element(f'value of key {k!r}')
+                    raise
 
 
 def check_typed_dict(value: Any, origin_type: Any, args: Tuple[Any, ...],
@@ -161,7 +170,11 @@ def check_typed_dict(value: Any, origin_type: Any, args: Tuple[Any, ...],
     for key, argtype in get_type_hints(origin_type).items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
-            check_type_internal(argvalue, argtype, memo)
+            try:
+                check_type_internal(argvalue, argtype, memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'value of key {key!r}')
+                raise
 
 
 def check_list(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
@@ -170,7 +183,11 @@ def check_list(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCh
 
     if args and args != (Any,):
         for i, v in enumerate(value):
-            check_type_internal(v, args[0], memo)
+            try:
+                check_type_internal(v, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'item {i}')
+                raise
 
 
 def check_sequence(value: Any, origin_type: Any, args: Tuple[Any, ...],
@@ -180,7 +197,11 @@ def check_sequence(value: Any, origin_type: Any, args: Tuple[Any, ...],
 
     if args and args != (Any,):
         for i, v in enumerate(value):
-            check_type_internal(v, args[0], memo)
+            try:
+                check_type_internal(v, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'item {i}')
+                raise
 
 
 def check_set(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
@@ -189,7 +210,11 @@ def check_set(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeChe
 
     if args and args != (Any,):
         for v in value:
-            check_type_internal(v, args[0], memo)
+            try:
+                check_type_internal(v, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'[{v}]')
+                raise
 
 
 def check_tuple(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
@@ -203,7 +228,11 @@ def check_tuple(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeC
             raise TypeCheckError(f'is not a named tuple of type {qualified_name(origin_type)}')
 
         for name, field_type in field_types.items():
-            check_type_internal(getattr(value, name), field_type, memo)
+            try:
+                check_type_internal(getattr(value, name), field_type, memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'attribute {name!r}')
+                raise
 
         return
     elif not isinstance(value, tuple):
@@ -220,7 +249,11 @@ def check_tuple(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeC
     if use_ellipsis:
         element_type = tuple_params[0]
         for i, element in enumerate(value):
-            check_type_internal(element, element_type, memo)
+            try:
+                check_type_internal(element, element_type, memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'item {i}')
+                raise
     elif tuple_params == ((),):
         if value != ():
             raise TypeCheckError('is not an empty tuple')
@@ -231,7 +264,11 @@ def check_tuple(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeC
                 f'instead)')
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
-            check_type_internal(element, element_type, memo)
+            try:
+                check_type_internal(element, element_type, memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f'item {i}')
+                raise
 
 
 def check_union(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:

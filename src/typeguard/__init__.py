@@ -57,7 +57,11 @@ def check_type(
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
-        memo.config.typecheck_fail_callback(exc, argname, memo)
+        exc.append_path_element(argname)
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
 
 
 def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
@@ -89,7 +93,11 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
             try:
                 check_type_internal(value, expected_type, memo=memo)
             except TypeCheckError as exc:
-                memo.config.typecheck_fail_callback(exc, f'argument "{argname}"', memo)
+                exc.append_path_element(f'argument "{argname}"')
+                if memo.config.typecheck_fail_callback:
+                    memo.config.typecheck_fail_callback(exc, memo)
+                else:
+                    raise
 
     return True
 
@@ -129,7 +137,11 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
                     return True
 
-            memo.config.typecheck_fail_callback(exc, 'the return value', memo)
+            exc.append_path_element('the return value')
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
+            else:
+                raise
 
     return True
 

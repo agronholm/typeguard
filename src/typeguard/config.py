@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from typing import Any, Callable, List, Optional
 
 from .checkers import TypeCheckLookupCallback
 from .exceptions import TypeCheckError, TypeCheckWarning
 from .memo import TypeCheckMemo
 
-TypeCheckFailCallback = Callable[[TypeCheckError, str, TypeCheckMemo], Any]
+TypeCheckFailCallback = Callable[[TypeCheckError, TypeCheckMemo], Any]
 
 
 def __getattr__(name: str) -> TypeCheckConfiguration:
@@ -22,17 +22,13 @@ def __getattr__(name: str) -> TypeCheckConfiguration:
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
 
-    ERROR = 1  #: propagate the :exc:`NameError` when the forward reference lookup fails
-    WARN = 2  #: emit a TypeHintWarning if the forward reference lookup fails
-    IGNORE = 3  #: silently skip checks for unresolveable forward references
+    ERROR = auto()  #: propagate the :exc:`NameError` when the forward reference lookup fails
+    WARN = auto()  #: emit a TypeHintWarning if the forward reference lookup fails
+    IGNORE = auto()  #: silently skip checks for unresolveable forward references
 
 
-def warn_on_error(exc: TypeCheckError, argname, memo: TypeCheckMemo) -> Any:
-    warnings.warn(TypeCheckWarning(f'{argname} {exc}'))
-
-
-def raise_on_error(exc: TypeCheckError, argname, memo: TypeCheckMemo) -> Any:
-    raise TypeCheckError(f'{argname} {exc}') from None
+def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> Any:
+    warnings.warn(TypeCheckWarning(str(exc)))
 
 
 class TypeguardPlugin:
@@ -44,7 +40,7 @@ class TypeguardPlugin:
 class TypeCheckConfiguration:
     forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
     checker_lookup_functions: List[TypeCheckLookupCallback] = field(default_factory=list)
-    typecheck_fail_callback: TypeCheckFailCallback = raise_on_error
+    typecheck_fail_callback: Optional[TypeCheckFailCallback] = None
 
     def __post_init__(self):
         from typeguard.checkers import builtin_checker_lookup
