@@ -7,10 +7,10 @@ from dataclasses import InitVar, dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, List, Optional, Sequence
 
+from ._checkers import TypeCheckLookupCallback
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
 from ._utils import qualified_name
-from .checkers import TypeCheckLookupCallback
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
@@ -43,7 +43,7 @@ class TypeCheckConfiguration:
 
     def __post_init__(self, autoload_plugins: Optional[bool],
                       plugins: Optional[Sequence[str]]) -> None:
-        from typeguard.checkers import builtin_checker_lookup
+        from typeguard._checkers import builtin_checker_lookup
 
         self.checker_lookup_functions.append(builtin_checker_lookup)
 
