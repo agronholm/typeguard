@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import sys
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 from weakref import WeakKeyDictionary
 
 from ._utils import function_name
@@ -34,7 +34,9 @@ class TypeCheckMemo:
 class CallMemo(TypeCheckMemo):
     __slots__ = 'func', 'func_name', 'arguments', 'type_hints'
 
-    def __init__(self, func: Callable, frame_locals: Optional[Dict[str, Any]] = None,
+    arguments: Mapping[str, Any]
+
+    def __init__(self, func: FunctionType, frame_locals: Optional[Dict[str, Any]] = None,
                  args: tuple = None, kwargs: Dict[str, Any] = None,
                  config: Optional[TypeCheckConfiguration] = None):
         super().__init__(func.__globals__, frame_locals, config)

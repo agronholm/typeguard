@@ -4,7 +4,7 @@ from importlib.abc import MetaPathFinder
 from importlib.machinery import SourceFileLoader
 from importlib.util import cache_from_source, decode_source
 from inspect import isclass
-from typing import Iterable, Type
+from typing import Iterable, List, Type
 from unittest.mock import patch
 
 
@@ -19,7 +19,7 @@ def optimized_cache_from_source(path, debug_override=None):
 
 class TypeguardTransformer(ast.NodeVisitor):
     def __init__(self) -> None:
-        self._parents = []
+        self._parents: List[ast.AST] = []
 
     def visit_Module(self, node: ast.Module):
         # Insert "import typeguard" after any "from __future__ ..." imports

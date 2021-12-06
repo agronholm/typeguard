@@ -1,4 +1,5 @@
 from collections import deque
+from typing import Deque
 
 
 class TypeHintWarning(UserWarning):
@@ -22,7 +23,7 @@ class TypeCheckError(Exception):
 
     def __init__(self, message: str):
         super().__init__(message)
-        self._path = deque()
+        self._path: Deque[str] = deque()
 
     def append_path_element(self, element: str) -> None:
         self._path.append(element)

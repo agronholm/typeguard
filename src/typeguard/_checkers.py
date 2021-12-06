@@ -373,7 +373,7 @@ def check_typevar(value: Any, origin_type: TypeVar, args: Tuple[Any, ...], memo:
 def check_literal(value: Any, origin_type: Any, args: Tuple[Any, ...],
                   memo: TypeCheckMemo) -> None:
     def get_literal_args(literal_args: Tuple[Any, ...]) -> Tuple[Any, ...]:
-        retval = []
+        retval: List[Any] = []
         for arg in literal_args:
             if get_origin(arg) is Literal:
                 # The first check works on py3.6 and lower, the second one on py3.7+
@@ -443,6 +443,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
             return
 
+    extras: Tuple[Any, ...]
     origin_type = get_origin(annotation)
     if origin_type is Annotated:
         annotation, *extras = get_args(annotation)
