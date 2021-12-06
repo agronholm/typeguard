@@ -1,7 +1,7 @@
-__all__ = ('CallMemo', 'ForwardRefPolicy', 'TypeCheckConfiguration', 'TypeHintWarning',
-           'TypeCheckWarning', 'TypeCheckError', 'TypeCheckMemo', 'check_argument_types',
-           'check_return_type', 'check_type', 'config', 'typechecked', 'typeguard_ignore',
-           'warn_on_error')
+__all__ = ('CallMemo', 'ForwardRefPolicy', 'TypeCheckerCallable', 'TypeCheckLookupCallback',
+           'TypeCheckConfiguration', 'TypeHintWarning', 'TypeCheckWarning', 'TypeCheckError',
+           'TypeCheckMemo', 'check_argument_types', 'check_return_type', 'check_type', 'config',
+           'typechecked', 'typeguard_ignore', 'warn_on_error')
 
 import inspect
 import sys
@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, NoReturn, Optional, TypeV
 from unittest.mock import Mock
 from warnings import warn
 
-from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
+from ._checkers import (
+    BINARY_MAGIC_METHODS, TypeCheckerCallable, TypeCheckLookupCallback, check_type_internal)
 from ._config import ForwardRefPolicy, TypeCheckConfiguration, warn_on_error
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._generators import (
