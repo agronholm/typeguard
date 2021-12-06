@@ -20,13 +20,6 @@ else:
 TypeCheckFailCallback = Callable[[TypeCheckError, TypeCheckMemo], Any]
 
 
-def __getattr__(name: str) -> TypeCheckConfiguration:
-    if name == 'config':
-        return _config
-
-    raise AttributeError(f"module {__name__} has no attribute {name}")
-
-
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
 

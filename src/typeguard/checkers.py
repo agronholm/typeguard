@@ -430,15 +430,15 @@ def check_instanceof(value: Any, origin_type: Any, args: Tuple[Any, ...],
 
 
 def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
-    from . import config
+    from . import ForwardRefPolicy, config
 
     if isinstance(annotation, ForwardRef):
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if config._config.forward_ref_policy is config.ForwardRefPolicy.ERROR:
+            if config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif config._config.forward_ref_policy is config.ForwardRefPolicy.WARN:
+            elif config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(f'Cannot resolve forward reference {annotation}', TypeHintWarning)
 
             return
@@ -456,7 +456,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
         origin_type = annotation
         args = ()
 
-    for lookup_func in config._config.checker_lookup_functions:
+    for lookup_func in config.checker_lookup_functions:
         checker = lookup_func(origin_type, args, extras)
         if checker:
             checker(value, origin_type, args, memo)

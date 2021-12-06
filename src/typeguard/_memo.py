@@ -14,7 +14,7 @@ else:
     from typing_extensions import get_type_hints
 
 if TYPE_CHECKING:
-    from .config import TypeCheckConfiguration
+    from ._config import TypeCheckConfiguration
 
 _type_hints_map: WeakKeyDictionary[FunctionType, Dict[str, Any]] = WeakKeyDictionary()
 
@@ -24,7 +24,7 @@ class TypeCheckMemo:
 
     def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any],
                  config: Optional[TypeCheckConfiguration] = None):
-        from .config import config as global_config
+        from . import config as global_config
 
         self.globals = globals
         self.locals = locals

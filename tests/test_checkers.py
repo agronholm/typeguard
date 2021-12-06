@@ -648,7 +648,7 @@ class TestAnnotated:
 ])
 def test_forward_reference_policy(policy: ForwardRefPolicy, contextmanager: ContextManager,
                                   monkeypatch: MonkeyPatch):
-    monkeypatch.setattr(config.config, 'forward_ref_policy', policy)
+    monkeypatch.setattr(config, 'forward_ref_policy', policy)
     with contextmanager:
         check_type(1, ForwardRef('Foo'))
 
