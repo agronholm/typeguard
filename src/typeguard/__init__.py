@@ -1,6 +1,7 @@
-__all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
-           'check_argument_types', 'check_type', 'TypeCheckWarning', 'TypeCheckError',
-           'TypeCheckConfiguration', 'config', 'typeguard_ignore')
+__all__ = ('CallMemo', 'ForwardRefPolicy', 'TypeCheckConfiguration', 'TypeHintWarning',
+           'TypeCheckWarning', 'TypeCheckError', 'TypeCheckMemo', 'check_argument_types',
+           'check_return_type', 'check_type', 'config', 'typechecked', 'typeguard_ignore',
+           'warn_on_error')
 
 import inspect
 import sys
@@ -11,7 +12,7 @@ from unittest.mock import Mock
 from warnings import warn
 
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
-from ._config import ForwardRefPolicy, TypeCheckConfiguration
+from ._config import ForwardRefPolicy, TypeCheckConfiguration, warn_on_error
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._generators import (
     TypeCheckedAsyncGenerator, TypeCheckedGenerator, asyncgen_origin_types, generator_origin_types)
@@ -28,7 +29,6 @@ else:
     from typing import no_type_check as typeguard_ignore
 
 config = TypeCheckConfiguration()
-
 
 T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
