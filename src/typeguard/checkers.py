@@ -13,7 +13,7 @@ from typing import (
 
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
-from .utils import (
+from ._utils import (
     evaluate_forwardref, get_args, get_origin, get_type_name, is_typeddict, qualified_name)
 
 if sys.version_info >= (3, 9):

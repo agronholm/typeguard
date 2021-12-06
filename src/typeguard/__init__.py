@@ -15,8 +15,8 @@ from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._generators import (
     TypeCheckedAsyncGenerator, TypeCheckedGenerator, asyncgen_origin_types, generator_origin_types)
 from ._memo import CallMemo, TypeCheckMemo
+from ._utils import find_function, function_name
 from .checkers import BINARY_MAGIC_METHODS, check_type_internal
-from .utils import find_function, function_name
 
 if TYPE_CHECKING:
     _F = TypeVar("_F")

@@ -6,7 +6,7 @@ from types import FunctionType
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 from weakref import WeakKeyDictionary
 
-from .utils import function_name
+from ._utils import function_name
 
 if sys.version_info >= (3, 9):
     from typing import get_type_hints

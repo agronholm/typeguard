@@ -1,6 +1,6 @@
 import pytest
 
-from typeguard.utils import function_name, qualified_name
+from typeguard._utils import function_name, qualified_name
 
 from . import Child
 
@@ -15,4 +15,4 @@ def test_qualified_name(inputval, expected):
 
 
 def test_function_name():
-    assert function_name(function_name) == 'typeguard.utils.function_name'
+    assert function_name(function_name) == 'typeguard._utils.function_name'

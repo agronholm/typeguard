@@ -9,8 +9,8 @@ from typing import Any, Callable, List, Optional, Sequence
 
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
+from ._utils import qualified_name
 from .checkers import TypeCheckLookupCallback
-from .utils import qualified_name
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
