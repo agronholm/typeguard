@@ -183,7 +183,7 @@ Type               Notes
                    ``TypedDict`` classes using old-style syntax (see
                    `issue 42059`_)
 ``TypeVar``        Constraints and bound types are typechecked
-``Union``          :pep:`604` unions are support on Python 3.10+
+``Union``          :pep:`604` unions are supported on Python 3.10+
 ================== =============================================================
 
 .. _#101: https://github.com/agronholm/typeguard/issues/101
