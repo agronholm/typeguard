@@ -8,8 +8,8 @@ from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from textwrap import indent
 from typing import (
-    IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, NewType, Optional, Sequence,
-    Set, TextIO, Tuple, Type, TypeVar, Union)
+    IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, Mapping, MutableMapping,
+    NewType, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
 
 from .exceptions import TypeCheckError, TypeHintWarning
 from .memo import TypeCheckMemo
@@ -128,9 +128,16 @@ def check_callable(value: Any, origin_type: Any, args: Tuple[Any, ...],
                     f'but {num_mandatory_args} argument(s) declared')
 
 
-def check_dict(value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo) -> None:
-    if not isinstance(value, dict):
-        raise TypeCheckError('is not a dict')
+def check_mapping(value: Any, origin_type: Any, args: Tuple[Any, ...],
+                  memo: TypeCheckMemo) -> None:
+    if origin_type is Dict or origin_type is dict:
+        if not isinstance(value, dict):
+            raise TypeCheckError('is not a dict')
+    if origin_type is MutableMapping or origin_type is collections.abc.MutableMapping:
+        if not isinstance(value, collections.abc.MutableMapping):
+            raise TypeCheckError('is not a mutable mapping')
+    elif not isinstance(value, collections.abc.Mapping):
+        raise TypeCheckError('is not a mapping')
 
     if args:
         key_type, value_type = args
@@ -467,13 +474,17 @@ origin_type_checkers = {
     Callable: check_callable,
     collections.abc.Callable: check_callable,
     complex: check_number,
-    dict: check_dict,
-    Dict: check_dict,
+    dict: check_mapping,
+    Dict: check_mapping,
     float: check_number,
     IO: check_io,
     list: check_list,
     List: check_list,
     Literal: check_literal,
+    Mapping: check_mapping,
+    MutableMapping: check_mapping,
+    collections.abc.Mapping: check_mapping,
+    collections.abc.MutableMapping: check_mapping,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,

@@ -1,3 +1,4 @@
+import collections.abc
 import sys
 from contextlib import nullcontext
 from functools import partial
@@ -5,7 +6,8 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from typing import (
     IO, AbstractSet, Any, AnyStr, BinaryIO, Callable, Collection, ContextManager, Dict, ForwardRef,
-    Iterator, List, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
+    Iterator, List, Mapping, MutableMapping, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar,
+    Union)
 from unittest.mock import Mock
 
 import pytest
@@ -203,18 +205,78 @@ class TestLiteral:
             match(r"Illegal literal value: 1.1$")
 
 
+class TestMapping:
+    class DummyMapping(collections.abc.Mapping):
+        _values = {'a': 1, 'b': 10, 'c': 100}
+
+        def __getitem__(self, index: str):
+            return self._values[index]
+
+        def __iter__(self):
+            return iter(self._values)
+
+        def __len__(self) -> int:
+            return len(self._values)
+
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, Mapping[str, int]).\
+            match('is not a mapping')
+
+    def test_bad_key_type(self):
+        pytest.raises(TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[int, int]).\
+            match("key 'a' of value is not an instance of int")
+
+    def test_bad_value_type(self):
+        pytest.raises(TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]).\
+            match(r"value of key 'a' of value is not an instance of str")
+
+
+class TestMutableMapping:
+    class DummyMutableMapping(collections.abc.MutableMapping):
+        _values = {'a': 1, 'b': 10, 'c': 100}
+
+        def __getitem__(self, index: str):
+            return self._values[index]
+
+        def __setitem__(self, key, value):
+            self._values[key] = value
+
+        def __delitem__(self, key):
+            del self._values[key]
+
+        def __iter__(self):
+            return iter(self._values)
+
+        def __len__(self) -> int:
+            return len(self._values)
+
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, MutableMapping[str, int]).\
+            match('is not a mutable mapping')
+
+    def test_bad_key_type(self):
+        pytest.raises(TypeCheckError, check_type, TestMutableMapping.DummyMutableMapping(),
+                      MutableMapping[int, int]).\
+            match("key 'a' of value is not an instance of int")
+
+    def test_bad_value_type(self):
+        pytest.raises(TypeCheckError, check_type, TestMutableMapping.DummyMutableMapping(),
+                      MutableMapping[str, str]).\
+            match(r"value of key 'a' of value is not an instance of str")
+
+
 class TestDict:
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Dict[str, int]).\
-            match('is not a dict')
+            match('value is not a dict')
 
     def test_bad_key_type(self):
         pytest.raises(TypeCheckError, check_type, {1: 2}, Dict[str, int]).\
-            match('is not an instance of str')
+            match("key 1 of value is not an instance of str")
 
     def test_bad_value_type(self):
         pytest.raises(TypeCheckError, check_type, {'x': 'a'}, Dict[str, int]).\
-            match(r"value is not an instance of int")
+            match("value of key 'x' of value is not an instance of int")
 
 
 class TestTypedDict:
