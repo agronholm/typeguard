@@ -7,8 +7,8 @@ from dataclasses import InitVar, dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, List, Optional, Sequence
 
+from ._exceptions import TypeCheckError, TypeCheckWarning
 from .checkers import TypeCheckLookupCallback
-from .exceptions import TypeCheckError, TypeCheckWarning
 from .memo import TypeCheckMemo
 from .utils import qualified_name
 

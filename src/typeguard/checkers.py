@@ -11,7 +11,7 @@ from typing import (
     IO, AbstractSet, Any, BinaryIO, Callable, Dict, ForwardRef, List, Mapping, MutableMapping,
     NewType, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
 
-from .exceptions import TypeCheckError, TypeHintWarning
+from ._exceptions import TypeCheckError, TypeHintWarning
 from .memo import TypeCheckMemo
 from .utils import (
     evaluate_forwardref, get_args, get_origin, get_type_name, is_typeddict, qualified_name)

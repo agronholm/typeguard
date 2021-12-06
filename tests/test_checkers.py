@@ -13,8 +13,7 @@ from unittest.mock import Mock
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from typeguard import ForwardRefPolicy, TypeHintWarning, check_type, config
-from typeguard.exceptions import TypeCheckError
+from typeguard import ForwardRefPolicy, TypeCheckError, TypeHintWarning, check_type, config
 
 from . import (
     Child, Employee, JSONType, Parent, RuntimeProtocol, StaticProtocol, TChild, TIntStr, TParent,

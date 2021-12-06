@@ -4,8 +4,7 @@ from typing import Callable, NoReturn
 
 import pytest
 
-from typeguard import check_argument_types, check_return_type
-from typeguard.exceptions import TypeCheckError
+from typeguard import TypeCheckError, check_argument_types, check_return_type
 
 if sys.version_info >= (3, 9):
     from typing import Annotated

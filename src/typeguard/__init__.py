@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, NoReturn, Optional, TypeV
 from unittest.mock import Mock
 from warnings import warn
 
+from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from .checkers import BINARY_MAGIC_METHODS, check_type_internal
 from .config import ForwardRefPolicy, TypeCheckConfiguration
-from .exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from .generators import (
     TypeCheckedAsyncGenerator, TypeCheckedGenerator, asyncgen_origin_types, generator_origin_types)
 from .memo import CallMemo, TypeCheckMemo

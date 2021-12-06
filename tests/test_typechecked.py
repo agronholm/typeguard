@@ -4,8 +4,7 @@ from typing import (
 
 import pytest
 
-from typeguard import typechecked
-from typeguard.exceptions import TypeCheckError
+from typeguard import TypeCheckError, typechecked
 
 
 class TestCoroutineFunction:
