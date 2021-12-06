@@ -63,24 +63,20 @@ except ImportError:
 
 if sys.version_info >= (3, 10):
     from typing import is_typeddict
-elif sys.version_info >= (3, 9):
-    def is_typeddict(tp) -> bool:
-        from typing import _TypedDictMeta
-
-        return isinstance(tp, _TypedDictMeta)
 else:
+    _typed_dict_meta_types = ()
+    if sys.version_info >= (3, 8):
+        from typing import _TypedDictMeta
+        _typed_dict_meta_types += (_TypedDictMeta,)
+
     try:
         from typing_extensions import _TypedDictMeta
+        _typed_dict_meta_types += (_TypedDictMeta,)
     except ImportError:
-        _TypedDictMeta = None
+        pass
 
     def is_typeddict(tp) -> bool:
-        # Check for the typing_extensions version first
-        if _TypedDictMeta is not None:
-            if isinstance(tp, _TypedDictMeta):
-                return True
-
-        return issubclass(tp, dict) and hasattr(tp, '__annotations__')
+        return isinstance(tp, _typed_dict_meta_types)
 
 
 if TYPE_CHECKING:
