@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, ForwardRef
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
-    from .memo import TypeCheckMemo
+    from ._memo import TypeCheckMemo
 
 if sys.version_info >= (3, 10):
     from typing import is_typeddict

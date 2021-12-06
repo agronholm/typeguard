@@ -1,7 +1,7 @@
 import collections.abc
 from typing import Any, AsyncGenerator, AsyncIterable, AsyncIterator, Generator, Iterable, Iterator
 
-from .memo import CallMemo
+from ._memo import CallMemo
 
 
 class TypeCheckedGenerator:

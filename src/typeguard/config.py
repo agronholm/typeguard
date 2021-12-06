@@ -8,8 +8,8 @@ from enum import Enum, auto
 from typing import Any, Callable, List, Optional, Sequence
 
 from ._exceptions import TypeCheckError, TypeCheckWarning
+from ._memo import TypeCheckMemo
 from .checkers import TypeCheckLookupCallback
-from .memo import TypeCheckMemo
 from .utils import qualified_name
 
 if sys.version_info >= (3, 10):

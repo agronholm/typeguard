@@ -11,11 +11,11 @@ from unittest.mock import Mock
 from warnings import warn
 
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
+from ._memo import CallMemo, TypeCheckMemo
 from .checkers import BINARY_MAGIC_METHODS, check_type_internal
 from .config import ForwardRefPolicy, TypeCheckConfiguration
 from .generators import (
     TypeCheckedAsyncGenerator, TypeCheckedGenerator, asyncgen_origin_types, generator_origin_types)
-from .memo import CallMemo, TypeCheckMemo
 from .utils import find_function, function_name
 
 if TYPE_CHECKING:

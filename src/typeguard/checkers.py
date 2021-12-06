@@ -12,7 +12,7 @@ from typing import (
     NewType, Optional, Sequence, Set, TextIO, Tuple, Type, TypeVar, Union)
 
 from ._exceptions import TypeCheckError, TypeHintWarning
-from .memo import TypeCheckMemo
+from ._memo import TypeCheckMemo
 from .utils import (
     evaluate_forwardref, get_args, get_origin, get_type_name, is_typeddict, qualified_name)
 
