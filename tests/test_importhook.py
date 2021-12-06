@@ -106,6 +106,11 @@ def test_inner_class_staticmethod(dummymodule):
     assert retval.__class__.__qualname__ == 'Outer.Inner'
 
 
+def test_contextmanager(dummymodule):
+    with dummymodule.dummy_context_manager() as value:
+        assert value == 1
+
+
 def test_package_name_matching():
     """
     The path finder only matches configured (sub)packages.

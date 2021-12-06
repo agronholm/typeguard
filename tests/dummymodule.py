@@ -1,7 +1,8 @@
 """Module docstring."""
 from __future__ import absolute_import, division
 
-from typing import no_type_check, no_type_check_decorator
+from contextlib import contextmanager
+from typing import Generator, no_type_check, no_type_check_decorator
 
 from typeguard import typeguard_ignore
 
@@ -90,3 +91,8 @@ class Outer:
     @staticmethod
     def create_inner_staticmethod() -> 'Inner':
         return Outer.Inner()
+
+
+@contextmanager
+def dummy_context_manager() -> Generator[int, None, None]:
+    yield 1

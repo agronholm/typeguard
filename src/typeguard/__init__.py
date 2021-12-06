@@ -218,6 +218,9 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         return func
 
     def wrapper(*args, **kwargs):
+        if hasattr(wrapper, '__no_type_check__'):
+            return func(*args, **kwargs)
+
         memo = CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
@@ -239,6 +242,9 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         return retval
 
     async def async_wrapper(*args, **kwargs):
+        if hasattr(async_wrapper, '__no_type_check__'):
+            return func(*args, **kwargs)
+
         memo = CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = await func(*args, **kwargs)
