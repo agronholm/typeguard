@@ -104,7 +104,8 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
-To exclude specific functions or classes from run time type checking, use the ``@typeguard_ignore`` decorator::
+To exclude specific functions or classes from run time type checking, use the
+``@typeguard_ignore`` decorator::
 
     from typeguard import typeguard_ignore
 
@@ -138,13 +139,14 @@ against annotations in the :mod:`typing` module::
     from typeguard import check_type
 
     # Raises TypeError if there's a problem
-    check_type('variablename', [1234], List[int])
+    check_type([1234], List[int])
 
 Support for mock objects
 ------------------------
 
 Typeguard handles the :class:`unittest.mock.Mock` and :class:`unittest.mock.MagicMock` classes
-specially, bypassing any type checks when encountering instances of these classes.
+specially, bypassing any type checks when encountering instances of these classes. Note that any
+"spec" class passed to the mock object is currently not respected.
 
 Supported typing.* types
 ------------------------
@@ -152,32 +154,37 @@ Supported typing.* types
 The following types from the ``typing`` (and ``typing_extensions``) package have specialized
 support:
 
-=============== =============================================================
-Type            Notes
-=============== =============================================================
-``AbstractSet`` Contents are typechecked
-``Callable``    Argument count is checked but types are not (yet)
-``Dict``        Keys and values are typechecked
-``List``        Contents are typechecked
+================== =============================================================
+Type               Notes
+================== =============================================================
+``Annotated``      Original annotation is unwrapped and typechecked normally
+``AbstractSet``    Contents are typechecked
+``BinaryIO``       Specialized instance checks are performed
+``Callable``       Argument count is checked but types are not (yet)
+``Dict``           Keys and values are typechecked
+``IO``             Specialized instance checks are performed
+``List``           Contents are typechecked
 ``Literal``
-``NamedTuple``  Field values are typechecked
+``Mapping``        Keys and values are typechecked
+``MutableMapping`` Keys and values are typechecked
+``NamedTuple``     Field values are typechecked
 ``NoReturn``
-``Protocol``    Run-time protocols are checked with :func:`isinstance`,
-                others are ignored
-``Set``         Contents are typechecked
-``Sequence``    Contents are typechecked
-``Tuple``       Contents are typechecked
+``Protocol``       Run-time protocols are checked with :func:`isinstance`,
+                   others are ignored
+``Set``            Contents are typechecked
+``Sequence``       Contents are typechecked
+``TextIO``         Specialized instance checks are performed
+``Tuple``          Contents are typechecked
 ``Type``
-``TypedDict``   Contents are typechecked; On Python 3.8 and earlier,
-                ``total`` from superclasses is not respected (see `#101`_ for
-                more information); On Python 3.9.0 or ``typing_extensions``
-                <= 3.7.4.3, false positives can happen when constructing
-                ``TypedDict`` classes using old-style syntax (see
-                `issue 42059`_)
-``TypeVar``     Constraints, bound types and co/contravariance are supported
-                but custom generic types are not (due to type erasure)
-``Union``
-=============== =============================================================
+``TypedDict``      Contents are typechecked; On Python 3.8 and earlier,
+                   ``total`` from superclasses is not respected (see `#101`_ for
+                   more information); On Python 3.9.0 or ``typing_extensions``
+                   <= 3.7.4.3, false positives can happen when constructing
+                   ``TypedDict`` classes using old-style syntax (see
+                   `issue 42059`_)
+``TypeVar``        Constraints and bound types are typechecked
+``Union``          :pep:`604` unions are support on Python 3.10+
+================== =============================================================
 
 .. _#101: https://github.com/agronholm/typeguard/issues/101
 .. _issue 42059: https://bugs.python.org/issue42059
