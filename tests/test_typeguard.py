@@ -155,7 +155,7 @@ def test_exec_no_namespace():
         from typeguard import typechecked
 
         @typechecked
-        def f():
+        def f() -> None:
             pass
 
         """), {})
