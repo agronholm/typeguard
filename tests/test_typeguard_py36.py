@@ -1,3 +1,4 @@
+import sys
 import warnings
 from typing import Any, AsyncGenerator, AsyncIterable, AsyncIterator, Callable, Dict
 
@@ -7,9 +8,9 @@ from typing_extensions import Protocol, runtime_checkable
 from typeguard import TypeChecker, typechecked
 
 try:
-    from typing_extensions import TypedDict
-except ImportError:
     from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 
 
 @runtime_checkable
@@ -110,7 +111,9 @@ class TestTypeChecked:
             pass
 
         foo({'x': 1})
-        pytest.raises(TypeError, foo, {'y': 1})
+        if sys.version_info[:2] != (3, 8):
+            # TypedDict is unusable for runtime checking on Python 3.8
+            pytest.raises(TypeError, foo, {'y': 1})
 
     def test_mapping_is_not_typeddict(self):
         """Regression test for #216."""
