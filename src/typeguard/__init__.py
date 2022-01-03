@@ -13,7 +13,7 @@ from functools import partial, wraps
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from traceback import extract_stack, print_stack
-from types import CodeType, FunctionType
+from types import CodeType, FunctionType, UnionType
 from typing import (
     IO, TYPE_CHECKING, AbstractSet, Any, AsyncIterable, AsyncIterator, BinaryIO, Callable, Dict,
     Generator, Iterable, Iterator, List, NewType, Optional, Sequence, Set, TextIO, Tuple, Type,
@@ -791,6 +791,9 @@ def check_type(argname: str, value, expected_type, memo: Optional[_TypeCheckMemo
     elif isinstance(expected_type, Literal.__class__):
         # Only happens on < 3.7 when using Literal from typing_extensions
         check_literal(argname, value, expected_type, memo)
+    elif isinstance(expected_type, UnionType):
+        # Only happens on >= 3.10
+        check_union(argname, value, expected_type, memo)
     elif expected_type.__class__ is NewType:
         # typing.NewType on Python 3.10+
         return check_type(argname, value, expected_type.__supertype__, memo)
