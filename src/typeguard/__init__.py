@@ -1,14 +1,6 @@
-__all__ = (
-    'ForwardRefPolicy',
-    'TypeHintWarning',
-    'typechecked',
-    'check_return_type',
-    'check_argument_types',
-    'check_type',
-    'TypeWarning',
-    'TypeChecker',
-    'typeguard_ignore',
-)
+__all__ = ('ForwardRefPolicy', 'TypeHintWarning', 'typechecked', 'check_return_type',
+           'check_argument_types', 'check_type', 'TypeWarning', 'TypeChecker',
+           'typeguard_ignore')
 
 import collections.abc
 import gc
