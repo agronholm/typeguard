@@ -383,7 +383,7 @@ def check_callable(argname: str, value: Any, expected_type: Any, memo: _TypeChec
         try:
             signature = inspect.signature(value)
         except (TypeError, ValueError):
-            return
+            return None
 
         if hasattr(expected_type, '__result__'):
             # Python 3.5
@@ -530,7 +530,7 @@ def check_tuple(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMe
         for name, field_type in field_types.items():
             check_type('{}.{}'.format(argname, name), getattr(value, name), field_type, memo)
 
-        return
+        return None
     elif not isinstance(value, tuple):
         raise TypeError('type of {} must be a tuple; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -545,7 +545,7 @@ def check_tuple(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMe
         tuple_params = expected_type.__args__[:-1 if use_ellipsis else None]
     else:
         # Unparametrized Tuple or plain tuple
-        return
+        return None
 
     if use_ellipsis:
         element_type = tuple_params[0]
@@ -574,7 +574,7 @@ def check_union(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMe
     for type_ in union_params:
         try:
             check_type(argname, value, type_, memo)
-            return
+            return None
         except TypeError:
             pass
 
@@ -590,7 +590,7 @@ def check_class(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMe
 
     # Needed on Python 3.7+
     if expected_type is Type:
-        return
+        return None
 
     if getattr(expected_type, '__origin__', None) in (Type, type):
         expected_class = expected_type.__args__[0]
@@ -598,7 +598,7 @@ def check_class(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMe
         expected_class = expected_type
 
     if expected_class is Any:
-        return
+        return None
     elif isinstance(expected_class, TypeVar):
         check_typevar(argname, value, expected_class, memo, True)
     elif getattr(expected_class, '__origin__', None) is Union:
@@ -756,7 +756,7 @@ def check_type(argname: str, value: Any, expected_type: Type[Any], memo: Optiona
 
     """
     if expected_type is Any or isinstance(value, Mock):
-        return
+        return None
 
     if expected_type is None:
         # Only happens on < 3.6
@@ -1235,7 +1235,7 @@ class TypeChecker:
             # running but was then stopped. The thread's profiler callback can't be reset any other
             # way but this.
             sys.setprofile(self._previous_thread_profiler)
-            return
+            return None
 
         # If an actual profiler is running, don't include the type checking times in its results
         if event == 'call':
@@ -1269,7 +1269,7 @@ class TypeChecker:
             if arg is None:
                 # a None return value might mean an exception is being raised but we have no way of
                 # checking
-                return
+                return None
 
             memo_ = self._call_memos.get(frame)
             if memo_ is not None:
