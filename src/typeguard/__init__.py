@@ -1,13 +1,13 @@
 __all__ = (
-    "ForwardRefPolicy",
-    "TypeHintWarning",
-    "typechecked",
-    "check_return_type",
-    "check_argument_types",
-    "check_type",
-    "TypeWarning",
-    "TypeChecker",
-    "typeguard_ignore",
+    'ForwardRefPolicy',
+    'TypeHintWarning',
+    'typechecked',
+    'check_return_type',
+    'check_argument_types',
+    'check_type',
+    'TypeWarning',
+    'TypeChecker',
+    'typeguard_ignore',
 )
 
 import collections.abc
@@ -128,76 +128,75 @@ else:
 
 
 if TYPE_CHECKING:
-    _F = TypeVar("_F")
+    _F = TypeVar('_F')
 
     def typeguard_ignore(f: _F) -> _F:
         """This decorator is a noop during static type-checking."""
         return f
 
+
 else:
     from typing import no_type_check as typeguard_ignore
 
 
-_type_hints_map = cast(
-    Dict[Union[FunctionType, MethodType], Dict[str, Any]], WeakKeyDictionary()
-)
+_type_hints_map = cast(Dict[Union[FunctionType, MethodType], Dict[str, Any]], WeakKeyDictionary())
 _functions_map = cast(Dict[CodeType, FunctionType], WeakValueDictionary())
 _missing = object()
 
-T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
+T_CallableOrType = TypeVar('T_CallableOrType', bound=Callable[..., Any])
 
 # Lifted from mypy.sharedparse
 BINARY_MAGIC_METHODS = {
-    "__add__",
-    "__and__",
-    "__cmp__",
-    "__divmod__",
-    "__div__",
-    "__eq__",
-    "__floordiv__",
-    "__ge__",
-    "__gt__",
-    "__iadd__",
-    "__iand__",
-    "__idiv__",
-    "__ifloordiv__",
-    "__ilshift__",
-    "__imatmul__",
-    "__imod__",
-    "__imul__",
-    "__ior__",
-    "__ipow__",
-    "__irshift__",
-    "__isub__",
-    "__itruediv__",
-    "__ixor__",
-    "__le__",
-    "__lshift__",
-    "__lt__",
-    "__matmul__",
-    "__mod__",
-    "__mul__",
-    "__ne__",
-    "__or__",
-    "__pow__",
-    "__radd__",
-    "__rand__",
-    "__rdiv__",
-    "__rfloordiv__",
-    "__rlshift__",
-    "__rmatmul__",
-    "__rmod__",
-    "__rmul__",
-    "__ror__",
-    "__rpow__",
-    "__rrshift__",
-    "__rshift__",
-    "__rsub__",
-    "__rtruediv__",
-    "__rxor__",
-    "__sub__",
-    "__truediv__",
-    "__xor__",
+    '__add__',
+    '__and__',
+    '__cmp__',
+    '__divmod__',
+    '__div__',
+    '__eq__',
+    '__floordiv__',
+    '__ge__',
+    '__gt__',
+    '__iadd__',
+    '__iand__',
+    '__idiv__',
+    '__ifloordiv__',
+    '__ilshift__',
+    '__imatmul__',
+    '__imod__',
+    '__imul__',
+    '__ior__',
+    '__ipow__',
+    '__irshift__',
+    '__isub__',
+    '__itruediv__',
+    '__ixor__',
+    '__le__',
+    '__lshift__',
+    '__lt__',
+    '__matmul__',
+    '__mod__',
+    '__mul__',
+    '__ne__',
+    '__or__',
+    '__pow__',
+    '__radd__',
+    '__rand__',
+    '__rdiv__',
+    '__rfloordiv__',
+    '__rlshift__',
+    '__rmatmul__',
+    '__rmod__',
+    '__rmul__',
+    '__ror__',
+    '__rpow__',
+    '__rrshift__',
+    '__rshift__',
+    '__rsub__',
+    '__rtruediv__',
+    '__rxor__',
+    '__sub__',
+    '__truediv__',
+    '__xor__',
 }
 
 
@@ -219,7 +218,7 @@ class TypeHintWarning(UserWarning):
 
 
 class _TypeCheckMemo:
-    __slots__ = "globals", "locals"
+    __slots__ = 'globals', 'locals'
 
     def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any]) -> None:
         self.globals = globals
@@ -234,7 +233,7 @@ def _strip_annotation(annotation: Union[str, Any]) -> Union[str, Any]:
 
 
 class _CallMemo(_TypeCheckMemo):
-    __slots__ = "func", "func_name", "arguments", "is_generator", "type_hints"
+    __slots__ = 'func', 'func_name', 'arguments', 'is_generator', 'type_hints'
 
     def __init__(
         self,
@@ -256,13 +255,9 @@ class _CallMemo(_TypeCheckMemo):
         signature = inspect.signature(func)
 
         if args is not None and kwargs is not None:
-            self.arguments = cast(
-                Dict[str, Any], signature.bind(*args, **kwargs).arguments
-            )
+            self.arguments = cast(Dict[str, Any], signature.bind(*args, **kwargs).arguments)
         else:
-            assert (
-                frame_locals is not None
-            ), "frame must be specified if args or kwargs is None"
+            assert frame_locals is not None, 'frame must be specified if args or kwargs is None'
             self.arguments = frame_locals
 
         self.type_hints = _type_hints_map.get(func)  # type: Optional[Dict[str, Any]]
@@ -291,13 +286,13 @@ class _CallMemo(_TypeCheckMemo):
                             stripped = _strip_annotation(param.annotation)
                             if stripped == argtype.__qualname__:
                                 func.__annotations__[param.name] = argtype
-                                msg = "Replaced forward declaration {!r} in {} with {!r}".format(
+                                msg = 'Replaced forward declaration {!r} in {} with {!r}'.format(
                                     stripped, func_name, argtype
                                 )
                                 warn(TypeHintWarning(msg))
                                 continue
 
-                    msg = "Could not resolve type hint {!r} on {}: {}".format(
+                    msg = 'Could not resolve type hint {!r} on {}: {}'.format(
                         param.annotation, function_name(func), exc
                     )
                     warn(TypeHintWarning(msg))
@@ -321,8 +316,8 @@ class _CallMemo(_TypeCheckMemo):
                     else:
                         self.type_hints[name] = annotated_type_
 
-            if "return" in hints:
-                self.type_hints["return"] = hints["return"]
+            if 'return' in hints:
+                self.type_hints['return'] = hints['return']
 
             _type_hints_map[func] = self.type_hints
 
@@ -332,9 +327,7 @@ def resolve_forwardref(maybe_ref: Any, memo: _TypeCheckMemo) -> Any:
         if sys.version_info < (3, 9, 0):
             return evaluate_forwardref(maybe_ref, memo.globals, memo.locals)
         else:
-            return evaluate_forwardref(
-                maybe_ref, memo.globals, memo.locals, frozenset()
-            )
+            return evaluate_forwardref(maybe_ref, memo.globals, memo.locals, frozenset())
 
     else:
         return maybe_ref
@@ -342,28 +335,28 @@ def resolve_forwardref(maybe_ref: Any, memo: _TypeCheckMemo) -> Any:
 
 def get_type_name(type_: object) -> str:
     name = (
-        getattr(type_, "__name__", None)
-        or getattr(type_, "_name", None)
-        or getattr(type_, "__forward_arg__", None)
+        getattr(type_, '__name__', None)
+        or getattr(type_, '_name', None)
+        or getattr(type_, '__forward_arg__', None)
     )
     if name is None:
-        origin = getattr(type_, "__origin__", None)
-        name = getattr(origin, "_name", None)
+        origin = getattr(type_, '__origin__', None)
+        name = getattr(origin, '_name', None)
         if name is None and not inspect.isclass(type_):
-            name = type_.__class__.__name__.strip("_")
+            name = type_.__class__.__name__.strip('_')
 
-    args = getattr(type_, "__args__", ()) or getattr(type_, "__values__", ())
-    if args != getattr(type_, "__parameters__", ()):
-        if name == "Literal":
-            formatted_args = ", ".join(str(arg) for arg in args)
+    args = getattr(type_, '__args__', ()) or getattr(type_, '__values__', ())
+    if args != getattr(type_, '__parameters__', ()):
+        if name == 'Literal':
+            formatted_args = ', '.join(str(arg) for arg in args)
         else:
-            formatted_args = ", ".join(str(get_type_name(arg)) for arg in args)
+            formatted_args = ', '.join(str(get_type_name(arg)) for arg in args)
 
-        name = "{}[{}]".format(name, formatted_args)
+        name = '{}[{}]'.format(name, formatted_args)
 
-    module = getattr(type_, "__module__", None)
-    if module not in (None, "typing", "typing_extensions", "builtins"):
-        name = "{}.{}".format(module, name)
+    module = getattr(type_, '__module__', None)
+    if module not in (None, 'typing', 'typing_extensions', 'builtins'):
+        name = '{}.{}'.format(module, name)
 
     return str(name)
 
@@ -395,7 +388,7 @@ def find_function(frame: FrameType) -> Optional[FunctionType]:
         if func is not None:
             _functions_map[frame.f_code] = func
         else:
-            raise LookupError("target function not found")
+            raise LookupError('target function not found')
 
     return func
 
@@ -411,11 +404,7 @@ def qualified_name(obj: Any) -> str:
     type_ = obj if inspect.isclass(obj) else type(obj)
     module = type_.__module__
     qualname = type_.__qualname__
-    return (
-        qualname
-        if module in ("typing", "builtins")
-        else "{}.{}".format(module, qualname)
-    )
+    return qualname if module in ('typing', 'builtins') else '{}.{}'.format(module, qualname)
 
 
 def function_name(func: Union[FunctionType, MethodType]) -> str:
@@ -428,24 +417,22 @@ def function_name(func: Union[FunctionType, MethodType]) -> str:
     """
     # For partial functions and objects with __call__ defined, __qualname__ does not exist
     # For functions run in `exec` with a custom namespace, __module__ can be None
-    module = getattr(func, "__module__", "") or ""
-    qualname = (module + ".") if module not in ("builtins", "") else ""
-    return qualname + getattr(func, "__qualname__", repr(func))
+    module = getattr(func, '__module__', '') or ''
+    qualname = (module + '.') if module not in ('builtins', '') else ''
+    return qualname + getattr(func, '__qualname__', repr(func))
 
 
-def check_callable(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_callable(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not callable(value):
-        raise TypeError("{} must be a callable".format(argname))
+        raise TypeError('{} must be a callable'.format(argname))
 
-    if getattr(expected_type, "__args__", None):
+    if getattr(expected_type, '__args__', None):
         try:
             signature = inspect.signature(value)
         except (TypeError, ValueError):
             return
 
-        if hasattr(expected_type, "__result__"):
+        if hasattr(expected_type, '__result__'):
             # Python 3.5
             argument_types = expected_type.__args__
             check_args = argument_types is not Ellipsis
@@ -459,13 +446,12 @@ def check_callable(
             unfulfilled_kwonlyargs = [
                 param.name
                 for param in signature.parameters.values()
-                if param.kind == Parameter.KEYWORD_ONLY
-                and param.default == Parameter.empty
+                if param.kind == Parameter.KEYWORD_ONLY and param.default == Parameter.empty
             ]
             if unfulfilled_kwonlyargs:
                 raise TypeError(
-                    "callable passed as {} has mandatory keyword-only arguments in its "
-                    "declaration: {}".format(argname, ", ".join(unfulfilled_kwonlyargs))
+                    'callable passed as {} has mandatory keyword-only arguments in its '
+                    'declaration: {}'.format(argname, ', '.join(unfulfilled_kwonlyargs))
                 )
 
             num_mandatory_args = len(
@@ -488,47 +474,41 @@ def check_callable(
 
             if num_mandatory_args > len(argument_types):
                 raise TypeError(
-                    "callable passed as {} has too many arguments in its declaration; expected {} "
-                    "but {} argument(s) declared".format(
+                    'callable passed as {} has too many arguments in its declaration; expected {} '
+                    'but {} argument(s) declared'.format(
                         argname, len(argument_types), num_mandatory_args
                     )
                 )
             elif not has_varargs and num_mandatory_args < len(argument_types):
                 raise TypeError(
-                    "callable passed as {} has too few arguments in its declaration; expected {} "
-                    "but {} argument(s) declared".format(
+                    'callable passed as {} has too few arguments in its declaration; expected {} '
+                    'but {} argument(s) declared'.format(
                         argname, len(argument_types), num_mandatory_args
                     )
                 )
 
 
-def check_dict(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_dict(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not isinstance(value, dict):
         raise TypeError(
-            "type of {} must be a dict; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a dict; got {} instead'.format(argname, qualified_name(value))
         )
 
     if expected_type is not dict:
-        if hasattr(expected_type, "__args__") and expected_type.__args__ not in (
+        if hasattr(expected_type, '__args__') and expected_type.__args__ not in (
             None,
             expected_type.__parameters__,
         ):
             key_type, value_type = expected_type.__args__
             if key_type is not Any or value_type is not Any:
                 for k, v in value.items():
-                    check_type("keys of {}".format(argname), k, key_type, memo)
-                    check_type("{}[{!r}]".format(argname, k), v, value_type, memo)
+                    check_type('keys of {}'.format(argname), k, key_type, memo)
+                    check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
 
 
-def check_typed_dict(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_typed_dict(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     declared_keys = frozenset(expected_type.__annotations__)
-    if hasattr(expected_type, "__required_keys__"):
+    if hasattr(expected_type, '__required_keys__'):
         required_keys = expected_type.__required_keys__
     else:  # py3.8 and lower
         required_keys = declared_keys if expected_type.__total__ else frozenset()
@@ -536,15 +516,13 @@ def check_typed_dict(
     existing_keys = frozenset(value)
     extra_keys = existing_keys - declared_keys
     if extra_keys:
-        keys_formatted = ", ".join('"{}"'.format(key) for key in sorted(extra_keys))
-        raise TypeError("extra key(s) ({}) in {}".format(keys_formatted, argname))
+        keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(extra_keys))
+        raise TypeError('extra key(s) ({}) in {}'.format(keys_formatted, argname))
 
     missing_keys = required_keys - existing_keys
     if missing_keys:
-        keys_formatted = ", ".join('"{}"'.format(key) for key in sorted(missing_keys))
-        raise TypeError(
-            "required key(s) ({}) missing from {}".format(keys_formatted, argname)
-        )
+        keys_formatted = ', '.join('"{}"'.format(key) for key in sorted(missing_keys))
+        raise TypeError('required key(s) ({}) missing from {}'.format(keys_formatted, argname))
 
     for key, argtype in get_type_hints(expected_type).items():
         argvalue = value.get(key, _missing)
@@ -557,84 +535,68 @@ def check_typed_dict(
             )
 
 
-def check_list(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_list(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not isinstance(value, list):
         raise TypeError(
-            "type of {} must be a list; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a list; got {} instead'.format(argname, qualified_name(value))
         )
 
     if expected_type is not list:
-        if hasattr(expected_type, "__args__") and expected_type.__args__ not in (
+        if hasattr(expected_type, '__args__') and expected_type.__args__ not in (
             None,
             expected_type.__parameters__,
         ):
             value_type = expected_type.__args__[0]
             if value_type is not Any:
                 for i, v in enumerate(value):
-                    check_type("{}[{}]".format(argname, i), v, value_type, memo)
+                    check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_sequence(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_sequence(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not isinstance(value, collections.abc.Sequence):
         raise TypeError(
-            "type of {} must be a sequence; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a sequence; got {} instead'.format(argname, qualified_name(value))
         )
 
-    if hasattr(expected_type, "__args__") and expected_type.__args__ not in (
+    if hasattr(expected_type, '__args__') and expected_type.__args__ not in (
         None,
         expected_type.__parameters__,
     ):
         value_type = expected_type.__args__[0]
         if value_type is not Any:
             for i, v in enumerate(value):
-                check_type("{}[{}]".format(argname, i), v, value_type, memo)
+                check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_set(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_set(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not isinstance(value, AbstractSet):
         raise TypeError(
-            "type of {} must be a set; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a set; got {} instead'.format(argname, qualified_name(value))
         )
 
     if expected_type is not set:
-        if hasattr(expected_type, "__args__") and expected_type.__args__ not in (
+        if hasattr(expected_type, '__args__') and expected_type.__args__ not in (
             None,
             expected_type.__parameters__,
         ):
             value_type = expected_type.__args__[0]
             if value_type is not Any:
                 for v in value:
-                    check_type("elements of {}".format(argname), v, value_type, memo)
+                    check_type('elements of {}'.format(argname), v, value_type, memo)
 
 
-def check_tuple(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_tuple(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     # Specialized check for NamedTuples
     is_named_tuple = False
     if sys.version_info < (3, 8, 0):
-        is_named_tuple = hasattr(
-            expected_type, "_field_types"
-        )  # deprecated since python 3.8
+        is_named_tuple = hasattr(expected_type, '_field_types')  # deprecated since python 3.8
     else:
-        is_named_tuple = hasattr(expected_type, "__annotations__")
+        is_named_tuple = hasattr(expected_type, '__annotations__')
 
     if is_named_tuple:
         if not isinstance(value, expected_type):
             raise TypeError(
-                "type of {} must be a named tuple of type {}; got {} instead".format(
+                'type of {} must be a named tuple of type {}; got {} instead'.format(
                     argname,
                     qualified_name(expected_type),
                     qualified_name(value),
@@ -648,7 +610,7 @@ def check_tuple(
 
         for name, field_type in field_types.items():
             check_type(
-                "{}.{}".format(argname, name),
+                '{}.{}'.format(argname, name),
                 getattr(value, name),
                 field_type,
                 memo,
@@ -657,16 +619,14 @@ def check_tuple(
         return
     elif not isinstance(value, tuple):
         raise TypeError(
-            "type of {} must be a tuple; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a tuple; got {} instead'.format(argname, qualified_name(value))
         )
 
-    if getattr(expected_type, "__tuple_params__", None):
+    if getattr(expected_type, '__tuple_params__', None):
         # Python 3.5
         use_ellipsis = expected_type.__tuple_use_ellipsis__
         tuple_params = expected_type.__tuple_params__
-    elif getattr(expected_type, "__args__", None):
+    elif getattr(expected_type, '__args__', None):
         # Python 3.6+
         use_ellipsis = expected_type.__args__[-1] is Ellipsis
         tuple_params = expected_type.__args__[: -1 if use_ellipsis else None]
@@ -677,28 +637,24 @@ def check_tuple(
     if use_ellipsis:
         element_type = tuple_params[0]
         for i, element in enumerate(value):
-            check_type("{}[{}]".format(argname, i), element, element_type, memo)
+            check_type('{}[{}]'.format(argname, i), element, element_type, memo)
     elif tuple_params == ((),):
         if value != ():
-            raise TypeError(
-                "{} is not an empty tuple but one was expected".format(argname)
-            )
+            raise TypeError('{} is not an empty tuple but one was expected'.format(argname))
     else:
         if len(value) != len(tuple_params):
             raise TypeError(
-                "{} has wrong number of elements (expected {}, got {} instead)".format(
+                '{} has wrong number of elements (expected {}, got {} instead)'.format(
                     argname, len(tuple_params), len(value)
                 )
             )
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
-            check_type("{}[{}]".format(argname, i), element, element_type, memo)
+            check_type('{}[{}]'.format(argname, i), element, element_type, memo)
 
 
-def check_union(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
-    if hasattr(expected_type, "__union_params__"):
+def check_union(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
+    if hasattr(expected_type, '__union_params__'):
         # Python 3.5
         union_params = expected_type.__union_params__
     else:
@@ -712,29 +668,25 @@ def check_union(
         except TypeError:
             pass
 
-    typelist = ", ".join(get_type_name(t) for t in union_params)
+    typelist = ', '.join(get_type_name(t) for t in union_params)
     raise TypeError(
-        "type of {} must be one of ({}); got {} instead".format(
+        'type of {} must be one of ({}); got {} instead'.format(
             argname, typelist, qualified_name(value)
         )
     )
 
 
-def check_class(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_class(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     if not isclass(value):
         raise TypeError(
-            "type of {} must be a type; got {} instead".format(
-                argname, qualified_name(value)
-            )
+            'type of {} must be a type; got {} instead'.format(argname, qualified_name(value))
         )
 
     # Needed on Python 3.7+
     if expected_type is Type:
         return
 
-    if getattr(expected_type, "__origin__", None) in (Type, type):
+    if getattr(expected_type, '__origin__', None) in (Type, type):
         expected_class = expected_type.__args__[0]
     else:
         expected_class = expected_type
@@ -743,7 +695,7 @@ def check_class(
         return
     elif isinstance(expected_class, TypeVar):
         check_typevar(argname, value, expected_class, memo, True)
-    elif getattr(expected_class, "__origin__", None) is Union:
+    elif getattr(expected_class, '__origin__', None) is Union:
         for arg in expected_class.__args__:
             try:
                 check_class(argname, value, arg, memo)
@@ -751,17 +703,15 @@ def check_class(
             except TypeError:
                 pass
         else:
-            formatted_args = ", ".join(
-                get_type_name(arg) for arg in expected_class.__args__
-            )
+            formatted_args = ', '.join(get_type_name(arg) for arg in expected_class.__args__)
             raise TypeError(
-                "{} must match one of the following: ({}); got {} instead".format(
+                '{} must match one of the following: ({}); got {} instead'.format(
                     argname, formatted_args, qualified_name(value)
                 )
             )
     elif not issubclass(value, expected_class):
         raise TypeError(
-            "{} must be a subclass of {}; got {} instead".format(
+            '{} must be a subclass of {}; got {} instead'.format(
                 argname, qualified_name(expected_class), qualified_name(value)
             )
         )
@@ -775,13 +725,13 @@ def check_typevar(
     subclass_check: bool = False,
 ) -> None:
     value_type = value if subclass_check else type(value)
-    subject = argname if subclass_check else "type of " + argname
+    subject = argname if subclass_check else 'type of ' + argname
 
     if typevar.__bound__ is not None:
         bound_type = resolve_forwardref(typevar.__bound__, memo)
         if not issubclass(value_type, bound_type):
             raise TypeError(
-                "{} must be {} or one of its subclasses; got {} instead".format(
+                '{} must be {} or one of its subclasses; got {} instead'.format(
                     subject,
                     qualified_name(bound_type),
                     qualified_name(value_type),
@@ -797,19 +747,17 @@ def check_typevar(
             else:
                 break
         else:
-            formatted_constraints = ", ".join(
+            formatted_constraints = ', '.join(
                 get_type_name(constraint) for constraint in constraints
             )
             raise TypeError(
-                "{} must match one of the constraints ({}); got {} instead".format(
+                '{} must match one of the constraints ({}); got {} instead'.format(
                     subject, formatted_constraints, qualified_name(value_type)
                 )
             )
 
 
-def check_literal(
-    argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo
-) -> None:
+def check_literal(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMemo) -> None:
     def get_args(literal: Any) -> List[Any]:
         try:
             args = literal.__args__
@@ -819,38 +767,33 @@ def check_literal(
 
         retval = []  # type: List[Any]
         for arg in args:
-            if (
-                isinstance(arg, Literal.__class__)
-                or getattr(arg, "__origin__", None) is Literal
-            ):
+            if isinstance(arg, Literal.__class__) or getattr(arg, '__origin__', None) is Literal:
                 # The first check works on py3.6 and lower, the second one on py3.7+
                 retval.extend(get_args(arg))
             elif isinstance(arg, (int, str, bytes, bool, type(None), Enum)):
                 retval.append(arg)
             else:
-                raise TypeError("Illegal literal value: {}".format(arg))
+                raise TypeError('Illegal literal value: {}'.format(arg))
 
         return retval
 
     final_args = tuple(get_args(expected_type))
     if value not in final_args:
         raise TypeError(
-            "the value of {} must be one of {}; got {} instead".format(
-                argname, final_args, value
-            )
+            'the value of {} must be one of {}; got {} instead'.format(argname, final_args, value)
         )
 
 
 def check_number(argname: str, value: Any, expected_type: Any) -> None:
     if expected_type is complex and not isinstance(value, (complex, float, int)):
         raise TypeError(
-            "type of {} must be either complex, float or int; got {} instead".format(
+            'type of {} must be either complex, float or int; got {} instead'.format(
                 argname, qualified_name(value.__class__)
             )
         )
     elif expected_type is float and not isinstance(value, (float, int)):
         raise TypeError(
-            "type of {} must be either float or int; got {} instead".format(
+            'type of {} must be either float or int; got {} instead'.format(
                 argname, qualified_name(value.__class__)
             )
         )
@@ -860,20 +803,20 @@ def check_io(argname: str, value: Any, expected_type: Any) -> None:
     if expected_type is TextIO:
         if not isinstance(value, TextIOBase):
             raise TypeError(
-                "type of {} must be a text based I/O object; got {} instead".format(
+                'type of {} must be a text based I/O object; got {} instead'.format(
                     argname, qualified_name(value.__class__)
                 )
             )
     elif expected_type is BinaryIO:
         if not isinstance(value, (RawIOBase, BufferedIOBase)):
             raise TypeError(
-                "type of {} must be a binary I/O object; got {} instead".format(
+                'type of {} must be a binary I/O object; got {} instead'.format(
                     argname, qualified_name(value.__class__)
                 )
             )
     elif not isinstance(value, IOBase):
         raise TypeError(
-            "type of {} must be an I/O object; got {} instead".format(
+            'type of {} must be an I/O object; got {} instead'.format(
                 argname, qualified_name(value.__class__)
             )
         )
@@ -881,10 +824,10 @@ def check_io(argname: str, value: Any, expected_type: Any) -> None:
 
 def check_protocol(argname: str, value: Any, expected_type: Any) -> None:
     # TODO: implement proper compatibility checking and support non-runtime protocols
-    if getattr(expected_type, "_is_runtime_protocol", False):
+    if getattr(expected_type, '_is_runtime_protocol', False):
         if not isinstance(value, expected_type):
             raise TypeError(
-                "type of {} ({}) is not compatible with the {} protocol".format(
+                'type of {} ({}) is not compatible with the {} protocol'.format(
                     argname,
                     type(value).__qualname__,
                     expected_type.__qualname__,
@@ -912,7 +855,7 @@ origin_type_checkers = {
     Type: check_class,
     Union: check_union,
 }
-_subclass_check_unions = hasattr(Union, "__union_set_params__")
+_subclass_check_unions = hasattr(Union, '__union_set_params__')
 if Literal is not None:
     origin_type_checkers[Literal] = check_literal
 
@@ -932,7 +875,7 @@ asyncgen_origin_types = (
 )  # type: Tuple[Type[Any], ...]
 if AsyncGenerator is not None:
     asyncgen_origin_types += (AsyncGenerator,)
-if hasattr(collections.abc, "AsyncGenerator"):
+if hasattr(collections.abc, 'AsyncGenerator'):
     asyncgen_origin_types += (collections.abc.AsyncGenerator,)
 
 
@@ -979,7 +922,7 @@ def check_type(
         memo = _TypeCheckMemo(globals, locals)
 
     expected_type = resolve_forwardref(expected_type, memo)
-    origin_type = getattr(expected_type, "__origin__", None)
+    origin_type = getattr(expected_type, '__origin__', None)
     if origin_type is not None:
         checker_func = origin_type_checkers.get(origin_type)
         if checker_func:
@@ -999,26 +942,24 @@ def check_type(
             check_io(argname, value, expected_type)
         elif is_typeddict(expected_type):
             check_typed_dict(argname, value, expected_type, memo)
-        elif getattr(expected_type, "_is_protocol", False):
+        elif getattr(expected_type, '_is_protocol', False):
             check_protocol(argname, value, expected_type)
         else:
             expected_type = (
-                getattr(expected_type, "__extra__", None)
-                or origin_type
-                or expected_type
+                getattr(expected_type, '__extra__', None) or origin_type or expected_type
             )
 
             if expected_type is bytes:
                 # As per https://github.com/python/typing/issues/552
                 if not isinstance(value, (bytearray, bytes, memoryview)):
                     raise TypeError(
-                        "type of {} must be bytes-like; got {} instead".format(
+                        'type of {} must be bytes-like; got {} instead'.format(
                             argname, qualified_name(value)
                         )
                     )
             elif not isinstance(value, expected_type):
                 raise TypeError(
-                    "type of {} must be {}; got {} instead".format(
+                    'type of {} must be {}; got {} instead'.format(
                         argname,
                         qualified_name(expected_type),
                         qualified_name(value),
@@ -1035,9 +976,9 @@ def check_type(
         return check_type(argname, value, expected_type.__supertype__, memo)
     elif (
         isfunction(expected_type)
-        and getattr(expected_type, "__module__", None) == "typing"
-        and getattr(expected_type, "__qualname__", "").startswith("NewType.")
-        and hasattr(expected_type, "__supertype__")
+        and getattr(expected_type, '__module__', None) == 'typing'
+        and getattr(expected_type, '__qualname__', '').startswith('NewType.')
+        and hasattr(expected_type, '__supertype__')
     ):
         # typing.NewType on Python 3.9 and below
         return check_type(argname, value, expected_type.__supertype__, memo)  # type: ignore[attr-defined]
@@ -1067,19 +1008,17 @@ def check_return_type(retval: Any, memo: Optional[_CallMemo] = None) -> bool:
         else:
             return False
 
-    if type(memo.type_hints) is dict and "return" in memo.type_hints:
-        if memo.type_hints["return"] is NoReturn:
-            raise TypeError(
-                "{}() was declared never to return but it did".format(memo.func_name)
-            )
+    if type(memo.type_hints) is dict and 'return' in memo.type_hints:
+        if memo.type_hints['return'] is NoReturn:
+            raise TypeError('{}() was declared never to return but it did'.format(memo.func_name))
 
         try:
-            check_type("the return value", retval, memo.type_hints["return"], memo)
+            check_type('the return value', retval, memo.type_hints['return'], memo)
         except TypeError as exc:  # suppress unnecessarily long tracebacks
             # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if retval is NotImplemented and memo.type_hints["return"] is bool:
+            if retval is NotImplemented and memo.type_hints['return'] is bool:
                 # This does (and cannot) not check if it's actually a method
-                func_name = memo.func_name.rsplit(".", 1)[-1]
+                func_name = memo.func_name.rsplit('.', 1)[-1]
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
                     return True
 
@@ -1118,7 +1057,7 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
         return False
 
     for argname, expected_type in memo.type_hints.items():
-        if argname != "return" and argname in memo.arguments:
+        if argname != 'return' and argname in memo.arguments:
             value = memo.arguments[argname]
             description = 'argument "{}"'.format(argname)
             try:
@@ -1132,10 +1071,8 @@ def check_argument_types(memo: Optional[_CallMemo] = None) -> bool:
 class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator[Any, Any, Any], memo: _CallMemo) -> None:
         rtype_args = []
-        if memo.type_hints is not None and hasattr(
-            memo.type_hints["return"], "__args__"
-        ):
-            rtype_args = memo.type_hints["return"].__args__
+        if memo.type_hints is not None and hasattr(memo.type_hints['return'], '__args__'):
+            rtype_args = memo.type_hints['return'].__args__
 
         self.__wrapped = wrapped
         self.__memo = memo
@@ -1144,7 +1081,7 @@ class TypeCheckedGenerator:
         self.__return_type = rtype_args[2] if len(rtype_args) > 2 else Any
         self.__initialized = False
 
-    def __iter__(self) -> "TypeCheckedGenerator":
+    def __iter__(self) -> 'TypeCheckedGenerator':
         return self
 
     def __next__(self) -> Any:
@@ -1162,7 +1099,7 @@ class TypeCheckedGenerator:
     def send(self, obj: object) -> Any:
         if self.__initialized:
             check_type(
-                "value sent to generator",
+                'value sent to generator',
                 obj,
                 self.__send_type,
                 memo=self.__memo,
@@ -1173,11 +1110,11 @@ class TypeCheckedGenerator:
         try:
             value = self.__wrapped.send(obj)
         except StopIteration as exc:
-            check_type("return value", exc.value, self.__return_type, memo=self.__memo)
+            check_type('return value', exc.value, self.__return_type, memo=self.__memo)
             raise
 
         check_type(
-            "value yielded from generator",
+            'value yielded from generator',
             value,
             self.__yield_type,
             memo=self.__memo,
@@ -1187,10 +1124,10 @@ class TypeCheckedGenerator:
 
 class TypeCheckedAsyncGenerator:
     def __init__(self, wrapped: AsyncGenerator[Any, Any], memo: _CallMemo) -> None:
-        if type(memo.type_hints) is dict and "return" in memo.type_hints:
-            rtype_args = memo.type_hints["return"].__args__
+        if type(memo.type_hints) is dict and 'return' in memo.type_hints:
+            rtype_args = memo.type_hints['return'].__args__
         else:
-            raise TypeError("type_hints are empty")
+            raise TypeError('type_hints are empty')
         self.__wrapped = wrapped
         self.__memo = memo
         self.__yield_type = rtype_args[0]
@@ -1215,7 +1152,7 @@ class TypeCheckedAsyncGenerator:
     async def asend(self, obj: Any) -> Any:
         if self.__initialized:
             check_type(
-                "value sent to generator",
+                'value sent to generator',
                 obj,
                 self.__send_type,
                 memo=self.__memo,
@@ -1225,7 +1162,7 @@ class TypeCheckedAsyncGenerator:
 
         value = await self.__wrapped.asend(obj)
         check_type(
-            "value yielded from generator",
+            'value yielded from generator',
             value,
             self.__yield_type,
             memo=self.__memo,
@@ -1262,34 +1199,24 @@ def typechecked(
         return func
 
     if isclass(func):
-        prefix = func.__qualname__ + "."
+        prefix = func.__qualname__ + '.'
         for key, attr in func.__dict__.items():
-            if (
-                inspect.isfunction(attr)
-                or inspect.ismethod(attr)
-                or inspect.isclass(attr)
-            ):
-                if attr.__qualname__.startswith(prefix) and getattr(
-                    attr, "__annotations__", None
-                ):
+            if inspect.isfunction(attr) or inspect.ismethod(attr) or inspect.isclass(attr):
+                if attr.__qualname__.startswith(prefix) and getattr(attr, '__annotations__', None):
                     setattr(
                         func,
                         key,
                         typechecked(attr, always=always, _localns=func.__dict__),
                     )
             elif isinstance(attr, (classmethod, staticmethod)):
-                if getattr(attr.__func__, "__annotations__", None):
-                    wrapped = typechecked(
-                        attr.__func__, always=always, _localns=func.__dict__
-                    )
+                if getattr(attr.__func__, '__annotations__', None):
+                    wrapped = typechecked(attr.__func__, always=always, _localns=func.__dict__)
                     setattr(func, key, type(attr)(wrapped))
             elif isinstance(attr, property):
                 kwargs = dict(doc=attr.__doc__)
-                for name in ("fset", "fget", "fdel"):
+                for name in ('fset', 'fget', 'fdel'):
                     property_func = kwargs[name] = getattr(attr, name)
-                    if property_func is not None and getattr(
-                        property_func, "__annotations__", ()
-                    ):
+                    if property_func is not None and getattr(property_func, '__annotations__', ()):
                         kwargs[name] = typechecked(
                             property_func,
                             always=always,
@@ -1300,12 +1227,8 @@ def typechecked(
 
         return func
 
-    if not getattr(func, "__annotations__", None):
-        warn(
-            "no type annotations present -- not typechecking {}".format(
-                function_name(func)
-            )
-        )
+    if not getattr(func, '__annotations__', None):
+        warn('no type annotations present -- not typechecking {}'.format(function_name(func)))
         return func
 
     # Find the frame in which the function was declared, for resolving forward references later
@@ -1313,19 +1236,15 @@ def typechecked(
         _localns = sys._getframe(1).f_locals
 
     # Find either the first Python wrapper or the actual function
-    python_func = inspect.unwrap(func, stop=lambda f: hasattr(f, "__code__"))
+    python_func = inspect.unwrap(func, stop=lambda f: hasattr(f, '__code__'))
 
-    if not getattr(python_func, "__code__", None):
-        warn("no code associated -- not typechecking {}".format(function_name(func)))
+    if not getattr(python_func, '__code__', None):
+        warn('no code associated -- not typechecking {}'.format(function_name(func)))
         return func
 
     def wrapper(
         *args: Any, **kwargs: Dict[str, Any]
-    ) -> Union[
-        TypeCheckedGenerator,
-        TypeCheckedAsyncGenerator,
-        GeneratorType[Any, Any, Any],
-    ]:
+    ) -> Union[TypeCheckedGenerator, TypeCheckedAsyncGenerator, GeneratorType[Any, Any, Any],]:
         memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
         retval = func(*args, **kwargs)
@@ -1335,22 +1254,14 @@ def typechecked(
             raise TypeError(*exc.args) from None
 
         # If a generator is returned, wrap it if its yield/send/return types can be checked
-        if (
-            inspect.isgenerator(retval) or isasyncgen(retval)
-        ) and memo.type_hints is not None:
-            return_type = memo.type_hints.get("return")
+        if (inspect.isgenerator(retval) or isasyncgen(retval)) and memo.type_hints is not None:
+            return_type = memo.type_hints.get('return')
             if return_type:
-                origin = getattr(return_type, "__origin__", None)
+                origin = getattr(return_type, '__origin__', None)
                 if origin in generator_origin_types and inspect.isgenerator(retval):
                     return TypeCheckedGenerator(retval, memo)
-                elif (
-                    origin is not None
-                    and origin in asyncgen_origin_types
-                    and isasyncgen(retval)
-                ):
-                    return TypeCheckedAsyncGenerator(
-                        cast(AsyncGenerator[Any, Any], retval), memo
-                    )
+                elif origin is not None and origin in asyncgen_origin_types and isasyncgen(retval):
+                    return TypeCheckedAsyncGenerator(cast(AsyncGenerator[Any, Any], retval), memo)
 
         return retval
 
@@ -1384,7 +1295,7 @@ class TypeWarning(UserWarning):
     :ivar frame: the frame in which the violation occurred
     """
 
-    __slots__ = ("func", "event", "message", "frame")
+    __slots__ = ('func', 'event', 'message', 'frame')
 
     def __init__(
         self,
@@ -1398,22 +1309,22 @@ class TypeWarning(UserWarning):
         self.error = str(exception)
         self.frame = frame
 
-        if self.event == "call":
+        if self.event == 'call':
             caller_frame = self.frame.f_back
-            event = "call to {}() from {}:{}".format(
+            event = 'call to {}() from {}:{}'.format(
                 function_name(self.func),
-                "" if caller_frame is None else caller_frame.f_code.co_filename,
-                "" if caller_frame is None else caller_frame.f_lineno,
+                '' if caller_frame is None else caller_frame.f_code.co_filename,
+                '' if caller_frame is None else caller_frame.f_lineno,
             )
         else:
-            event = "return from {}() at {}:{}".format(
+            event = 'return from {}() at {}:{}'.format(
                 function_name(self.func),
                 self.frame.f_code.co_filename,
                 self.frame.f_lineno,
             )
 
         super().__init__(
-            "[{thread_name}] {event}: {self.error}".format(
+            '[{thread_name}] {event}: {self.error}'.format(
                 thread_name=threading.current_thread().name,
                 event=event,
                 self=self,
@@ -1425,9 +1336,7 @@ class TypeWarning(UserWarning):
         """Return the stack where the last frame is from the target function."""
         return extract_stack(self.frame)
 
-    def print_stack(
-        self, file: Optional[TextIO] = None, limit: Optional[int] = None
-    ) -> None:
+    def print_stack(self, file: Optional[TextIO] = None, limit: Optional[int] = None) -> None:
         """
         Print the traceback from the stack frame where the target function was run.
 
@@ -1460,8 +1369,8 @@ class TypeChecker:
     ) -> None:
         assert check_argument_types()
         warn(
-            "TypeChecker has been deprecated and will be removed in v3.0. "
-            "Use install_import_hook() or the pytest plugin instead.",
+            'TypeChecker has been deprecated and will be removed in v3.0. '
+            'Use install_import_hook() or the pytest plugin instead.',
             DeprecationWarning,
         )
         self.all_threads = all_threads
@@ -1494,13 +1403,13 @@ class TypeChecker:
         else:
             # Check types if the module matches any of the package prefixes
             return any(
-                func.__module__ == package or func.__module__.startswith(package + ".")
+                func.__module__ == package or func.__module__.startswith(package + '.')
                 for package in self._packages
             )
 
     def start(self) -> None:
         if self._active:
-            raise RuntimeError("type checker already running")
+            raise RuntimeError('type checker already running')
 
         self._active = True
 
@@ -1520,17 +1429,17 @@ class TypeChecker:
             if sys.getprofile() is self:  # type: ignore[comparison-overlap]
                 sys.setprofile(self._previous_profiler)
             else:  # pragma: no cover
-                warn("the system profiling hook has changed unexpectedly")
+                warn('the system profiling hook has changed unexpectedly')
 
             if self.all_threads:
                 if threading._profile_hook is self:  # type: ignore[attr-defined]
                     threading.setprofile(self._previous_thread_profiler)
                 else:  # pragma: no cover
-                    warn("the threading profiling hook has changed unexpectedly")
+                    warn('the threading profiling hook has changed unexpectedly')
 
             self._active = False
 
-    def __enter__(self) -> "TypeChecker":
+    def __enter__(self) -> 'TypeChecker':
         self.start()
         return self
 
@@ -1542,9 +1451,7 @@ class TypeChecker:
     ) -> None:
         self.stop()
 
-    def __call__(
-        self, frame: FrameType, event: str, arg: Any
-    ) -> None:  # pragma: no cover
+    def __call__(self, frame: FrameType, event: str, arg: Any) -> None:  # pragma: no cover
         if not self._active:
             # This happens if all_threads was enabled and a thread was created when the checker was
             # running but was then stopped. The thread's profiler callback can't be reset any other
@@ -1553,7 +1460,7 @@ class TypeChecker:
             return
 
         # If an actual profiler is running, don't include the type checking times in its results
-        if event == "call":
+        if event == 'call':
             try:
                 func = find_function(frame)
             except Exception:
@@ -1568,14 +1475,14 @@ class TypeChecker:
                 if (
                     memo.is_generator
                     and memo.type_hints is not None
-                    and "return" in memo.type_hints
+                    and 'return' in memo.type_hints
                 ):
-                    return_type_hint = memo.type_hints["return"]
+                    return_type_hint = memo.type_hints['return']
                     if return_type_hint is not None:
-                        origin = getattr(return_type_hint, "__origin__", None)
+                        origin = getattr(return_type_hint, '__origin__', None)
                         if origin in generator_origin_types:
                             # Check the types of the yielded values
-                            memo.type_hints["return"] = return_type_hint.__args__[0]
+                            memo.type_hints['return'] = return_type_hint.__args__[0]
                 else:
                     try:
                         check_argument_types(memo)
@@ -1584,7 +1491,7 @@ class TypeChecker:
 
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
-        elif event == "return":
+        elif event == 'return':
             if self._previous_profiler is not None:
                 self._previous_profiler(frame, event, arg)
 
@@ -1600,12 +1507,12 @@ class TypeChecker:
                     if (
                         memo.is_generator
                         and memo.type_hints is not None
-                        and "return" in memo.type_hints
+                        and 'return' in memo.type_hints
                     ):
                         check_type(
-                            "yielded value",
+                            'yielded value',
                             arg,
-                            memo.type_hints["return"],
+                            memo.type_hints['return'],
                             memo,
                         )
                     else:

@@ -24,16 +24,9 @@ def pytest_configure(config: _pytest.config.Config) -> None:
 
     packages = [pkg.strip() for pkg in value.split(',')]
 
-    already_imported_packages = sorted(
-        package for package in packages if package in sys.modules
-    )
+    already_imported_packages = sorted(package for package in packages if package in sys.modules)
     if already_imported_packages:
-        message = (
-            'typeguard cannot check these packages because they '
-            'are already imported: {}'
-        )
-        raise RuntimeError(
-            message.format(', '.join(already_imported_packages))
-        )
+        message = 'typeguard cannot check these packages because they ' 'are already imported: {}'
+        raise RuntimeError(message.format(', '.join(already_imported_packages)))
 
     install_import_hook(packages=packages)
