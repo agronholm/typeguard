@@ -433,7 +433,7 @@ def check_dict(argname: str, value: Any, expected_type: Any, memo: _TypeCheckMem
 
     if expected_type is not dict:
         if (hasattr(expected_type, '__args__') and
-            expected_type.__args__ not in (None, expected_type.__parameters__):
+            expected_type.__args__ not in (None, expected_type.__parameters__)):
             key_type, value_type = expected_type.__args__
             if key_type is not Any or value_type is not Any:
                 for k, v in value.items():
@@ -989,7 +989,7 @@ class TypeCheckedAsyncGenerator:
         return value
 
 
-def typechecked(func: Optional[Any] = None, *, always: bool = False
+def typechecked(func: Optional[Any] = None, *, always: bool = False,
                 _localns: Optional[Dict[str, Any]] = None) -> Any:
     """
     Perform runtime type checking on the arguments that are passed to the wrapped function.
