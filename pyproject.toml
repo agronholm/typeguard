@@ -31,10 +31,12 @@ max-line-length = 99
 ignore = ["E251", "W504"]
 
 [tool.mypy]
+files = ["src"]
 python_version = "3.6"
 ignore_missing_imports = true
 strict = true
 pretty = true
+show_error_codes = true
 
 [tool.black]
 line-length = 99
