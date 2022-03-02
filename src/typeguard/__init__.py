@@ -826,8 +826,8 @@ def check_type(argname: str, value: Any, expected_type: Type[Any],
             getattr(expected_type, '__qualname__', '').startswith('NewType.') and
             hasattr(expected_type, '__supertype__')):
         # typing.NewType on Python 3.9 and below
-        return check_type(argname, value, expected_type.__supertype__,
-                          memo)  # type: ignore[attr-defined]
+        return check_type(argname, value,
+                          expected_type.__supertype__, memo)  # type: ignore[attr-defined]
 
 
 def check_return_type(retval: Any, memo: Optional[_CallMemo] = None) -> bool:
