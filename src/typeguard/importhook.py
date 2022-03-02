@@ -68,7 +68,8 @@ class TypeguardTransformer(ast.NodeVisitor):
 
 class TypeguardLoader(SourceFileLoader):
     @staticmethod
-    def source_to_code(data: Union[bytes, str], path: str, *, _optimize: int = -1) -> Any:  # type: ignore[override]
+    def source_to_code(data: Union[bytes, str], path: str, *,
+                       _optimize: int = -1) -> Any:  # type: ignore[override]
         source = data if isinstance(data, str) else decode_source(data)
         tree = _call_with_frames_removed(compile, source, path, 'exec', ast.PyCF_ONLY_AST,
                                          dont_inherit=True, optimize=_optimize)
