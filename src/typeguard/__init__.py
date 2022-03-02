@@ -1030,7 +1030,7 @@ def typechecked(func: Optional[Any] = None, *, always: bool = False,
                     if property_func is not None and getattr(property_func, '__annotations__', None):
                         kwargs[name] = typechecked(property_func, always=always, _localns=func.__dict__)
 
-                setattr(func, key, attr.__class__(**kwargs))
+                setattr(func, key, attr.__class__(**kwargs))  # type: ignore[arg-type]
 
         return func
 
@@ -1051,10 +1051,10 @@ def typechecked(func: Optional[Any] = None, *, always: bool = False,
 
     def wrapper(
         *args: Any, **kwargs: Dict[str, Any]
-    ) -> Union[TypeCheckedGenerator, TypeCheckedAsyncGenerator, GeneratorType[Any, Any, Any],]:
+    ) -> Union[TypeCheckedGenerator, TypeCheckedAsyncGenerator, GeneratorType[Any, Any, Any], Any]:
         memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
-        retval = func(*args, **kwargs)
+        retval = func(*args, **kwargs) if callable(func) else None
         try:
             check_return_type(retval, memo)
         except TypeError as exc:
@@ -1075,7 +1075,7 @@ def typechecked(func: Optional[Any] = None, *, always: bool = False,
     async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
         memo = _CallMemo(python_func, _localns, args=args, kwargs=kwargs)
         check_argument_types(memo)
-        retval = await func(*args, **kwargs)
+        retval = await func(*args, **kwargs) if callable(func) else None
         check_return_type(retval, memo)
         return retval
 
