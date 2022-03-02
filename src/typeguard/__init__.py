@@ -1130,9 +1130,8 @@ class TypeWarning(UserWarning):
             event = 'return from {}() at {}:{}'.format(
                 function_name(self.func), self.frame.f_code.co_filename, self.frame.f_lineno)
 
-        super().__init__(
-            '[{thread_name}] {event}: {self.error}'.format(
-                             thread_name=threading.current_thread().name, event=event, self=self))
+        super().__init__('[{thread_name}] {event}: {self.error}'.format(
+                         thread_name=threading.current_thread().name, event=event, self=self))
 
     @property
     def stack(self) -> StackSummary:
