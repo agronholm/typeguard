@@ -5,32 +5,55 @@ from importlib.machinery import ModuleSpec, SourceFileLoader
 from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from types import ModuleType, TracebackType
-from typing import Any, Callable, Iterable, List, Optional, Sequence, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 from unittest.mock import patch
 
 
 # The name of this function is magical
-def _call_with_frames_removed(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+def _call_with_frames_removed(
+    f: Callable[..., Any], *args: Any, **kwargs: Any
+) -> Any:
     return f(*args, **kwargs)
 
 
-def optimized_cache_from_source(path: str, debug_override: Optional[bool] = None) -> str:
-    return cache_from_source(path, debug_override, optimization="typeguard")
+def optimized_cache_from_source(
+    path: str, debug_override: Optional[bool] = None
+) -> str:
+    return cache_from_source(path, debug_override, optimization='typeguard')
 
 
 class TypeguardTransformer(ast.NodeVisitor):
     def __init__(self) -> None:
-        self._parents = []  # type: List[Union[ast.Module, ast.ClassDef, ast.FunctionDef]]
+        self._parents = (
+            []
+        )  # type: List[Union[ast.Module, ast.ClassDef, ast.FunctionDef]]
 
     def visit_Module(self, node: ast.Module) -> ast.Module:
         # Insert "import typeguard" after any "from __future__ ..." imports
         for i, child in enumerate(node.body):
-            if isinstance(child, ast.ImportFrom) and child.module == "__future__":
+            if (
+                isinstance(child, ast.ImportFrom)
+                and child.module == '__future__'
+            ):
                 continue
-            elif isinstance(child, ast.Expr) and isinstance(child.value, ast.Str):
+            elif isinstance(child, ast.Expr) and isinstance(
+                child.value, ast.Str
+            ):
                 continue  # module docstring
             else:
-                node.body.insert(i, ast.Import(names=[ast.alias("typeguard", None)]))
+                node.body.insert(
+                    i, ast.Import(names=[ast.alias('typeguard', None)])
+                )
                 break
 
         self._parents.append(node)
@@ -40,7 +63,11 @@ class TypeguardTransformer(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
         node.decorator_list.append(
-            ast.Attribute(ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load())
+            ast.Attribute(
+                ast.Name(id='typeguard', ctx=ast.Load()),
+                'typechecked',
+                ast.Load(),
+            )
         )
         self._parents.append(node)
         self.generic_visit(node)
@@ -52,12 +79,18 @@ class TypeguardTransformer(ast.NodeVisitor):
         if isinstance(self._parents[-1], ast.ClassDef):
             return node
 
-        has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
+        has_annotated_args = any(
+            arg for arg in node.args.args if arg.annotation
+        )
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
             node.decorator_list.insert(
                 0,
-                ast.Attribute(ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load()),
+                ast.Attribute(
+                    ast.Name(id='typeguard', ctx=ast.Load()),
+                    'typechecked',
+                    ast.Load(),
+                ),
             )
 
         self._parents.append(node)
@@ -74,7 +107,7 @@ class TypeguardLoader(SourceFileLoader):
             compile,
             source,
             path,
-            "exec",
+            'exec',
             ast.PyCF_ONLY_AST,
             dont_inherit=True,
             optimize=_optimize,
@@ -82,13 +115,13 @@ class TypeguardLoader(SourceFileLoader):
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
         return _call_with_frames_removed(
-            compile, tree, path, "exec", dont_inherit=True, optimize=_optimize
+            compile, tree, path, 'exec', dont_inherit=True, optimize=_optimize
         )
 
     def exec_module(self, module: ModuleType) -> None:
         # Use a custom optimization marker – the import lock should make this monkey patch safe
         with patch(
-            "importlib._bootstrap_external.cache_from_source",
+            'importlib._bootstrap_external.cache_from_source',
             optimized_cache_from_source,
         ):
             return super().exec_module(module)
@@ -105,7 +138,9 @@ class TypeguardFinder(MetaPathFinder):
 
     """
 
-    def __init__(self, packages: Iterable[str], original_pathfinder: "TypeguardFinder") -> None:
+    def __init__(
+        self, packages: Iterable[str], original_pathfinder: 'TypeguardFinder'
+    ) -> None:
         self.packages = packages
         self._original_pathfinder = original_pathfinder
 
@@ -118,7 +153,9 @@ class TypeguardFinder(MetaPathFinder):
         if self.should_instrument(fullname):
             spec = self._original_pathfinder.find_spec(fullname, path, target)
             if spec is not None and isinstance(spec.loader, SourceFileLoader):
-                spec.loader = TypeguardLoader(spec.loader.name, spec.loader.path)
+                spec.loader = TypeguardLoader(
+                    spec.loader.name, spec.loader.path
+                )
                 return spec
 
         return None
@@ -131,7 +168,7 @@ class TypeguardFinder(MetaPathFinder):
 
         """
         for package in self.packages:
-            if module_name == package or module_name.startswith(package + "."):
+            if module_name == package or module_name.startswith(package + '.'):
                 return True
 
         return False
@@ -176,10 +213,14 @@ def install_import_hook(
         packages = [packages]
 
     for i, finder in enumerate(sys.meta_path):
-        if isclass(finder) and finder.__name__ == "PathFinder" and hasattr(finder, "find_spec"):
+        if (
+            isclass(finder)
+            and finder.__name__ == 'PathFinder'
+            and hasattr(finder, 'find_spec')
+        ):
             break
     else:
-        raise RuntimeError("Cannot find a PathFinder in sys.meta_path")
+        raise RuntimeError('Cannot find a PathFinder in sys.meta_path')
 
     hook = cls(packages, cast(TypeguardFinder, finder))
     sys.meta_path.insert(0, hook)
