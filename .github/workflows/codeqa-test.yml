@@ -23,7 +23,7 @@ jobs:
     - name: Run flake8
       run: pflake8 src tests
     - name: Run mypy
-      run: mypy tests/mypy/test_type_annotations.py
+      run: mypy tests/mypy/test_type_annotations.py src
     - name: Run isort
       run: isort -c src tests
 
