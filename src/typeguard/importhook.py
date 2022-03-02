@@ -5,17 +5,7 @@ from importlib.machinery import ModuleSpec, SourceFileLoader
 from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from types import ModuleType, TracebackType
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Iterable, List, Optional, Sequence, Type, Union, cast
 from unittest.mock import patch
 
 

@@ -21,41 +21,11 @@ from functools import partial, wraps
 from inspect import Parameter, isclass, isfunction, isgeneratorfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from traceback import StackSummary, extract_stack, print_stack
-from types import (
-    CodeType,
-    FrameType,
-    FunctionType,
-    GeneratorType,
-    MethodType,
-    TracebackType,
-)
+from types import CodeType, FrameType, FunctionType, GeneratorType, MethodType, TracebackType
 from typing import (
-    IO,
-    TYPE_CHECKING,
-    AbstractSet,
-    Any,
-    AsyncIterable,
-    AsyncIterator,
-    BinaryIO,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    NewType,
-    Optional,
-    Sequence,
-    Set,
-    TextIO,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-    get_type_hints,
-    overload,
-)
+    IO, TYPE_CHECKING, AbstractSet, Any, AsyncIterable, AsyncIterator, BinaryIO, Callable, Dict,
+    Generator, Iterable, Iterator, List, NewType, Optional, Sequence, Set, TextIO, Tuple, Type,
+    TypeVar, Union, cast, get_type_hints, overload)
 from unittest.mock import Mock
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
