@@ -40,11 +40,7 @@ class TypeguardTransformer(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
         node.decorator_list.append(
-            ast.Attribute(
-                ast.Name(id='typeguard', ctx=ast.Load()),
-                'typechecked',
-                ast.Load(),
-            )
+            ast.Attribute(ast.Name(id='typeguard', ctx=ast.Load()), 'typechecked', ast.Load())
         )
         self._parents.append(node)
         self.generic_visit(node)
@@ -61,11 +57,7 @@ class TypeguardTransformer(ast.NodeVisitor):
         if has_annotated_args or has_annotated_return:
             node.decorator_list.insert(
                 0,
-                ast.Attribute(
-                    ast.Name(id='typeguard', ctx=ast.Load()),
-                    'typechecked',
-                    ast.Load(),
-                ),
+                ast.Attribute(ast.Name(id='typeguard', ctx=ast.Load()), 'typechecked', ast.Load())
             )
 
         self._parents.append(node)
@@ -78,27 +70,16 @@ class TypeguardLoader(SourceFileLoader):
     @staticmethod
     def source_to_code(data: Union[bytes, str], path: str, *, _optimize: int = -1) -> Any:  # type: ignore[override]
         source = data if isinstance(data, str) else decode_source(data)
-        tree = _call_with_frames_removed(
-            compile,
-            source,
-            path,
-            'exec',
-            ast.PyCF_ONLY_AST,
-            dont_inherit=True,
-            optimize=_optimize,
-        )
+        tree = _call_with_frames_removed(compile, source, path, 'exec', ast.PyCF_ONLY_AST,
+                                         dont_inherit=True, optimize=_optimize)
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
-        return _call_with_frames_removed(
-            compile, tree, path, 'exec', dont_inherit=True, optimize=_optimize
-        )
+        return _call_with_frames_removed(compile, tree, path, 'exec',
+                                         dont_inherit=True, optimize=_optimize)
 
     def exec_module(self, module: ModuleType) -> None:
         # Use a custom optimization marker – the import lock should make this monkey patch safe
-        with patch(
-            'importlib._bootstrap_external.cache_from_source',
-            optimized_cache_from_source,
-        ):
+        with patch('importlib._bootstrap_external.cache_from_source', optimized_cache_from_source):
             return super().exec_module(module)
 
 
@@ -117,12 +98,8 @@ class TypeguardFinder(MetaPathFinder):
         self.packages = packages
         self._original_pathfinder = original_pathfinder
 
-    def find_spec(
-        self,
-        fullname: str,
-        path: Optional[Sequence[_Path]] = None,
-        target: Optional[ModuleType] = None,
-    ) -> Optional[ModuleSpec]:
+    def find_spec(self, fullname: str, path: Optional[Sequence[_Path]] = None,
+                  target: Optional[ModuleType] = None) -> Optional[ModuleSpec]:
         if self.should_instrument(fullname):
             spec = self._original_pathfinder.find_spec(fullname, path, target)
             if spec is not None and isinstance(spec.loader, SourceFileLoader):
@@ -152,12 +129,8 @@ class ImportHookManager:
     def __enter__(self) -> None:
         pass
 
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException],
+                 exc_tb: Optional[TracebackType]) -> None:
         self.uninstall()
 
     def uninstall(self) -> None:
@@ -167,9 +140,8 @@ class ImportHookManager:
             pass  # already removed
 
 
-def install_import_hook(
-    packages: Iterable[str], *, cls: Type[TypeguardFinder] = TypeguardFinder
-) -> ImportHookManager:
+def install_import_hook(packages: Iterable[str], *,
+                        cls: Type[TypeguardFinder] = TypeguardFinder) -> ImportHookManager:
     """
     Install an import hook that decorates classes and functions with ``@typechecked``.
 
