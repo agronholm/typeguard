@@ -35,3 +35,8 @@ python_version = "3.6"
 ignore_missing_imports = true
 strict = true
 pretty = true
+
+[tool.black]
+line-length = 99
+target-version = ['py36']
+include = ['src']
