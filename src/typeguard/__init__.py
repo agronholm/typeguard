@@ -1027,7 +1027,7 @@ def typechecked(func: Optional[Any] = None, *, always: bool = False,
                 kwargs = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
-                    if property_func is not None and getattr(property_func, '__annotations__', ()):
+                    if property_func is not None and getattr(property_func, '__annotations__', None):
                         kwargs[name] = typechecked(property_func, always=always, _localns=func.__dict__)
 
                 setattr(func, key, attr.__class__(**kwargs))
