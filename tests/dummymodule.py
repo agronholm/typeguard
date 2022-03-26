@@ -1,5 +1,4 @@
 """Module docstring."""
-from __future__ import absolute_import, division
 
 from contextlib import contextmanager
 from typing import Generator, no_type_check, no_type_check_decorator
@@ -18,17 +17,17 @@ def type_checked_func(x: int, y: int) -> int:
 
 @no_type_check
 def non_type_checked_func(x: int, y: str) -> 6:
-    return 'foo'
+    return "foo"
 
 
 @dummy_decorator
 def non_type_checked_decorated_func(x: int, y: str) -> 6:
-    return 'foo'
+    return "foo"
 
 
 @typeguard_ignore
 def non_typeguard_checked_func(x: int, y: str) -> 6:
-    return 'foo'
+    return "foo"
 
 
 def dynamic_type_checking_func(arg, argtype, return_annotation):
@@ -71,7 +70,7 @@ def outer():
     class Inner:
         pass
 
-    def create_inner() -> 'Inner':
+    def create_inner() -> "Inner":
         return Inner()
 
     return create_inner
@@ -81,15 +80,15 @@ class Outer:
     class Inner:
         pass
 
-    def create_inner(self) -> 'Inner':
+    def create_inner(self) -> "Inner":
         return Outer.Inner()
 
     @classmethod
-    def create_inner_classmethod(cls) -> 'Inner':
+    def create_inner_classmethod(cls) -> "Inner":
         return Outer.Inner()
 
     @staticmethod
-    def create_inner_staticmethod() -> 'Inner':
+    def create_inner_staticmethod() -> "Inner":
         return Outer.Inner()
 
 

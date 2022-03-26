@@ -17,14 +17,15 @@ class TestCheckArgumentTypes:
         def foo(a: str, b: int) -> None:
             assert check_argument_types()
 
-        foo('bar', 5)
+        foo("bar", 5)
 
     def test_invalid(self):
         def foo(a: str, b: int) -> None:
             assert check_argument_types()
 
-        pytest.raises(TypeCheckError, foo, 'bar', 'bah').\
-            match('argument "b" is not an instance of int')
+        pytest.raises(TypeCheckError, foo, "bar", "bah").match(
+            'argument "b" is not an instance of int'
+        )
 
     def test_short_tracebacks(self):
         def foo(a: Callable[..., int]):
@@ -35,46 +36,51 @@ class TestCheckArgumentTypes:
         except TypeCheckError:
             _, _, tb = sys.exc_info()
             parts = traceback.extract_tb(tb)
-            typeguard_lines = [part for part in parts
-                               if part.filename.endswith("typeguard/__init__.py")]
+            typeguard_lines = [
+                part
+                for part in parts
+                if part.filename.endswith("typeguard/__init__.py")
+            ]
             assert len(typeguard_lines) == 1
 
     def test_annotated_valid(self):
-        def foo(a: Annotated[str, 'foo']):
+        def foo(a: Annotated[str, "foo"]):
             assert check_argument_types()
 
-        foo('blah')
+        foo("blah")
 
     def test_annotated_fail(self):
-        def foo(a: Annotated[str, 'foo']):
+        def foo(a: Annotated[str, "foo"]):
             assert check_argument_types()
 
-        pytest.raises(TypeCheckError, foo, 1).\
-            match('"a" is not an instance of str')
+        pytest.raises(TypeCheckError, foo, 1).match('"a" is not an instance of str')
 
 
 class TestCheckReturnType:
     def test_valid(self):
         def foo() -> str:
-            assert check_return_type('bah')
-            return 'bah'
+            assert check_return_type("bah")
+            return "bah"
 
         foo()
 
     def test_invalid(self):
         def foo() -> int:
-            assert check_return_type('bah')
-            return 'bah'
+            assert check_return_type("bah")
+            return "bah"
 
-        pytest.raises(TypeCheckError, foo).match('the return value is not an instance of int')
+        pytest.raises(TypeCheckError, foo).match(
+            "the return value is not an instance of int"
+        )
 
     def test_noreturn(self):
         def foo() -> NoReturn:
-            assert check_return_type('bah')
+            assert check_return_type("bah")
 
-        pytest.raises(TypeCheckError, foo).\
-            match(r'tests.test_inline.TestCheckReturnType.test_noreturn.<locals>.foo\(\) was '
-                  r'declared never to return but it did')
+        pytest.raises(TypeCheckError, foo).match(
+            r"tests.test_inline.TestCheckReturnType.test_noreturn.<locals>.foo\(\) was "
+            r"declared never to return but it did"
+        )
 
     def test_notimplemented_valid(self):
         class Foo:
@@ -89,4 +95,6 @@ class TestCheckReturnType:
             assert check_return_type(NotImplemented)
             return NotImplemented
 
-        pytest.raises(TypeCheckError, foo).match('the return value is not an instance of bool')
+        pytest.raises(TypeCheckError, foo).match(
+            "the return value is not an instance of bool"
+        )

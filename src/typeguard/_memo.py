@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import sys
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping
 from weakref import WeakKeyDictionary
 
 from ._utils import function_name
@@ -16,14 +16,18 @@ else:
 if TYPE_CHECKING:
     from ._config import TypeCheckConfiguration
 
-_type_hints_map: WeakKeyDictionary[FunctionType, Dict[str, Any]] = WeakKeyDictionary()
+_type_hints_map: WeakKeyDictionary[FunctionType, dict[str, Any]] = WeakKeyDictionary()
 
 
 class TypeCheckMemo:
-    __slots__ = 'globals', 'locals', 'config'
+    __slots__ = "globals", "locals", "config"
 
-    def __init__(self, globals: Dict[str, Any], locals: Dict[str, Any],
-                 config: Optional[TypeCheckConfiguration] = None):
+    def __init__(
+        self,
+        globals: dict[str, Any],
+        locals: dict[str, Any],
+        config: TypeCheckConfiguration | None = None,
+    ):
         from . import config as global_config
 
         self.globals = globals
@@ -32,13 +36,18 @@ class TypeCheckMemo:
 
 
 class CallMemo(TypeCheckMemo):
-    __slots__ = 'func', 'func_name', 'arguments', 'type_hints'
+    __slots__ = "func", "func_name", "arguments", "type_hints"
 
     arguments: Mapping[str, Any]
 
-    def __init__(self, func: FunctionType, frame_locals: Optional[Dict[str, Any]] = None,
-                 args: tuple = None, kwargs: Dict[str, Any] = None,
-                 config: Optional[TypeCheckConfiguration] = None):
+    def __init__(
+        self,
+        func: FunctionType,
+        frame_locals: dict[str, Any] | None = None,
+        args: tuple = None,
+        kwargs: dict[str, Any] = None,
+        config: TypeCheckConfiguration | None = None,
+    ):
         super().__init__(func.__globals__, frame_locals, config)
         self.func = func
         self.func_name = function_name(func)
@@ -47,11 +56,14 @@ class CallMemo(TypeCheckMemo):
         if args is not None and kwargs is not None:
             self.arguments = signature.bind(*args, **kwargs).arguments
         else:
-            assert frame_locals is not None, 'frame must be specified if args or kwargs is None'
+            assert (
+                frame_locals is not None
+            ), "frame must be specified if args or kwargs is None"
             self.arguments = frame_locals
 
         try:
             self.type_hints = _type_hints_map[func]
         except KeyError:
-            self.type_hints = _type_hints_map[func] = get_type_hints(func, localns=frame_locals,
-                                                                     include_extras=True)
+            self.type_hints = _type_hints_map[func] = get_type_hints(
+                func, localns=frame_locals, include_extras=True
+            )

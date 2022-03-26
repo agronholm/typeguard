@@ -10,21 +10,23 @@ from typeguard import TypeCheckError
 from typeguard.importhook import TypeguardFinder, install_import_hook
 
 this_dir = Path(__file__).parent
-dummy_module_path = this_dir / 'dummymodule.py'
-cached_module_path = Path(cache_from_source(str(dummy_module_path), optimization='typeguard'))
+dummy_module_path = this_dir / "dummymodule.py"
+cached_module_path = Path(
+    cache_from_source(str(dummy_module_path), optimization="typeguard")
+)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def dummymodule():
     if cached_module_path.exists():
         cached_module_path.unlink()
 
     sys.path.insert(0, str(this_dir))
     try:
-        with install_import_hook('dummymodule'):
+        with install_import_hook("dummymodule"):
             with warnings.catch_warnings():
-                warnings.filterwarnings('error', module='typeguard')
-                module = import_module('dummymodule')
+                warnings.filterwarnings("error", module="typeguard")
+                module = import_module("dummymodule")
                 return module
     finally:
         sys.path.remove(str(this_dir))
@@ -39,71 +41,84 @@ def test_type_checked_func(dummymodule):
 
 
 def test_type_checked_func_error(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, '3').\
-        match('argument "y" is not an instance of int')
+    pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
+        'argument "y" is not an instance of int'
+    )
 
 
 def test_non_type_checked_func(dummymodule):
-    assert dummymodule.non_type_checked_func('bah', 9) == 'foo'
+    assert dummymodule.non_type_checked_func("bah", 9) == "foo"
 
 
 def test_non_type_checked_decorated_func(dummymodule):
-    assert dummymodule.non_type_checked_decorated_func('bah', 9) == 'foo'
+    assert dummymodule.non_type_checked_decorated_func("bah", 9) == "foo"
 
 
 def test_typeguard_ignored_func(dummymodule):
-    assert dummymodule.non_typeguard_checked_func('bah', 9) == 'foo'
+    assert dummymodule.non_typeguard_checked_func("bah", 9) == "foo"
 
 
 def test_type_checked_method(dummymodule):
     instance = dummymodule.DummyClass()
-    pytest.raises(TypeCheckError, instance.type_checked_method, 'bah', 9).\
-        match('argument "x" is not an instance of int')
+    pytest.raises(TypeCheckError, instance.type_checked_method, "bah", 9).match(
+        'argument "x" is not an instance of int'
+    )
 
 
 def test_type_checked_classmethod(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
-        match('argument "x" is not an instance of int')
+    pytest.raises(
+        TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, "bah", 9
+    ).match('argument "x" is not an instance of int')
 
 
 def test_type_checked_staticmethod(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, 'bah', 9).\
-        match('argument "x" is not an instance of int')
+    pytest.raises(
+        TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, "bah", 9
+    ).match('argument "x" is not an instance of int')
 
 
-@pytest.mark.parametrize('argtype, returntype, error', [
-    (int, str, None),
-    (str, str, 'argument "x" is not an instance of str'),
-    (int, int, 'the return value is not an instance of int')
-], ids=['correct', 'bad_argtype', 'bad_returntype'])
+@pytest.mark.parametrize(
+    "argtype, returntype, error",
+    [
+        (int, str, None),
+        (str, str, 'argument "x" is not an instance of str'),
+        (int, int, "the return value is not an instance of int"),
+    ],
+    ids=["correct", "bad_argtype", "bad_returntype"],
+)
 def test_dynamic_type_checking_func(dummymodule, argtype, returntype, error):
     if error:
-        exc = pytest.raises(TypeCheckError, dummymodule.dynamic_type_checking_func, 4, argtype,
-                            returntype)
+        exc = pytest.raises(
+            TypeCheckError,
+            dummymodule.dynamic_type_checking_func,
+            4,
+            argtype,
+            returntype,
+        )
         exc.match(error)
     else:
-        assert dummymodule.dynamic_type_checking_func(4, argtype, returntype) == '4'
+        assert dummymodule.dynamic_type_checking_func(4, argtype, returntype) == "4"
 
 
 def test_class_in_function(dummymodule):
     create_inner = dummymodule.outer()
     retval = create_inner()
-    assert retval.__class__.__qualname__ == 'outer.<locals>.Inner'
+    assert retval.__class__.__qualname__ == "outer.<locals>.Inner"
 
 
 def test_inner_class_method(dummymodule):
     retval = dummymodule.Outer().create_inner()
-    assert retval.__class__.__qualname__ == 'Outer.Inner'
+    assert retval.__class__.__qualname__ == "Outer.Inner"
 
 
 def test_inner_class_classmethod(dummymodule):
     retval = dummymodule.Outer.create_inner_classmethod()
-    assert retval.__class__.__qualname__ == 'Outer.Inner'
+    assert retval.__class__.__qualname__ == "Outer.Inner"
 
 
 def test_inner_class_staticmethod(dummymodule):
     retval = dummymodule.Outer.create_inner_staticmethod()
-    assert retval.__class__.__qualname__ == 'Outer.Inner'
+    assert retval.__class__.__qualname__ == "Outer.Inner"
 
 
 def test_contextmanager(dummymodule):

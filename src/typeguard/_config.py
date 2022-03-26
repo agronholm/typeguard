@@ -5,7 +5,7 @@ import sys
 import warnings
 from dataclasses import InitVar, dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, List, Optional, Sequence
+from typing import Any, Callable, Sequence
 
 from ._checkers import TypeCheckLookupCallback
 from ._exceptions import TypeCheckError, TypeCheckWarning
@@ -23,7 +23,9 @@ TypeCheckFailCallback = Callable[[TypeCheckError, TypeCheckMemo], Any]
 class ForwardRefPolicy(Enum):
     """Defines how unresolved forward references are handled."""
 
-    ERROR = auto()  #: propagate the :exc:`NameError` when the forward reference lookup fails
+    ERROR = (
+        auto()
+    )  #: propagate the :exc:`NameError` when the forward reference lookup fails
     WARN = auto()  #: emit a TypeHintWarning if the forward reference lookup fails
     IGNORE = auto()  #: silently skip checks for unresolveable forward references
 
@@ -35,33 +37,41 @@ def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> Any:
 
 @dataclass
 class TypeCheckConfiguration:
-    autoload_plugins: InitVar[Optional[bool]] = None
-    plugins: InitVar[Optional[Sequence[str]]] = None
+    autoload_plugins: InitVar[bool | None] = None
+    plugins: InitVar[Sequence[str] | None] = None
     forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
-    checker_lookup_functions: List[TypeCheckLookupCallback] = field(default_factory=list)
-    typecheck_fail_callback: Optional[TypeCheckFailCallback] = None
+    checker_lookup_functions: list[TypeCheckLookupCallback] = field(
+        default_factory=list
+    )
+    typecheck_fail_callback: TypeCheckFailCallback | None = None
 
-    def __post_init__(self, autoload_plugins: Optional[bool],
-                      plugins: Optional[Sequence[str]]) -> None:
+    def __post_init__(
+        self, autoload_plugins: bool | None, plugins: Sequence[str] | None
+    ) -> None:
         from typeguard._checkers import builtin_checker_lookup
 
         self.checker_lookup_functions.append(builtin_checker_lookup)
 
         if autoload_plugins is None:
-            autoload_plugins = 'TYPEGUARD_DISABLE_PLUGIN_AUTOLOAD' not in os.environ
+            autoload_plugins = "TYPEGUARD_DISABLE_PLUGIN_AUTOLOAD" not in os.environ
 
         if autoload_plugins or plugins:
-            for ep in entry_points(group='typeguard.checker_lookup'):
-                if (autoload_plugins and plugins is None) or (plugins and ep.name in plugins):
+            for ep in entry_points(group="typeguard.checker_lookup"):
+                if (autoload_plugins and plugins is None) or (
+                    plugins and ep.name in plugins
+                ):
                     try:
                         plugin = ep.load()
                     except Exception as exc:
                         warnings.warn(
-                            f'Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}')
+                            f"Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}"
+                        )
                         continue
 
                     if not callable(plugin):
-                        warnings.warn(f'Plugin {ep} returned a non-callable object: {plugin!r}')
+                        warnings.warn(
+                            f"Plugin {ep} returned a non-callable object: {plugin!r}"
+                        )
                         continue
 
                     self.checker_lookup_functions.insert(0, plugin)

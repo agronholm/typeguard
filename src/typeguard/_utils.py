@@ -16,10 +16,12 @@ else:
     _typed_dict_meta_types = ()
     if sys.version_info >= (3, 8):
         from typing import _TypedDictMeta
+
         _typed_dict_meta_types += (_TypedDictMeta,)
 
     try:
         from typing_extensions import _TypedDictMeta
+
         _typed_dict_meta_types += (_TypedDictMeta,)
     except ImportError:
         pass
@@ -27,41 +29,47 @@ else:
     def is_typeddict(tp) -> bool:
         return isinstance(tp, _typed_dict_meta_types)
 
+
 if sys.version_info >= (3, 9):
     from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         return forwardref._evaluate(memo.globals, memo.locals, frozenset())
+
 else:
     from typing_extensions import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         return forwardref._evaluate(memo.globals, memo.locals)
 
+
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
 def get_type_name(type_) -> str:
-    name = (getattr(type_, '__name__', None) or getattr(type_, '_name', None) or
-            getattr(type_, '__forward_arg__', None))
+    name = (
+        getattr(type_, "__name__", None)
+        or getattr(type_, "_name", None)
+        or getattr(type_, "__forward_arg__", None)
+    )
     if name is None:
         origin = get_origin(type_)
-        name = getattr(origin, '_name', None)
+        name = getattr(origin, "_name", None)
         if name is None and not inspect.isclass(type_):
-            name = type_.__class__.__name__.strip('_')
+            name = type_.__class__.__name__.strip("_")
 
     args = get_args(type_)
     if args:
-        if name == 'Literal':
-            formatted_args = ', '.join(str(arg) for arg in args)
+        if name == "Literal":
+            formatted_args = ", ".join(str(arg) for arg in args)
         else:
-            formatted_args = ', '.join(get_type_name(arg) for arg in args)
+            formatted_args = ", ".join(get_type_name(arg) for arg in args)
 
-        name += f'[{formatted_args}]'
+        name += f"[{formatted_args}]"
 
-    module = getattr(type_, '__module__', None)
-    if module not in (None, 'typing', 'typing_extensions', 'builtins'):
-        name = module + '.' + name
+    module = getattr(type_, "__module__", None)
+    if module not in (None, "typing", "typing_extensions", "builtins"):
+        name = module + "." + name
 
     return name
 
@@ -88,14 +96,16 @@ def find_function(frame: FrameType) -> Callable:
                     func = obj
                 else:
                     # A second match was found
-                    raise LookupError(f'two functions matched: {qualified_name(func)} and '
-                                      f'{qualified_name(obj)}')
+                    raise LookupError(
+                        f"two functions matched: {qualified_name(func)} and "
+                        f"{qualified_name(obj)}"
+                    )
 
         # Cache the result for future lookups
         if func is not None:
             _functions_map[frame.f_code] = func
         else:
-            raise LookupError('target function not found')
+            raise LookupError("target function not found")
 
     return func
 
@@ -111,7 +121,7 @@ def qualified_name(obj: Any) -> str:
     type_ = obj if inspect.isclass(obj) else type(obj)
     module = type_.__module__
     qualname = type_.__qualname__
-    return qualname if module in ('typing', 'builtins') else f'{module}.{qualname}'
+    return qualname if module in ("typing", "builtins") else f"{module}.{qualname}"
 
 
 def function_name(func: Callable) -> str:
@@ -123,6 +133,6 @@ def function_name(func: Callable) -> str:
 
     """
     # For partial functions and objects with __call__ defined, __qualname__ does not exist
-    module = getattr(func, '__module__', '')
-    qualname = (module + '.') if module not in ('builtins', '') else ''
-    return qualname + getattr(func, '__qualname__', repr(func))
+    module = getattr(func, "__module__", "")
+    qualname = (module + ".") if module not in ("builtins", "") else ""
+    return qualname + getattr(func, "__qualname__", repr(func))

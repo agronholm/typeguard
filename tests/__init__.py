@@ -1,23 +1,38 @@
 import sys
 from typing import (
-    AbstractSet, Collection, Dict, Generic, List, NamedTuple, NewType, TypeVar, Union)
+    AbstractSet,
+    Collection,
+    Dict,
+    Generic,
+    List,
+    NamedTuple,
+    NewType,
+    TypeVar,
+    Union,
+)
 
 if sys.version_info >= (3, 8):
     from typing import Protocol, runtime_checkable
 else:
     from typing_extensions import Protocol, runtime_checkable
 
-T_Foo = TypeVar('T_Foo')
+T_Foo = TypeVar("T_Foo")
 
-TBound = TypeVar('TBound', bound='Parent')
-TConstrained = TypeVar('TConstrained', 'Parent', int)
-TTypingConstrained = TypeVar('TTypingConstrained', List[int], AbstractSet[str])
-TIntStr = TypeVar('TIntStr', int, str)
-TIntCollection = TypeVar('TIntCollection', int, Collection)
-TParent = TypeVar('TParent', bound='Parent')
-TChild = TypeVar('TChild', bound='Child')
-Employee = NamedTuple('Employee', [('name', str), ('id', int)])
-JSONType = Union[str, float, bool, None, List['JSONType'], Dict[str, 'JSONType']]
+TBound = TypeVar("TBound", bound="Parent")
+TConstrained = TypeVar("TConstrained", "Parent", int)
+TTypingConstrained = TypeVar("TTypingConstrained", List[int], AbstractSet[str])
+TIntStr = TypeVar("TIntStr", int, str)
+TIntCollection = TypeVar("TIntCollection", int, Collection)
+TParent = TypeVar("TParent", bound="Parent")
+TChild = TypeVar("TChild", bound="Child")
+
+
+class Employee(NamedTuple):
+    name: str
+    id: int
+
+
+JSONType = Union[str, float, bool, None, List["JSONType"], Dict[str, "JSONType"]]
 myint = NewType("myint", int)
 
 

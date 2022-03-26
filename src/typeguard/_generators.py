@@ -1,5 +1,13 @@
 import collections.abc
-from typing import Any, AsyncGenerator, AsyncIterable, AsyncIterator, Generator, Iterable, Iterator
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterable,
+    AsyncIterator,
+    Generator,
+    Iterable,
+    Iterator,
+)
 
 from ._memo import CallMemo
 
@@ -7,8 +15,8 @@ from ._memo import CallMemo
 class TypeCheckedGenerator:
     def __init__(self, wrapped: Generator, memo: CallMemo):
         rtype_args = []
-        if hasattr(memo.type_hints['return'], "__args__"):
-            rtype_args = memo.type_hints['return'].__args__
+        if hasattr(memo.type_hints["return"], "__args__"):
+            rtype_args = memo.type_hints["return"].__args__
 
         self.__wrapped = wrapped
         self.__memo = memo
@@ -36,24 +44,35 @@ class TypeCheckedGenerator:
         from . import check_type
 
         if self.__initialized:
-            check_type(obj, self.__send_type, argname='value sent to generator', memo=self.__memo)
+            check_type(
+                obj,
+                self.__send_type,
+                argname="value sent to generator",
+                memo=self.__memo,
+            )
         else:
             self.__initialized = True
 
         try:
             value = self.__wrapped.send(obj)
         except StopIteration as exc:
-            check_type(exc.value, self.__return_type, argname='return value', memo=self.__memo)
+            check_type(
+                exc.value, self.__return_type, argname="return value", memo=self.__memo
+            )
             raise
 
-        check_type(value, self.__yield_type, argname='value yielded from generator',
-                   memo=self.__memo)
+        check_type(
+            value,
+            self.__yield_type,
+            argname="value yielded from generator",
+            memo=self.__memo,
+        )
         return value
 
 
 class TypeCheckedAsyncGenerator:
     def __init__(self, wrapped: AsyncGenerator, memo: CallMemo):
-        rtype_args = memo.type_hints['return'].__args__
+        rtype_args = memo.type_hints["return"].__args__
         self.__wrapped = wrapped
         self.__memo = memo
         self.__yield_type = rtype_args[0]
@@ -79,19 +98,38 @@ class TypeCheckedAsyncGenerator:
         from . import check_type
 
         if self.__initialized:
-            check_type(obj, self.__send_type, argname='value sent to generator', memo=self.__memo)
+            check_type(
+                obj,
+                self.__send_type,
+                argname="value sent to generator",
+                memo=self.__memo,
+            )
         else:
             self.__initialized = True
 
         value = await self.__wrapped.asend(obj)
-        check_type(value, self.__yield_type, argname='value yielded from generator',
-                   memo=self.__memo)
+        check_type(
+            value,
+            self.__yield_type,
+            argname="value yielded from generator",
+            memo=self.__memo,
+        )
         return value
 
 
-generator_origin_types = (Generator, collections.abc.Generator,
-                          Iterator, collections.abc.Iterator,
-                          Iterable, collections.abc.Iterable)
-asyncgen_origin_types = (AsyncIterator, collections.abc.AsyncIterator,
-                         AsyncIterable, collections.abc.AsyncIterable,
-                         AsyncGenerator, collections.abc.AsyncGenerator)
+generator_origin_types = (
+    Generator,
+    collections.abc.Generator,
+    Iterator,
+    collections.abc.Iterator,
+    Iterable,
+    collections.abc.Iterable,
+)
+asyncgen_origin_types = (
+    AsyncIterator,
+    collections.abc.AsyncIterator,
+    AsyncIterable,
+    collections.abc.AsyncIterable,
+    AsyncGenerator,
+    collections.abc.AsyncGenerator,
+)

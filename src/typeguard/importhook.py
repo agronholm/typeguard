@@ -14,7 +14,7 @@ def _call_with_frames_removed(f, *args, **kwargs):
 
 
 def optimized_cache_from_source(path, debug_override=None):
-    return cache_from_source(path, debug_override, optimization='typeguard')
+    return cache_from_source(path, debug_override, optimization="typeguard")
 
 
 class TypeguardTransformer(ast.NodeVisitor):
@@ -24,12 +24,12 @@ class TypeguardTransformer(ast.NodeVisitor):
     def visit_Module(self, node: ast.Module):
         # Insert "import typeguard" after any "from __future__ ..." imports
         for i, child in enumerate(node.body):
-            if isinstance(child, ast.ImportFrom) and child.module == '__future__':
+            if isinstance(child, ast.ImportFrom) and child.module == "__future__":
                 continue
             elif isinstance(child, ast.Expr) and isinstance(child.value, ast.Str):
                 continue  # module docstring
             else:
-                node.body.insert(i, ast.Import(names=[ast.alias('typeguard', None)]))
+                node.body.insert(i, ast.Import(names=[ast.alias("typeguard", None)]))
                 break
 
         self._parents.append(node)
@@ -39,7 +39,9 @@ class TypeguardTransformer(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef):
         node.decorator_list.append(
-            ast.Attribute(ast.Name(id='typeguard', ctx=ast.Load()), 'typechecked', ast.Load())
+            ast.Attribute(
+                ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load()
+            )
         )
         self._parents.append(node)
         self.generic_visit(node)
@@ -55,7 +57,9 @@ class TypeguardTransformer(ast.NodeVisitor):
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
             node.decorator_list.append(
-                ast.Attribute(ast.Name(id='typeguard', ctx=ast.Load()), 'typechecked', ast.Load())
+                ast.Attribute(
+                    ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load()
+                )
             )
 
         self._parents.append(node)
@@ -67,16 +71,27 @@ class TypeguardTransformer(ast.NodeVisitor):
 class TypeguardLoader(SourceFileLoader):
     def source_to_code(self, data, path, *, _optimize=-1):
         source = decode_source(data)
-        tree = _call_with_frames_removed(compile, source, path, 'exec', ast.PyCF_ONLY_AST,
-                                         dont_inherit=True, optimize=_optimize)
+        tree = _call_with_frames_removed(
+            compile,
+            source,
+            path,
+            "exec",
+            ast.PyCF_ONLY_AST,
+            dont_inherit=True,
+            optimize=_optimize,
+        )
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
-        return _call_with_frames_removed(compile, tree, path, 'exec',
-                                         dont_inherit=True, optimize=_optimize)
+        return _call_with_frames_removed(
+            compile, tree, path, "exec", dont_inherit=True, optimize=_optimize
+        )
 
     def exec_module(self, module):
         # Use a custom optimization marker – the import lock should make this monkey patch safe
-        with patch('importlib._bootstrap_external.cache_from_source', optimized_cache_from_source):
+        with patch(
+            "importlib._bootstrap_external.cache_from_source",
+            optimized_cache_from_source,
+        ):
             return super().exec_module(module)
 
 
@@ -112,7 +127,7 @@ class TypeguardFinder(MetaPathFinder):
 
         """
         for package in self.packages:
-            if module_name == package or module_name.startswith(package + '.'):
+            if module_name == package or module_name.startswith(package + "."):
                 return True
 
         return False
@@ -135,8 +150,9 @@ class ImportHookManager:
             pass  # already removed
 
 
-def install_import_hook(packages: Iterable[str], *,
-                        cls: Type[TypeguardFinder] = TypeguardFinder) -> ImportHookManager:
+def install_import_hook(
+    packages: Iterable[str], *, cls: Type[TypeguardFinder] = TypeguardFinder
+) -> ImportHookManager:
     """
     Install an import hook that decorates classes and functions with ``@typechecked``.
 
@@ -151,10 +167,14 @@ def install_import_hook(packages: Iterable[str], *,
         packages = [packages]
 
     for i, finder in enumerate(sys.meta_path):
-        if isclass(finder) and finder.__name__ == 'PathFinder' and hasattr(finder, 'find_spec'):
+        if (
+            isclass(finder)
+            and finder.__name__ == "PathFinder"
+            and hasattr(finder, "find_spec")
+        ):
             break
     else:
-        raise RuntimeError('Cannot find a PathFinder in sys.meta_path')
+        raise RuntimeError("Cannot find a PathFinder in sys.meta_path")
 
     hook = cls(packages, finder)
     sys.meta_path.insert(0, hook)
