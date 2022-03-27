@@ -1,10 +1,53 @@
 [build-system]
 requires = [
-    "setuptools >= 42",
+    "setuptools >= 61",
     "wheel >= 0.29.0",
     "setuptools_scm[toml] >= 3.4"
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "typeguard"
+description = "Run-time type checker for Python"
+readme = "README.rst"
+authors = [{name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"}]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+requires-python = ">= 3.7.4"
+dependencies = [
+    "importlib_metadata >= 3.6; python_version < '3.10'",
+    "typing_extensions; python_version < '3.9'",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://typeguard.readthedocs.io/en/latest/"
+"Change log" = "https://typeguard.readthedocs.io/en/latest/versionhistory.html"
+"Source code" = "https://github.com/agronholm/typeguard"
+"Issue tracker" = "https://github.com/agronholm/typeguard/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    'mypy; python_implementation != "PyPy"',
+]
+doc = [
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints >= 1.2.0",
+]
+
+[project.entry-points]
+pytest11 = {typeguard = "typeguard.pytest_plugin"}
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
