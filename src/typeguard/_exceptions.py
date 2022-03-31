@@ -29,7 +29,9 @@ class TypeCheckError(Exception):
         self._path.append(element)
 
     def __str__(self) -> str:
-        if self._path:
-            return " of ".join(self._path) + " " + self.args[0]
+        if len(self.args) == 0:
+            raise ValueError("No args are given.")
+        elif self._path:
+            return " of ".join(self._path) + f" {self.args[0]}"
         else:
-            return self.args[0]
+            return f"{self.args[0]}"
