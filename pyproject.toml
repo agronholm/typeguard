@@ -45,6 +45,13 @@ doc = [
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints >= 1.2.0",
 ]
+dev = [
+    "black",
+    "isort",
+    "pyproject-flake8",
+    "pytest",
+    'mypy; python_implementation != "PyPy"',
+]
 
 [project.entry-points]
 pytest11 = {typeguard = "typeguard.pytest_plugin"}
@@ -72,7 +79,7 @@ src_paths = ["src"]
 profile = "black"
 skip_gitignore = true
 
-[tool.flake8]
+[tool.flake8]  # use `pflake8` instead of `flake8`
 max-line-length = 99
 ignore = ["E203", "W503"]
 
