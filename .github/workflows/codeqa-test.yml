@@ -19,13 +19,15 @@ jobs:
         path: ~/.cache/pip
         key: pip-lint
     - name: Install dependencies
-      run: pip install pyproject-flake8 isort mypy pytest
+      run: pip install black pyproject-flake8 isort mypy pytest
+    - name: Run black
+      run: black src tests --check --diff
     - name: Run flake8
-      run: pflake8 src tests
+      run: pflake8 src tests --diff
     - name: Run mypy
       run: mypy tests/mypy/test_type_annotations.py
     - name: Run isort
-      run: isort -c src tests
+      run: isort src tests --check --diff
 
   test:
     needs: [lint]
