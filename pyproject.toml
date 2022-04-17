@@ -1,8 +1,7 @@
 [build-system]
 requires = [
     "setuptools >= 61",
-    "wheel >= 0.29.0",
-    "setuptools_scm[toml] >= 3.4"
+    "setuptools_scm[toml] >= 6.4"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -81,3 +80,23 @@ python_version = "3.7"
 ignore_missing_imports = true
 #strict = true
 pretty = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+minversion = 3.3.0
+envlist = pypy3, py37, py38, py39, py310
+skip_missing_interpreters = true
+isolated_build = true
+
+[testenv]
+extras = test
+deps = coverage[toml]
+commands =
+  coverage run -m pytest {posargs}
+  coverage report
+
+[testenv:docs]
+extras = doc
+commands = sphinx-build docs build/sphinx
+"""
