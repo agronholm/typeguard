@@ -1,7 +1,7 @@
 import re
 import sys
 
-version_re = re.compile(r'_py(\d)(\d)\.py$')
+version_re = re.compile(r"_py(\d)(\d)\.py$")
 
 
 def pytest_ignore_collect(path, config):

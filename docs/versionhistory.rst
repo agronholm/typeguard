@@ -3,12 +3,18 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**2.13.3** (2021-12-10)
+**UNRELEASED**
 
-- Fixed ``TypeError`` when using typeguard within ``exec()`` (where ``__module__`` is ``None``)
-  (PR by Andy Jones)
-- Fixed ``TypedDict`` causing ``TypeError: TypedDict does not support instance and class checks``
-  on Python 3.8 with standard library (not ``typing_extensions``) typed dicts
+- Dropped Python 3.5 and 3.6 support
+- Dropped the deprecated profiler hook (``TypeChecker``)
+- Added a configuration system
+- Added support for custom type checking functions
+- Added support for PEP 604 union types (``X | Y``) on Python 3.10+
+- Added support for checking arbitrary ``Mapping`` types
+- Much improved error messages showing where the type check failed
+- Changed the import hook to append ``@typechecked`` to the decorator list instead of inserting it
+  as the first decorator (fixes type checking inconsistencies with mypy regarding at least
+  ``@contextmanager``, probably others too)
 
 **2.13.2** (2021-11-23)
 
