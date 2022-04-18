@@ -391,6 +391,16 @@ class TestTypedDict:
         else:
             check_type(value, DummyDict)
 
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="Only required on Python 3.10+")
+    def test_typing_extensions_typed_dict(self):
+        from typing_extensions import TypedDict as TypingExtensionsTypedDict
+
+        class DummyDict(TypingExtensionsTypedDict, total=False):
+            x: int
+            y: str
+
+        check_type({}, DummyDict)
+
 
 class TestList:
     def test_valid(self):

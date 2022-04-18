@@ -39,6 +39,7 @@ Documentation = "https://typeguard.readthedocs.io/en/latest/"
 test = [
     "pytest",
     'mypy; python_implementation != "PyPy"',
+    "typing_extensions; python_version >= '3.10'",
 ]
 doc = [
     "sphinx_rtd_theme",
