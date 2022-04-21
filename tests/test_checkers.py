@@ -681,17 +681,7 @@ class TestIO:
 
 
 class TestProtocol:
-    @pytest.mark.parametrize("protocol_cls", [RuntimeProtocol, StaticProtocol])
-    def test_protocol(self, protocol_cls):
-        class Foo:
-            member = 1
-
-            def meth(self) -> None:
-                pass
-
-        check_type(Foo(), protocol_cls)
-
-    def test_non_method_members(self):
+    def test_protocol(self):
         class Foo:
             member = 1
 
@@ -699,6 +689,38 @@ class TestProtocol:
                 pass
 
         check_type(Foo(), RuntimeProtocol)
+        check_type(Foo, Type[RuntimeProtocol])
+
+    def test_protocol_warns_on_static(self):
+        class Foo:
+            member = 1
+
+            def meth(self) -> None:
+                pass
+
+        with pytest.warns(
+            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
+        ):
+            check_type(Foo(), StaticProtocol)
+
+        with pytest.warns(
+            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
+        ):
+            check_type(Foo, Type[StaticProtocol])
+
+    def test_fail_non_method_members(self):
+        class Foo:
+            val = 1
+
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
+        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
 
     def test_fail(self):
         class Foo:
@@ -706,6 +728,9 @@ class TestProtocol:
                 pass
 
         pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
+        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
             "value is not compatible with the RuntimeProtocol protocol"
         )
 
