@@ -176,6 +176,12 @@ can do the following:
 
     pytest --typeguard-packages=foo.bar,xyz
 
+Alternatively, you can install the import hook for all loaded modules in the specified tests via:
+
+.. code-block:: bash
+
+    pytest --typeguard-packages=.
+
 There is currently no support for specifying a customized module finder.
 
 Checking types directly
