@@ -15,6 +15,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Changed the import hook to append ``@typechecked`` to the decorator list instead of inserting it
   as the first decorator (fixes type checking inconsistencies with mypy regarding at least
   ``@contextmanager``, probably others too)
+- Fixed incompatibility with ``typing_extensions`` v4.1+ on Python 3.10 (PR by David C.)
 
 **2.13.3** (2021-12-10)
 

@@ -10,24 +10,27 @@ from weakref import WeakValueDictionary
 if TYPE_CHECKING:
     from ._memo import TypeCheckMemo
 
-if sys.version_info >= (3, 10):
-    from typing import is_typeddict
-else:
-    _typed_dict_meta_types = ()
-    if sys.version_info >= (3, 8):
-        from typing import _TypedDictMeta
+try:
+    from typing_extensions import is_typeddict
+except ImportError:
+    if sys.version_info >= (3, 10):
+        from typing import is_typeddict
+    else:
+        _typed_dict_meta_types = ()
+        if sys.version_info >= (3, 8):
+            from typing import _TypedDictMeta
 
-        _typed_dict_meta_types += (_TypedDictMeta,)
+            _typed_dict_meta_types += (_TypedDictMeta,)
 
-    try:
-        from typing_extensions import _TypedDictMeta
+        try:
+            from typing_extensions import _TypedDictMeta
 
-        _typed_dict_meta_types += (_TypedDictMeta,)
-    except ImportError:
-        pass
+            _typed_dict_meta_types += (_TypedDictMeta,)
+        except ImportError:
+            pass
 
-    def is_typeddict(tp) -> bool:
-        return isinstance(tp, _typed_dict_meta_types)
+        def is_typeddict(tp) -> bool:
+            return isinstance(tp, _typed_dict_meta_types)
 
 
 if sys.version_info >= (3, 9):
