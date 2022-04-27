@@ -11,5 +11,6 @@ Quick links
    :maxdepth: 1
 
    userguide
+   extending
    api
    versionhistory

@@ -26,7 +26,6 @@ def has_valid_return_type(y: str) -> str:
 
 @typechecked
 class MyClass:
-
     def __init__(self, x: int) -> None:
         self.x = x
 

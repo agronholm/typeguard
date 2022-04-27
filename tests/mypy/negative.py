@@ -1,4 +1,9 @@
-from typeguard import check_argument_types, check_return_type, typechecked, typeguard_ignore
+from typeguard import (
+    check_argument_types,
+    check_return_type,
+    typechecked,
+    typeguard_ignore,
+)
 
 
 @typechecked

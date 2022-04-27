@@ -16,14 +16,19 @@ API reference
 
 .. autodecorator:: typeguard_ignore
 
-.. autoclass:: TypeChecker
-
-.. autoexception:: TypeHintWarning
-
-.. autoexception:: TypeWarning
+.. autoclass:: TypeCheckConfiguration
+    :members:
 
 .. autoclass:: ForwardRefPolicy
     :members:
+
+.. autofunction:: warn_on_error
+
+.. autoexception:: TypeCheckError
+
+.. autoexception:: TypeCheckWarning
+
+.. autoexception:: TypeHintWarning
 
 :mod:`typeguard.importhook`
 ---------------------------

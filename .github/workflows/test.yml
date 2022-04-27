@@ -1,39 +1,17 @@
-name: Python codeqa/test
+name: Run the test suite
 
 on:
   push:
-    branches: [master]
+    branches: [master, "3.0"]
   pull_request:
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: pip-lint
-    - name: Install dependencies
-      run: pip install pyproject-flake8 isort mypy pytest
-    - name: Run flake8
-      run: pflake8 src tests
-    - name: Run mypy
-      run: mypy tests/mypy/test_type_annotations.py
-    - name: Run isort
-      run: isort -c src tests
-
   test:
-    needs: [lint]
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10", pypy-3.7]
+        python-version: ["3.7", "3.8", "3.9", "3.10", pypy-3.8]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
