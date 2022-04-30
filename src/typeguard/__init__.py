@@ -221,10 +221,10 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
 
     if not __debug__ and not always:  # pragma: no cover
         return func
-        
+
     if isinstance(func, (classmethod, staticmethod)):
         if isinstance(func, classmethod):
-             return classmethod(typechecked(func.__func__))
+            return classmethod(typechecked(func.__func__))
         else:
             return staticmethod(typechecked(func.__func__))
 
