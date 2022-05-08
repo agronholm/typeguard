@@ -505,9 +505,9 @@ def check_protocol(
             )
     else:
         warnings.warn(
-            "Typeguard cannot check the {} protocol because it is a non-runtime protocol. "
-            "If you would like to type check this protocol, "
-            "please use @typing.runtime_checkable".format(origin_type.__qualname__)
+            f"Typeguard cannot check the {origin_type.__qualname__} protocol because "
+            f"it is a non-runtime protocol. If you would like to type check this "
+            f"protocol, please use @typing.runtime_checkable"
         )
 
 
