@@ -376,7 +376,9 @@ def check_class(
         return
 
     expected_class = args[0]
-    if isinstance(expected_class, TypeVar):
+    if getattr(expected_class, "_is_protocol", False):
+        check_protocol(value, expected_class, (), memo)
+    elif isinstance(expected_class, TypeVar):
         check_typevar(value, expected_class, (), memo, subclass_check=True)
     elif get_origin(expected_class) is Union:
         errors: Dict[str, TypeCheckError] = {}
@@ -501,6 +503,12 @@ def check_protocol(
             raise TypeCheckError(
                 f"is not compatible with the {origin_type.__qualname__} protocol"
             )
+    else:
+        warnings.warn(
+            f"Typeguard cannot check the {origin_type.__qualname__} protocol because "
+            f"it is a non-runtime protocol. If you would like to type check this "
+            f"protocol, please use @typing.runtime_checkable"
+        )
 
 
 def check_byteslike(
