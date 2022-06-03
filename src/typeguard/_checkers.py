@@ -2,7 +2,6 @@ import collections.abc
 import inspect
 import sys
 import types
-import typing_extensions
 import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
@@ -29,6 +28,8 @@ from typing import (
     TypeVar,
     Union,
 )
+
+import typing_extensions
 
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
@@ -203,17 +204,21 @@ def check_typed_dict(
 ) -> None:
     typ_not_required = typing_extensions.NotRequired
     declared_keys = frozenset(origin_type.__annotations__)
-    
-    not_required = [key for key, argtype in get_type_hints(origin_type).items() if typ_not_required == typing_extensions.get_origin(argtype)]
-    
+
+    not_required = [
+        key
+        for key, argtype in get_type_hints(origin_type).items()
+        if typ_not_required == typing_extensions.get_origin(argtype)
+    ]
+
     if hasattr(origin_type, "__required_keys__"):
         required_keys = origin_type.__required_keys__
     else:  # py3.8 and lower
         required_keys = declared_keys if origin_type.__total__ else frozenset()
 
     if origin_type.__total__:
-        required_keys = frozenset([i for i in required_keys if i not in not_required])
-        
+        required_keys = frozenset(i for i in required_keys if i not in not_required)
+
     existing_keys = frozenset(value)
     extra_keys = existing_keys - declared_keys
     if extra_keys:
@@ -221,7 +226,7 @@ def check_typed_dict(
         raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
     missing_keys = required_keys - existing_keys
-    
+
     if missing_keys:
         keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys))
         raise TypeCheckError(f"is missing required key(s): {keys_formatted}")
@@ -356,6 +361,7 @@ def check_union(
     )
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
+
 def check_uniontype(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -478,19 +484,21 @@ def check_literal(
     if value not in final_args:
         formatted_args = ", ".join(repr(arg) for arg in final_args)
         raise TypeCheckError(f"is not any of ({formatted_args})")
-    
+
+
 def check_not_required(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
     for type_ in args:
         check_type_internal(value, type_, memo)
-        
+
+
 def check_required(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
     check_not_required(value, origin_type, args, memo)
-        
-        
+
+
 def check_number(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -542,7 +550,8 @@ def check_instanceof(
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
-    
+
+
 def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
     from . import ForwardRefPolicy, config
 
@@ -613,8 +622,8 @@ origin_type_checkers = {
     type: check_class,
     Type: check_class,
     Union: check_union,
-    typing_extensions.NotRequired : check_not_required,
-    typing_extensions.Required : check_required
+    typing_extensions.NotRequired: check_not_required,
+    typing_extensions.Required: check_required,
 }
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
