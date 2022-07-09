@@ -47,7 +47,7 @@ class TestCoroutineFunction:
         @typechecked
         async def foo() -> Any:
             return 1
-        
+
         assert asyncio.run(foo()) == 1
 
 

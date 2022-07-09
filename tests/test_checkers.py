@@ -619,7 +619,7 @@ class TestType:
 
     def test_union_any(self):
         check_type(list, Type[Union[str, int, Any]])
-        
+
     def test_any(self):
         check_type(list, Type[Any])
 
