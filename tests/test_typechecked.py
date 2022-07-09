@@ -1,5 +1,6 @@
 import asyncio
 from typing import (
+    Any,
     AsyncGenerator,
     AsyncIterable,
     AsyncIterator,
@@ -41,6 +42,13 @@ class TestCoroutineFunction:
             TypeCheckError, match="return value is not an instance of str"
         ):
             asyncio.run(foo(1))
+
+    def test_any_return(self):
+        @typechecked
+        async def foo() -> Any:
+            return 1
+        
+        assert asyncio.run(foo()) == 1
 
 
 class TestGenerator:

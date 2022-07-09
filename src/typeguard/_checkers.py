@@ -376,7 +376,9 @@ def check_class(
         return
 
     expected_class = args[0]
-    if getattr(expected_class, "_is_protocol", False):
+    if expected_class is Any:
+        return
+    elif getattr(expected_class, "_is_protocol", False):
         check_protocol(value, expected_class, (), memo)
     elif isinstance(expected_class, TypeVar):
         check_typevar(value, expected_class, (), memo, subclass_check=True)
@@ -540,6 +542,9 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
                 )
 
             return
+
+    if annotation is Any:
+        return
 
     extras: Tuple[Any, ...]
     origin_type = get_origin(annotation)

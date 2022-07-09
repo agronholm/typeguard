@@ -290,6 +290,9 @@ class TestMapping:
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]
         ).match(r"value of key 'a' of value is not an instance of str")
 
+    def test_any_value_type(self):
+        check_type(TestMapping.DummyMapping(), Mapping[str, Any])
+
 
 class TestMutableMapping:
     class DummyMutableMapping(collections.abc.MutableMapping):
@@ -616,6 +619,9 @@ class TestType:
 
     def test_union_any(self):
         check_type(list, Type[Union[str, int, Any]])
+        
+    def test_any(self):
+        check_type(list, Type[Any])
 
     def test_union_fail(self):
         pytest.raises(
