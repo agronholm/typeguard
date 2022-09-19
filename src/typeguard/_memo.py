@@ -11,7 +11,7 @@ from ._utils import function_name
 if sys.version_info >= (3, 9):
     from typing import get_type_hints
 else:
-    from typing_extensions import get_type_hints
+    from typing import get_type_hints
 
 if TYPE_CHECKING:
     from ._config import TypeCheckConfiguration

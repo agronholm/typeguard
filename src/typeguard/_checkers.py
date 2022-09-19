@@ -43,7 +43,9 @@ from ._utils import (
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
 else:
-    from typing_extensions import Annotated, get_type_hints
+    from typing import get_type_hints
+
+    from typing_extensions import Annotated
 
 if sys.version_info >= (3, 8):
     from typing import Literal
