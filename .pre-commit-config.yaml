@@ -13,24 +13,18 @@ repos:
         args: [ "--fix=lf" ]
       - id: trailing-whitespace
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
-    hooks:
-      - id: pyupgrade
-        args: [ "--py37-plus" ]
-
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.8.0
     hooks:
       - id: black
         exclude: "^tests/mypy/negative.py"
 
   - repo: https://github.com/csachs/pyproject-flake8
-    rev: v0.0.1a4
+    rev: v5.0.4a1.post1
     hooks:
       - id: pyproject-flake8
