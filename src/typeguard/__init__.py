@@ -71,6 +71,7 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
+    allow_extra: bool = False,
     memo: Optional[TypeCheckMemo] = None,
 ) -> None:
     """
@@ -83,6 +84,7 @@ def check_type(
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
     :param argname: name of the argument to check; used for error messages
+    :param allow_extra: allow extra fields when checking TypedDict's
     :raises TypeCheckError: if there is a type mismatch
 
     """
@@ -94,7 +96,7 @@ def check_type(
         memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
 
     try:
-        check_type_internal(value, expected_type, memo)
+        check_type_internal(value, expected_type, memo, allow_extra=allow_extra)
     except TypeCheckError as exc:
         exc.append_path_element(argname)
         if memo.config.typecheck_fail_callback:

@@ -51,7 +51,7 @@ else:
     from typing_extensions import Literal
 
 
-TypeCheckerCallable = Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]
+TypeCheckerCallable = Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo, bool], Any]
 TypeCheckLookupCallback = Callable[
     [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
 ]
@@ -115,7 +115,7 @@ BINARY_MAGIC_METHODS = {
 
 
 def check_callable(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not callable(value):
         raise TypeCheckError("is not callable")
@@ -169,7 +169,7 @@ def check_callable(
 
 
 def check_mapping(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if origin_type is Dict or origin_type is dict:
         if not isinstance(value, dict):
@@ -185,20 +185,20 @@ def check_mapping(
         if key_type is not Any or value_type is not Any:
             for k, v in value.items():
                 try:
-                    check_type_internal(k, key_type, memo)
+                    check_type_internal(k, key_type, memo, allow_extra=allow_extra)
                 except TypeCheckError as exc:
                     exc.append_path_element(f"key {k!r}")
                     raise
 
                 try:
-                    check_type_internal(v, value_type, memo)
+                    check_type_internal(v, value_type, memo, allow_extra=allow_extra)
                 except TypeCheckError as exc:
                     exc.append_path_element(f"value of key {k!r}")
                     raise
 
 
 def check_typed_dict(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
@@ -207,10 +207,12 @@ def check_typed_dict(
         required_keys = declared_keys if origin_type.__total__ else frozenset()
 
     existing_keys = frozenset(value)
-    extra_keys = existing_keys - declared_keys
-    if extra_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys))
-        raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
+    
+    if not allow_extra:
+        extra_keys = existing_keys - declared_keys
+        if extra_keys:
+            keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys))
+            raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
     missing_keys = required_keys - existing_keys
     if missing_keys:
@@ -221,14 +223,14 @@ def check_typed_dict(
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             try:
-                check_type_internal(argvalue, argtype, memo)
+                check_type_internal(argvalue, argtype, memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"value of key {key!r}")
                 raise
 
 
 def check_list(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, list):
         raise TypeCheckError("is not a list")
@@ -236,14 +238,14 @@ def check_list(
     if args and args != (Any,):
         for i, v in enumerate(value):
             try:
-                check_type_internal(v, args[0], memo)
+                check_type_internal(v, args[0], memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
 
 
 def check_sequence(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, collections.abc.Sequence):
         raise TypeCheckError("is not a sequence")
@@ -251,14 +253,14 @@ def check_sequence(
     if args and args != (Any,):
         for i, v in enumerate(value):
             try:
-                check_type_internal(v, args[0], memo)
+                check_type_internal(v, args[0], memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
 
 
 def check_set(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, AbstractSet):
         raise TypeCheckError("is not a set")
@@ -266,14 +268,14 @@ def check_set(
     if args and args != (Any,):
         for v in value:
             try:
-                check_type_internal(v, args[0], memo)
+                check_type_internal(v, args[0], memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"[{v}]")
                 raise
 
 
 def check_tuple(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     # Specialized check for NamedTuples
     field_types = getattr(origin_type, "__annotations__", None)
@@ -288,7 +290,7 @@ def check_tuple(
 
         for name, field_type in field_types.items():
             try:
-                check_type_internal(getattr(value, name), field_type, memo)
+                check_type_internal(getattr(value, name), field_type, memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"attribute {name!r}")
                 raise
@@ -309,7 +311,7 @@ def check_tuple(
         element_type = tuple_params[0]
         for i, element in enumerate(value):
             try:
-                check_type_internal(element, element_type, memo)
+                check_type_internal(element, element_type, memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
@@ -325,19 +327,19 @@ def check_tuple(
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
             try:
-                check_type_internal(element, element_type, memo)
+                check_type_internal(element, element_type, memo, allow_extra=allow_extra)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
 
 
 def check_union(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     errors: Dict[str, TypeCheckError] = {}
     for type_ in args:
         try:
-            check_type_internal(value, type_, memo)
+            check_type_internal(value, type_, memo, allow_extra=allow_extra)
             return
         except TypeCheckError as exc:
             errors[get_type_name(type_)] = exc
@@ -349,12 +351,12 @@ def check_union(
 
 
 def check_uniontype(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     errors: Dict[str, TypeCheckError] = {}
     for type_ in args:
         try:
-            check_type_internal(value, type_, memo)
+            check_type_internal(value, type_, memo, allow_extra=allow_extra)
             return
         except TypeCheckError as exc:
             errors[get_type_name(type_)] = exc
@@ -366,7 +368,7 @@ def check_uniontype(
 
 
 def check_class(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isclass(value):
         raise TypeCheckError("is not a class")
@@ -377,9 +379,9 @@ def check_class(
 
     expected_class = args[0]
     if getattr(expected_class, "_is_protocol", False):
-        check_protocol(value, expected_class, (), memo)
+        check_protocol(value, expected_class, (), memo, allow_extra)
     elif isinstance(expected_class, TypeVar):
-        check_typevar(value, expected_class, (), memo, subclass_check=True)
+        check_typevar(value, expected_class, (), memo, allow_extra, subclass_check=True)
     elif get_origin(expected_class) is Union:
         errors: Dict[str, TypeCheckError] = {}
         for arg in get_args(expected_class):
@@ -387,7 +389,7 @@ def check_class(
                 return
 
             try:
-                check_class(value, type, (arg,), memo)
+                check_class(value, type, (arg,), memo, allow_extra)
                 return
             except TypeCheckError as exc:
                 errors[get_type_name(arg)] = exc
@@ -403,7 +405,7 @@ def check_class(
 
 
 def check_newtype(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     supertype = origin_type.__supertype__
     if not isinstance(value, supertype):
@@ -411,7 +413,7 @@ def check_newtype(
 
 
 def check_instance(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
@@ -422,6 +424,7 @@ def check_typevar(
     origin_type: TypeVar,
     args: Tuple[Any, ...],
     memo: TypeCheckMemo,
+    allow_extra: bool,
     *,
     subclass_check: bool = False,
 ) -> None:
@@ -429,12 +432,12 @@ def check_typevar(
         annotation = (
             Type[origin_type.__bound__] if subclass_check else origin_type.__bound__
         )
-        check_type_internal(value, annotation, memo)
+        check_type_internal(value, annotation, memo, allow_extra=allow_extra)
     elif origin_type.__constraints__:
         for constraint in origin_type.__constraints__:
             annotation = Type[constraint] if subclass_check else constraint
             try:
-                check_type_internal(value, annotation, memo)
+                check_type_internal(value, annotation, memo, allow_extra=allow_extra)
             except TypeCheckError:
                 pass
             else:
@@ -449,7 +452,7 @@ def check_typevar(
 
 
 def check_literal(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     def get_literal_args(literal_args: Tuple[Any, ...]) -> Tuple[Any, ...]:
         retval: List[Any] = []
@@ -473,7 +476,7 @@ def check_literal(
 
 
 def check_number(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if origin_type is complex and not isinstance(value, (complex, float, int)):
         raise TypeCheckError("is neither complex, float or int")
@@ -482,7 +485,7 @@ def check_number(
 
 
 def check_io(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if origin_type is TextIO or (origin_type is IO and args == (str,)):
         if not isinstance(value, TextIOBase):
@@ -495,7 +498,7 @@ def check_io(
 
 
 def check_protocol(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     # TODO: implement proper compatibility checking and support non-runtime protocols
     if getattr(origin_type, "_is_runtime_protocol", False):
@@ -512,20 +515,20 @@ def check_protocol(
 
 
 def check_byteslike(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, (bytearray, bytes, memoryview)):
         raise TypeCheckError("is not bytes-like")
 
 
 def check_instanceof(
-    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo, allow_extra: bool
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
 
 
-def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
+def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo, *, allow_extra: bool = False) -> None:
     from . import ForwardRefPolicy, config
 
     if isinstance(annotation, ForwardRef):
@@ -558,7 +561,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
     for lookup_func in config.checker_lookup_functions:
         checker = lookup_func(origin_type, args, extras)
         if checker:
-            checker(value, origin_type, args, memo)
+            checker(value, origin_type, args, memo, allow_extra)
             return
 
     if not isinstance(value, origin_type):

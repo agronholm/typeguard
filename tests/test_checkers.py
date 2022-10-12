@@ -391,6 +391,15 @@ class TestTypedDict:
         else:
             check_type(value, DummyDict)
 
+    def test_typed_dict_with_extra_keys(self):
+        class DummyDict(TypedDict):
+            x: int
+            y: str
+
+        value = {"x": 6, "y": "foo", "bar": "abc"}
+
+        check_type(value, DummyDict, allow_extra=True)
+
 
 class TestList:
     def test_valid(self):
