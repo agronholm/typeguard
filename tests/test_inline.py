@@ -11,6 +11,11 @@ if sys.version_info >= (3, 9):
 else:
     from typing_extensions import Annotated
 
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
+
 
 class TestCheckArgumentTypes:
     def test_valid(self):
@@ -97,4 +102,17 @@ class TestCheckReturnType:
 
         pytest.raises(TypeCheckError, foo).match(
             "the return value is not an instance of bool"
+        )
+
+    def test_inconsistent_keys_invalid(self):
+        class DummyDict(TypedDict):
+            x: int
+
+        def return_inconsistent_keys() -> DummyDict:
+            check_return_type({"x": 1, "y": 2, b"z": 3})
+            return {"x": 1, "y": 2, b"z": 3}
+
+        pytest.raises(TypeCheckError, return_inconsistent_keys).match(
+            r'the return value has unexpected extra key\(s\): ("y", "b\'z\'"|"b\'z\'",'
+            r' "y")'
         )
