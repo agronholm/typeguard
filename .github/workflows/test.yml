@@ -24,7 +24,7 @@ jobs:
         path: ~/.cache/pip
         key: pip-test-${{ matrix.python-version }}-${{ matrix.os }}
     - name: Install dependencies
-      run: pip install .[test] coverage[toml] coveralls
+      run: pip install .[test] coveralls coverage[toml]
     - name: Test with pytest
       run: coverage run -m pytest
     - name: Upload Coverage
