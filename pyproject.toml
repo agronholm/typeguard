@@ -38,7 +38,7 @@ Documentation = "https://typeguard.readthedocs.io/en/latest/"
 [project.optional-dependencies]
 test = [
     "pytest",
-    'mypy; python_implementation != "PyPy"',
+    'mypy >= 0.991; python_implementation != "PyPy"',
 ]
 doc = [
     "sphinx_rtd_theme",
@@ -84,9 +84,9 @@ pretty = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-minversion = 4.0.0
 envlist = pypy3, py37, py38, py39, py310, py311
 skip_missing_interpreters = true
+minversion = 4.0
 
 [testenv]
 extras = test
