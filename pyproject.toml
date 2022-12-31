@@ -84,10 +84,9 @@ pretty = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-minversion = 3.3.0
+minversion = 4.0.0
 envlist = pypy3, py37, py38, py39, py310, py311
 skip_missing_interpreters = true
-isolated_build = true
 
 [testenv]
 extras = test
