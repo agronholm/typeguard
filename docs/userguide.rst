@@ -171,6 +171,8 @@ Type               Notes
 ``NoReturn``
 ``Protocol``       Run-time protocols are checked with :func:`isinstance`,
                    others are ignored
+``Self``           Assumes first call argument to be a valid ``Self``; won't know if
+                   the called function is actually a method or not
 ``Set``            Contents are typechecked
 ``Sequence``       Contents are typechecked
 ``TextIO``         Specialized instance checks are performed

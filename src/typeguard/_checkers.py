@@ -30,7 +30,7 @@ from typing import (
 )
 
 from ._exceptions import TypeCheckError, TypeHintWarning
-from ._memo import TypeCheckMemo
+from ._memo import CallMemo, TypeCheckMemo
 from ._utils import (
     evaluate_forwardref,
     get_args,
@@ -39,6 +39,11 @@ from ._utils import (
     is_typeddict,
     qualified_name,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
@@ -520,6 +525,24 @@ def check_byteslike(
         raise TypeCheckError("is not bytes-like")
 
 
+def check_self(
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    if not isinstance(memo, CallMemo) or memo.self_type is None:
+        raise TypeCheckError("cannot be checked against Self outside of a method call")
+
+    if isclass(value):
+        if not issubclass(value, memo.self_type):
+            raise TypeCheckError(
+                f"is not an instance of the self type "
+                f"({qualified_name(memo.self_type)})"
+            )
+    elif not isinstance(value, memo.self_type):
+        raise TypeCheckError(
+            f"is not an instance of the self type ({qualified_name(memo.self_type)})"
+        )
+
+
 def check_instanceof(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -594,6 +617,7 @@ origin_type_checkers = {
     MutableMapping: check_mapping,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
+    Self: check_self,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,

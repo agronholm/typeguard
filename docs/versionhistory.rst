@@ -11,6 +11,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added support for custom type checking functions
 - Added support for PEP 604 union types (``X | Y``) on Python 3.10+
 - Added support for checking arbitrary ``Mapping`` types
+- Added support for the ``Self`` type
 - Much improved error messages showing where the type check failed
 - Changed the import hook to append ``@typechecked`` to the decorator list instead of inserting it
   as the first decorator (fixes type checking inconsistencies with mypy regarding at least

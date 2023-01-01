@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from typing import (
     Any,
     AsyncGenerator,
@@ -13,6 +14,11 @@ from typing import (
 import pytest
 
 from typeguard import TypeCheckError, typechecked
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class TestCoroutineFunction:
@@ -223,3 +229,95 @@ class TestAsyncGenerator:
         aiterator = asyncgen.__aiter__()
         exc = pytest.raises(StopIteration, aiterator.__anext__().send, None)
         assert exc.value.value == 1
+
+
+class TestSelf:
+    def test_return_valid(self):
+        class Foo:
+            @typechecked
+            def method(self) -> Self:
+                return self
+
+        Foo().method
+
+    def test_return_invalid(self):
+        class Foo:
+            @typechecked
+            def method(self) -> Self:
+                return 1
+
+        foo = Foo()
+        pytest.raises(TypeCheckError, foo.method).match(
+            rf"the return value is not an instance of the self type "
+            rf"\({__name__}\.{self.__class__.__name__}\.test_return_invalid\."
+            rf"<locals>\.Foo\)"
+        )
+
+    def test_classmethod_return_valid(self):
+        class Foo:
+            @classmethod
+            @typechecked
+            def method(cls) -> Self:
+                return Foo()
+
+        Foo.method()
+
+    def test_classmethod_return_invalid(self):
+        class Foo:
+            @classmethod
+            @typechecked
+            def method(cls) -> Self:
+                return 1
+
+        pytest.raises(TypeCheckError, Foo.method).match(
+            rf"the return value is not an instance of the self type "
+            rf"\({__name__}\.{self.__class__.__name__}\."
+            rf"test_classmethod_return_invalid\.<locals>\.Foo\)"
+        )
+
+    def test_arg_valid(self):
+        class Foo:
+            @typechecked
+            def method(self, another: Self) -> None:
+                pass
+
+        foo = Foo()
+        foo2 = Foo()
+        foo.method(foo2)
+
+    def test_arg_invalid(self):
+        class Foo:
+            @typechecked
+            def method(self, another: Self) -> None:
+                pass
+
+        foo = Foo()
+        pytest.raises(TypeCheckError, foo.method, 1).match(
+            rf'argument "another" is not an instance of the self type '
+            rf"\({__name__}\.{self.__class__.__name__}\.test_arg_invalid\."
+            rf"<locals>\.Foo\)"
+        )
+
+    def test_classmethod_arg_valid(self):
+        class Foo:
+            @classmethod
+            @typechecked
+            def method(cls, another: Self) -> None:
+                pass
+
+        foo = Foo()
+        Foo.method(foo)
+
+    def test_classmethod_arg_invalid(self):
+        class Foo:
+            @classmethod
+            @typechecked
+            def method(cls, another: Self) -> None:
+                pass
+
+        foo = Foo()
+        pytest.raises(TypeCheckError, foo.method, 1).match(
+            rf'argument "another" is not an instance of the self type '
+            rf"\({__name__}\.{self.__class__.__name__}\."
+            rf"test_classmethod_arg_invalid\.<locals>\.Foo\)"
+        )

@@ -26,7 +26,7 @@ classifiers = [
 requires-python = ">= 3.7.4"
 dependencies = [
     "importlib_metadata >= 3.6; python_version < '3.10'",
-    "typing_extensions; python_version < '3.9'",
+    "typing_extensions >= 4.0.1; python_version < '3.11'",
 ]
 dynamic = ["version"]
 
@@ -91,10 +91,7 @@ minversion = 4.0
 
 [testenv]
 extras = test
-deps = coverage[toml]
-commands =
-  coverage run -m pytest {posargs}
-  coverage report
+commands = pytest {posargs}
 
 [testenv:docs]
 extras = doc
