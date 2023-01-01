@@ -390,7 +390,9 @@ def check_class(
         return
 
     expected_class = args[0]
-    if getattr(expected_class, "_is_protocol", False):
+    if expected_class is Any:
+        return
+    elif getattr(expected_class, "_is_protocol", False):
         check_protocol(value, expected_class, (), memo)
     elif isinstance(expected_class, TypeVar):
         check_typevar(value, expected_class, (), memo, subclass_check=True)
@@ -568,6 +570,9 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
             return
 
+    if annotation is Any:
+        return
+
     extras: Tuple[Any, ...]
     origin_type = get_origin(annotation)
     if origin_type is Annotated:
@@ -578,6 +583,11 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
     if origin_type is not None:
         args = get_args(annotation)
+
+        # Compatibility hack to distinguish between unparametrized and empty tuple
+        # (tuple[()]), necessary due to https://github.com/python/cpython/issues/91137
+        if origin_type in (tuple, Tuple) and annotation is not Tuple and not args:
+            args = ((),)
     else:
         origin_type = annotation
         args = ()

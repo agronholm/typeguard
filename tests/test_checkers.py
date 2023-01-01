@@ -290,6 +290,9 @@ class TestMapping:
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]
         ).match(r"value of key 'a' of value is not an instance of str")
 
+    def test_any_value_type(self):
+        check_type(TestMapping.DummyMapping(), Mapping[str, Any])
+
 
 class TestMutableMapping:
     class DummyMutableMapping(collections.abc.MutableMapping):
@@ -460,37 +463,61 @@ class TestSet:
         )
 
 
+@pytest.mark.parametrize(
+    "annotated_type",
+    [
+        pytest.param(Tuple, id="typing"),
+        pytest.param(
+            tuple,
+            id="builtin",
+            marks=[
+                pytest.mark.skipif(
+                    sys.version_info < (3, 9),
+                    reason="builtins.tuple is not parametrizable before Python 3.9",
+                )
+            ],
+        ),
+    ],
+)
 class TestTuple:
-    def test_bad_type(self):
-        pytest.raises(TypeCheckError, check_type, 5, Tuple[int]).match(
+    def test_bad_type(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, 5, annotated_type[int]).match(
             "value is not a tuple"
         )
 
-    def test_too_many_elements(self):
-        pytest.raises(TypeCheckError, check_type, (1, "aa", 2), Tuple[int, str]).match(
-            r"value has wrong number of elements \(expected 2, got 3 instead\)"
+    def test_unparametrized_tuple(self, annotated_type: Any):
+        check_type((5, "foo"), annotated_type)
+
+    def test_unparametrized_tuple_fail(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, 5, annotated_type).match(
+            "value is not a tuple"
         )
 
-    def test_too_few_elements(self):
-        pytest.raises(TypeCheckError, check_type, (1,), Tuple[int, str]).match(
+    def test_too_many_elements(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError, check_type, (1, "aa", 2), annotated_type[int, str]
+        ).match(r"value has wrong number of elements \(expected 2, got 3 instead\)")
+
+    def test_too_few_elements(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, (1,), annotated_type[int, str]).match(
             r"value has wrong number of elements \(expected 2, got 1 instead\)"
         )
 
-    def test_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, (1, 2), Tuple[int, str]).match(
-            "value is not an instance of str"
-        )
-
-    def test_ellipsis_bad_element(self):
+    def test_bad_element(self, annotated_type: Any):
         pytest.raises(
-            TypeCheckError, check_type, (1, 2, "blah"), Tuple[int, ...]
+            TypeCheckError, check_type, (1, 2), annotated_type[int, str]
+        ).match("value is not an instance of str")
+
+    def test_ellipsis_bad_element(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError, check_type, (1, 2, "blah"), annotated_type[int, ...]
         ).match("value is not an instance of int")
 
-    def test_empty_tuple(self):
-        check_type((), Tuple[()])
+    def test_empty_tuple(self, annotated_type: Any):
+        check_type((), annotated_type[()])
 
-    def test_empty_tuple_fail(self):
-        pytest.raises(TypeCheckError, check_type, (1,), Tuple[()]).match(
+    def test_empty_tuple_fail(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, (1,), annotated_type[()]).match(
             "value is not an empty tuple"
         )
 
@@ -616,6 +643,9 @@ class TestType:
 
     def test_union_any(self):
         check_type(list, Type[Union[str, int, Any]])
+
+    def test_any(self):
+        check_type(list, Type[Any])
 
     def test_union_fail(self):
         pytest.raises(
