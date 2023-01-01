@@ -16,6 +16,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   as the first decorator (fixes type checking inconsistencies with mypy regarding at least
   ``@contextmanager``, probably others too)
 - Fixed incompatibility with ``typing_extensions`` v4.1+ on Python 3.10 (PR by David C.)
+- Fixed checking of ``Tuple[()]`` on Python 3.11 and ``tuple[()]`` on Python 3.9+
 
 **2.13.3** (2021-12-10)
 
