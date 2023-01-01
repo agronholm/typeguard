@@ -634,6 +634,11 @@ def check_type_internal(
 
     if origin_type is not None:
         args = get_args(annotation)
+
+        # Compatibility hack to distinguish between unparametrized and empty tuple
+        # (tuple[()]), necessary due to https://github.com/python/cpython/issues/91137
+        if origin_type in (tuple, Tuple) and annotation is not Tuple and not args:
+            args = ((),)
     else:
         origin_type = annotation
         args = ()

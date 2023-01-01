@@ -22,7 +22,7 @@ TBound = TypeVar("TBound", bound="Parent")
 TConstrained = TypeVar("TConstrained", "Parent", int)
 TTypingConstrained = TypeVar("TTypingConstrained", List[int], AbstractSet[str])
 TIntStr = TypeVar("TIntStr", int, str)
-TIntCollection = TypeVar("TIntCollection", int, Collection)
+TIntCollection = TypeVar("TIntCollection", int, Collection[int])
 TParent = TypeVar("TParent", bound="Parent")
 TChild = TypeVar("TChild", bound="Child")
 
@@ -45,7 +45,7 @@ class Parent:
 
 
 class Child(Parent):
-    def method(self, a: int):
+    def method(self, a: int) -> None:
         pass
 
 
