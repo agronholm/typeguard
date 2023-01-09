@@ -64,7 +64,8 @@ class TypeCheckConfiguration:
                         plugin = ep.load()
                     except Exception as exc:
                         warnings.warn(
-                            f"Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}"
+                            f"Failed to load plugin {ep.name!r}: "
+                            f"{qualified_name(exc)}: {exc}"
                         )
                         continue
 

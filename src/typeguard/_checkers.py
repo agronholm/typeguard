@@ -163,13 +163,15 @@ def check_callable(
 
             if num_mandatory_args > len(argument_types):
                 raise TypeCheckError(
-                    f"has too many arguments in its declaration; expected {len(argument_types)} "
-                    f"but {num_mandatory_args} argument(s) declared"
+                    f"has too many arguments in its declaration; expected "
+                    f"{len(argument_types)} but {num_mandatory_args} argument(s) "
+                    f"declared"
                 )
             elif not has_varargs and num_mandatory_args < len(argument_types):
                 raise TypeCheckError(
-                    f"has too few arguments in its declaration; expected {len(argument_types)} "
-                    f"but {num_mandatory_args} argument(s) declared"
+                    f"has too few arguments in its declaration; expected "
+                    f"{len(argument_types)} but {num_mandatory_args} argument(s) "
+                    f"declared"
                 )
 
 
@@ -324,8 +326,8 @@ def check_tuple(
     else:
         if len(value) != len(tuple_params):
             raise TypeCheckError(
-                f"has wrong number of elements (expected {len(tuple_params)}, got {len(value)} "
-                f"instead)"
+                f"has wrong number of elements (expected {len(tuple_params)}, got "
+                f"{len(value)} instead)"
             )
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):

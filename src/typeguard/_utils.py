@@ -79,11 +79,12 @@ def get_type_name(type_) -> str:
 
 def find_function(frame: FrameType) -> Callable:
     """
-    Return a function object from the garbage collector that matches the frame's code object.
+    Return a function object from the garbage collector that matches the frame's code
+    object.
 
-    This process is unreliable as several function objects could use the same code object.
-    Fortunately the likelihood of this happening with the combination of the function objects
-    having different type annotations is a very rare occurrence.
+    This process is unreliable as several function objects could use the same code
+    object. Fortunately the likelihood of this happening with the combination of the
+    function objects having different type annotations is a very rare occurrence.
 
     :param frame: a frame object
     :return: a function object
@@ -117,8 +118,8 @@ def qualified_name(obj: Any) -> str:
     """
     Return the qualified name (e.g. package.module.Type) for the given object.
 
-    Builtins and types from the :mod:`typing` package get special treatment by having the module
-    name stripped from the generated name.
+    Builtins and types from the :mod:`typing` package get special treatment by having
+    the module name stripped from the generated name.
 
     """
     type_ = obj if inspect.isclass(obj) else type(obj)
@@ -131,11 +132,12 @@ def function_name(func: Callable) -> str:
     """
     Return the qualified name of the given function.
 
-    Builtins and types from the :mod:`typing` package get special treatment by having the module
-    name stripped from the generated name.
+    Builtins and types from the :mod:`typing` package get special treatment by having
+    the module name stripped from the generated name.
 
     """
-    # For partial functions and objects with __call__ defined, __qualname__ does not exist
+    # For partial functions and objects with __call__ defined, __qualname__ does not
+    # exist
     module = getattr(func, "__module__", "")
     qualname = (module + ".") if module not in ("builtins", "") else ""
     return qualname + getattr(func, "__qualname__", repr(func))

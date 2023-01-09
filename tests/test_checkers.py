@@ -158,8 +158,8 @@ class TestCallable:
         pytest.raises(
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(
-            r"has too many arguments in its declaration; expected 2 but 3 argument\(s\) "
-            r"declared"
+            r"has too many arguments in its declaration; expected 2 but 3 "
+            r"argument\(s\) declared"
         )
 
     def test_mandatory_kwonlyargs(self):
@@ -172,8 +172,8 @@ class TestCallable:
 
     def test_class(self):
         """
-        Test that passing a class as a callable does not count the "self" argument "a"gainst the
-        ones declared in the Callable specification.
+        Test that passing a class as a callable does not count the "self" argument
+        against the ones declared in the Callable specification.
 
         """
 
@@ -191,8 +191,8 @@ class TestCallable:
 
     def test_partial_class(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
 
@@ -204,24 +204,24 @@ class TestCallable:
 
     def test_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
         check_type(Child().method, Callable[[int], Any])
 
     def test_partial_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
         check_type(partial(Child().method, 1), Callable[[], Any])
 
     def test_defaults(self):
         """
-        Test that a callable having "too many" arguments don't raise an error if the extra
-        arguments have default values.
+        Test that a callable having "too many" arguments don't raise an error if the
+        extra arguments have default values.
 
         """
 
@@ -232,8 +232,8 @@ class TestCallable:
 
     def test_builtin(self):
         """
-        Test that checking a Callable annotation against a builtin callable does not raise an
-        error.
+        Test that checking a Callable annotation against a builtin callable does not
+        raise an error.
 
         """
         check_type([].append, Callable[[int], Any])
@@ -798,8 +798,8 @@ class TestRecursiveType:
                 "  bool: is not an instance of bool\n"
                 "  NoneType: is not an instance of NoneType\n"
                 "  List\\[JSONType\\]: is not a list\n"
-                "  Dict\\[str, JSONType\\]: value of key 'a' did not match any element in "
-                "the union:\n"
+                "  Dict\\[str, JSONType\\]: value of key 'a' did not match any element "
+                "in the union:\n"
                 "    str: is not an instance of str\n"
                 "    float: is neither float or int\n"
                 "    bool: is not an instance of bool\n"

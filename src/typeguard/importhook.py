@@ -87,7 +87,8 @@ class TypeguardLoader(SourceFileLoader):
         )
 
     def exec_module(self, module):
-        # Use a custom optimization marker – the import lock should make this monkey patch safe
+        # Use a custom optimization marker – the import lock should make this monkey
+        # patch safe
         with patch(
             "importlib._bootstrap_external.cache_from_source",
             optimized_cache_from_source,
@@ -123,7 +124,8 @@ class TypeguardFinder(MetaPathFinder):
         """
         Determine whether the module with the given name should be instrumented.
 
-        :param module_name: full name of the module that is about to be imported (e.g. ``xyz.abc``)
+        :param module_name: full name of the module that is about to be imported (e.g.
+            ``xyz.abc``)
 
         """
         for package in self.packages:
@@ -158,7 +160,8 @@ def install_import_hook(
 
     This only affects modules loaded **after** this hook has been installed.
 
-    :return: a context manager that uninstalls the hook on exit (or when you call ``.uninstall()``)
+    :return: a context manager that uninstalls the hook on exit (or when you call
+        ``.uninstall()``)
 
     .. versionadded:: 2.6
 
