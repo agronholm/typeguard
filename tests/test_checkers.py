@@ -129,6 +129,12 @@ class TestComplexNumber:
 
 
 class TestCallable:
+    def test_any_args(self):
+        def some_callable(x: int, y: str) -> int:
+            pass
+
+        check_type(some_callable, Callable[..., int])
+
     def test_exact_arg_count(self):
         def some_callable(x: int, y: str) -> int:
             pass

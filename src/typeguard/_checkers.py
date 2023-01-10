@@ -132,7 +132,7 @@ def check_callable(
             return
 
         argument_types = args[0]
-        if argument_types != (Ellipsis,):
+        if argument_types is not Ellipsis:
             # The callable must not have keyword-only arguments without defaults
             unfulfilled_kwonlyargs = [
                 param.name

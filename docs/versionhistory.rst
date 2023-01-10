@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``TypeError: object of type 'ellipsis' has no len()`` when checking against
+  ``Callable[..., Any]``
+
 **3.0.0b1** (2023-01-09)
 
 - Dropped Python 3.5 and 3.6 support
