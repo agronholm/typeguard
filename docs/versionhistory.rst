@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed ``TypeError: object of type 'ellipsis' has no len()`` when checking against
   ``Callable[..., Any]``
+- Fixed integers 0 and 1 passing for ``Literal[False]`` and ``Literal[True]``,
+  respectively
 
 **3.0.0b1** (2023-01-09)
 

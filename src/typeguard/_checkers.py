@@ -476,9 +476,16 @@ def check_literal(
         return tuple(retval)
 
     final_args = tuple(get_literal_args(args))
-    if value not in final_args:
-        formatted_args = ", ".join(repr(arg) for arg in final_args)
-        raise TypeCheckError(f"is not any of ({formatted_args})")
+    try:
+        index = final_args.index(value)
+    except ValueError:
+        pass
+    else:
+        if type(final_args[index]) is type(value):
+            return
+
+    formatted_args = ", ".join(repr(arg) for arg in final_args)
+    raise TypeCheckError(f"is not any of ({formatted_args})") from None
 
 
 def check_number(

@@ -262,6 +262,10 @@ class TestLiteral:
             r"value is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
         )
 
+    def test_literal_int_as_bool(self):
+        pytest.raises(TypeCheckError, check_type, 0, Literal[False])
+        pytest.raises(TypeCheckError, check_type, 1, Literal[True])
+
     def test_literal_illegal_value(self):
         pytest.raises(TypeError, check_type, 4, Literal[1, 1.1]).match(
             r"Illegal literal value: 1.1$"
