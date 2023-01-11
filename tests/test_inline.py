@@ -55,6 +55,34 @@ class TestCheckArgumentTypes:
 
         pytest.raises(TypeCheckError, foo, 1).match('"a" is not an instance of str')
 
+    def test_varargs_success(self):
+        def foo(*args: str) -> None:
+            assert check_argument_types()
+
+        foo("bar")
+
+    def test_varargs_fail(self):
+        def foo(*args: str) -> None:
+            assert check_argument_types()
+
+        pytest.raises(TypeCheckError, foo, 1).match(
+            'item 0 of argument "args" is not an instance of str'
+        )
+
+    def test_varkwargs_success(self):
+        def foo(**kwargs: str) -> None:
+            assert check_argument_types()
+
+        foo(a="foo")
+
+    def test_varkwargs_fail(self):
+        def foo(**kwargs: str) -> None:
+            assert check_argument_types()
+
+        pytest.raises(TypeCheckError, foo, bar=1).match(
+            "value of key 'bar' of argument \"kwargs\" is not an instance of str"
+        )
+
 
 class TestCheckReturnType:
     def test_valid(self):

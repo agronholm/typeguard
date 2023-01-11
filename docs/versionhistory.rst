@@ -9,6 +9,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   ``Callable[..., Any]``
 - Fixed integers 0 and 1 passing for ``Literal[False]`` and ``Literal[True]``,
   respectively
+- Fixed type checking of annotated variable positional and keyword arguments (``*args``
+  and ``**kwargs``)
 
 **3.0.0b1** (2023-01-09)
 

@@ -4,7 +4,7 @@ import inspect
 import sys
 from inspect import isclass
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Tuple
 from weakref import WeakKeyDictionary
 
 from ._utils import function_name
@@ -76,3 +76,12 @@ class CallMemo(TypeCheckMemo):
             self.type_hints = _type_hints_map[func] = get_type_hints(
                 func, localns=frame_locals, include_extras=True
             )
+            for key, annotation in self.type_hints.items():
+                if key == "return":
+                    continue
+
+                param = signature.parameters[key]
+                if param.kind is inspect.Parameter.VAR_POSITIONAL:
+                    self.type_hints[key] = Tuple[annotation, ...]
+                elif param.kind is inspect.Parameter.VAR_KEYWORD:
+                    self.type_hints[key] = Dict[str, annotation]
