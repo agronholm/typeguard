@@ -9,6 +9,7 @@ import pytest
 from typeguard import TypeCheckError
 from typeguard.importhook import TypeguardFinder, install_import_hook
 
+pytestmark = pytest.mark.filterwarnings("error")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
 cached_module_path = Path(
@@ -141,3 +142,9 @@ def test_package_name_matching():
     assert not finder.should_instrument("spam")
     assert not finder.should_instrument("ha")
     assert not finder.should_instrument("spam_eggs")
+
+
+def test_overload(dummymodule):
+    dummymodule.overloaded_func(1)
+    dummymodule.overloaded_func("x")
+    pytest.raises(TypeCheckError, dummymodule.overloaded_func, b"foo")
