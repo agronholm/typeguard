@@ -45,6 +45,11 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
 else:
@@ -56,8 +61,10 @@ else:
     from typing_extensions import Literal
 
 
-TypeCheckerCallable = Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]
-TypeCheckLookupCallback = Callable[
+TypeCheckerCallable: TypeAlias = Callable[
+    [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
+]
+TypeCheckLookupCallback: TypeAlias = Callable[
     [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
 ]
 

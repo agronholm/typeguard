@@ -14,10 +14,12 @@ from ._utils import qualified_name
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
+    from typing import TypeAlias
 else:
     from importlib_metadata import entry_points
+    from typing_extensions import TypeAlias
 
-TypeCheckFailCallback = Callable[[TypeCheckError, TypeCheckMemo], Any]
+TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
 
 
 class ForwardRefPolicy(Enum):
