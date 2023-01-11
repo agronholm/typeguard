@@ -404,6 +404,14 @@ class TestTypedDict:
         else:
             check_type(value, DummyDict)
 
+    def test_inconsistent_keys_invalid(self):
+        class DummyDict(TypedDict):
+            x: int
+
+        pytest.raises(
+            TypeCheckError, check_type, {"x": 1, "y": 2, b"z": 3}, DummyDict
+        ).match(r'value has unexpected extra key\(s\): "y", "b\'z\'"')
+
 
 class TestList:
     def test_valid(self):

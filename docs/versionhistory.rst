@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
+  among the extra keys (PR by biolds)
+
 **3.0.0b2** (2023-01-11)
 
 - Fixed ``TypeError: object of type 'ellipsis' has no len()`` when checking against

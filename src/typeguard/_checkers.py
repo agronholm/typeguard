@@ -214,12 +214,6 @@ def check_mapping(
 def check_typed_dict(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
-    def sorted_dict(value):
-        try:
-            return sorted(value)
-        except TypeError:
-            return value
-
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
         required_keys = origin_type.__required_keys__
@@ -229,12 +223,12 @@ def check_typed_dict(
     existing_keys = frozenset(value)
     extra_keys = existing_keys - declared_keys
     if extra_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted_dict(extra_keys))
+        keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys, key=repr))
         raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
     missing_keys = required_keys - existing_keys
     if missing_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted_dict(missing_keys))
+        keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys, key=repr))
         raise TypeCheckError(f"is missing required key(s): {keys_formatted}")
 
     for key, argtype in get_type_hints(origin_type).items():
