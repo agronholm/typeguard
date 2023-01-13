@@ -141,6 +141,20 @@ against annotations in the :mod:`typing` module::
     # Raises TypeError if there's a problem
     check_type([1234], List[int])
 
+Temporarily disabling type checks
+---------------------------------
+
+If you need to temporarily suppress type checking, you can use the
+:func:`~.suppress_type_checks` context manager to skip the checks::
+
+    from typeguard import check_type, suppress_type_checks
+
+    with suppress_type_checks():
+        check_type(1, str)  # would fail without the suppression
+
+These context managers will stack, so type checking is only done once all such context
+managers have exited.
+
 Support for mock objects
 ------------------------
 

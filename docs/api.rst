@@ -16,6 +16,8 @@ API reference
 
 .. autodecorator:: typeguard_ignore
 
+.. autofunction:: suppress_type_checks
+
 .. autoclass:: TypeCheckConfiguration
     :members:
 

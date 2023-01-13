@@ -13,6 +13,7 @@ __all__ = (
     "check_type",
     "check_type_internal",
     "config",
+    "suppress_type_checks",
     "typechecked",
     "typeguard_ignore",
     "warn_on_error",
@@ -28,7 +29,12 @@ from ._config import (
 )
 from ._decorators import typechecked, typeguard_ignore
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
-from ._functions import check_argument_types, check_return_type, check_type
+from ._functions import (
+    check_argument_types,
+    check_return_type,
+    check_type,
+    suppress_type_checks,
+)
 from ._memo import CallMemo, TypeCheckMemo
 
 config = TypeCheckConfiguration()

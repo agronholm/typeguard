@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import sys
-from typing import Any, NoReturn, Optional, Type, TypeVar, overload
+from collections.abc import Generator
+from contextlib import contextmanager
+from threading import Lock
+from typing import Any, NoReturn, TypeVar, overload
 from unittest.mock import Mock
 
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -8,15 +13,17 @@ from ._memo import CallMemo, TypeCheckMemo
 from ._utils import find_function
 
 T = TypeVar("T")
+type_checks_suppressed = 0
+type_checks_suppress_lock = Lock()
 
 
 @overload
 def check_type(
     value: object,
-    expected_type: Type[T],
+    expected_type: type[T],
     *,
     argname: str = "value",
-    memo: Optional[TypeCheckMemo] = None,
+    memo: TypeCheckMemo | None = None,
 ) -> T:
     ...
 
@@ -27,7 +34,7 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    memo: Optional[TypeCheckMemo] = None,
+    memo: TypeCheckMemo | None = None,
 ) -> Any:
     ...
 
@@ -37,7 +44,7 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    memo: Optional[TypeCheckMemo] = None,
+    memo: TypeCheckMemo | None = None,
 ) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
@@ -53,7 +60,7 @@ def check_type(
     :raises TypeCheckError: if there is a type mismatch
 
     """
-    if expected_type is Any or isinstance(value, Mock):
+    if type_checks_suppressed or expected_type is Any or isinstance(value, Mock):
         return
 
     if memo is None:
@@ -72,7 +79,7 @@ def check_type(
     return value
 
 
-def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
+def check_argument_types(memo: CallMemo | None = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -83,6 +90,9 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
     :raises TypeError: if there is an argument type mismatch
 
     """
+    if type_checks_suppressed:
+        return True
+
     if memo is None:
         # faster than inspect.currentframe(), but not officially
         # supported in all python implementations
@@ -111,7 +121,7 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
     return True
 
 
-def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
+def check_return_type(retval, memo: CallMemo | None = None) -> bool:
     """
     Check that the return value is compatible with the return value annotation in the
     function.
@@ -121,6 +131,9 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
     :raises TypeError: if there is a type mismatch
 
     """
+    if type_checks_suppressed:
+        return True
+
     if memo is None:
         # faster than inspect.currentframe(), but not officially
         # supported in all python implementations
@@ -157,3 +170,27 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
                 raise
 
     return True
+
+
+@contextmanager
+def suppress_type_checks() -> Generator[None, None, None]:
+    """
+    A context manager that can be used to temporarily suppress type checks.
+
+    While this context manager is active, :func:`check_argument_types`,
+    :func:`check_return_type`, :func:`@typechecked <typechecked>` and :func:`check_type`
+    all skip the actual type checking. These context managers can be nested. Type
+    checking will resume once the last context manager block is exited.
+
+    This context manager is thread-safe.
+
+    """
+    global type_checks_suppressed
+
+    with type_checks_suppress_lock:
+        type_checks_suppressed += 1
+
+    yield
+
+    with type_checks_suppress_lock:
+        type_checks_suppressed -= 1

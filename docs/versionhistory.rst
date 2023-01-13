@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Added the ``suppress_type_checks()`` context manager function for temporarily
+  disabling type checks
 - Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
   ``@staticmethod`` (PR by jacobpbrugh)
 - Changed ``check_type()`` to return the passed value, so it can be used (to an extent)
