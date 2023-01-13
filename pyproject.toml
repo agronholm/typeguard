@@ -42,6 +42,7 @@ test = [
     'mypy >= 0.991; python_implementation != "PyPy"',
 ]
 doc = [
+    "packaging",
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints >= 1.2.0",
 ]

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import pkg_resources
+from importlib.metadata import version as get_version
+
+from packaging.version import parse
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -14,11 +16,11 @@ project = "Typeguard"
 author = "Alex Grönholm"
 copyright = "2015, " + author
 
-v = pkg_resources.get_distribution("typeguard").parsed_version
+v = parse(get_version("anyio"))
 version = v.base_version
 release = v.public
 
-language = None
+language = "en"
 
 exclude_patterns = ["_build"]
 pygments_style = "sphinx"
@@ -30,4 +32,4 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 htmlhelp_basename = "typeguarddoc"
 
-intersphinx_mapping = {"python": ("http://docs.python.org/3/", None)}
+intersphinx_mapping = {"python": ("https://docs.python.org/3/", None)}
