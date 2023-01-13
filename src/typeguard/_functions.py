@@ -12,6 +12,11 @@ from ._exceptions import TypeCheckError
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import find_function
 
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 T = TypeVar("T")
 type_checks_suppressed = 0
 type_checks_suppress_lock = Lock()
@@ -79,7 +84,7 @@ def check_type(
     return value
 
 
-def check_argument_types(memo: CallMemo | None = None) -> bool:
+def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     """
     Check that the argument values match the annotated types.
 
@@ -121,7 +126,7 @@ def check_argument_types(memo: CallMemo | None = None) -> bool:
     return True
 
 
-def check_return_type(retval, memo: CallMemo | None = None) -> bool:
+def check_return_type(retval, memo: CallMemo | None = None) -> Literal[True]:
     """
     Check that the return value is compatible with the return value annotation in the
     function.
