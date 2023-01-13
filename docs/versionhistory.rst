@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
   among the extra keys (PR by biolds)
+- Fixed the configured ``forward_ref_policy`` not being used in
+  ``check_type_internal()``
 
 **3.0.0b2** (2023-01-11)
 

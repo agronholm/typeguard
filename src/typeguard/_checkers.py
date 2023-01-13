@@ -29,6 +29,7 @@ from typing import (
     Union,
 )
 
+from ._config import ForwardRefPolicy, TypeCheckerCallable
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import (
@@ -45,11 +46,6 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
 else:
@@ -60,13 +56,6 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-
-TypeCheckerCallable: TypeAlias = Callable[
-    [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
-]
-TypeCheckLookupCallback: TypeAlias = Callable[
-    [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
-]
 
 # Sentinel
 _missing = object()
@@ -567,17 +556,16 @@ def check_instanceof(
 
 
 def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
-    from . import ForwardRefPolicy, config
-
     if isinstance(annotation, ForwardRef):
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if config.forward_ref_policy is ForwardRefPolicy.ERROR:
+            if memo.config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif config.forward_ref_policy is ForwardRefPolicy.WARN:
+            elif memo.config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(
-                    f"Cannot resolve forward reference {annotation}", TypeHintWarning
+                    f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
+                    TypeHintWarning,
                 )
 
             return
@@ -604,7 +592,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
         origin_type = annotation
         args = ()
 
-    for lookup_func in config.checker_lookup_functions:
+    for lookup_func in memo.config.checker_lookup_functions:
         checker = lookup_func(origin_type, args, extras)
         if checker:
             checker(value, origin_type, args, memo)

@@ -5,9 +5,8 @@ import sys
 import warnings
 from dataclasses import InitVar, dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Optional, Sequence, Tuple
 
-from ._checkers import TypeCheckLookupCallback
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
 from ._utils import qualified_name
@@ -20,6 +19,12 @@ else:
     from typing_extensions import TypeAlias
 
 TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
+TypeCheckerCallable: TypeAlias = Callable[
+    [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
+]
+TypeCheckLookupCallback: TypeAlias = Callable[
+    [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
+]
 
 
 class ForwardRefPolicy(Enum):
@@ -50,7 +55,7 @@ class TypeCheckConfiguration:
     def __post_init__(
         self, autoload_plugins: bool | None, plugins: Sequence[str] | None
     ) -> None:
-        from typeguard._checkers import builtin_checker_lookup
+        from ._checkers import builtin_checker_lookup
 
         self.checker_lookup_functions.append(builtin_checker_lookup)
 
@@ -78,6 +83,3 @@ class TypeCheckConfiguration:
                         continue
 
                     self.checker_lookup_functions.insert(0, plugin)
-
-
-_config = TypeCheckConfiguration()

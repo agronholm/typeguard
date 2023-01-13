@@ -68,7 +68,8 @@ class DummyClass(metaclass=Metaclass):
 
 def outer():
     class Inner:
-        pass
+        def get_self(self) -> "Inner":
+            return self
 
     def create_inner() -> "Inner":
         return Inner()
@@ -109,3 +110,11 @@ def overloaded_func(a: str) -> str:
 
 def overloaded_func(a: Union[str, int]) -> Union[str, int]:
     return a
+
+
+def get_inner_class() -> type:
+    class InnerClass:
+        def get_self(self) -> "InnerClass":
+            return self
+
+    return InnerClass

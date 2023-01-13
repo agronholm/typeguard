@@ -34,13 +34,14 @@ from typing import (
 from unittest.mock import Mock
 from warnings import warn
 
-from ._checkers import (
-    BINARY_MAGIC_METHODS,
+from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
+from ._config import (
+    ForwardRefPolicy,
+    TypeCheckConfiguration,
     TypeCheckerCallable,
     TypeCheckLookupCallback,
-    check_type_internal,
+    warn_on_error,
 )
-from ._config import ForwardRefPolicy, TypeCheckConfiguration, warn_on_error
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._generators import (
     TypeCheckedAsyncGenerator,
