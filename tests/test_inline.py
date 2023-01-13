@@ -39,7 +39,7 @@ class TestCheckArgumentTypes:
             typeguard_lines = [
                 part
                 for part in parts
-                if part.filename.endswith("typeguard/__init__.py")
+                if part.filename.endswith("typeguard/_functions.py")
             ]
             assert len(typeguard_lines) == 1
 
