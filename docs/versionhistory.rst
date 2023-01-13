@@ -5,17 +5,35 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
+  among the extra keys (PR by biolds)
+- Fixed the configured ``forward_ref_policy`` not being used in
+  ``check_type_internal()``
+
+**3.0.0b2** (2023-01-11)
+
+- Fixed ``TypeError: object of type 'ellipsis' has no len()`` when checking against
+  ``Callable[..., Any]``
+- Fixed integers 0 and 1 passing for ``Literal[False]`` and ``Literal[True]``,
+  respectively
+- Fixed type checking of annotated variable positional and keyword arguments (``*args``
+  and ``**kwargs``)
+
+**3.0.0b1** (2023-01-09)
+
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
 - Added a configuration system
 - Added support for custom type checking functions
 - Added support for PEP 604 union types (``X | Y``) on Python 3.10+
 - Added support for checking arbitrary ``Mapping`` types
+- Added support for the ``Self`` type
 - Much improved error messages showing where the type check failed
 - Changed the import hook to append ``@typechecked`` to the decorator list instead of inserting it
   as the first decorator (fixes type checking inconsistencies with mypy regarding at least
   ``@contextmanager``, probably others too)
 - Fixed incompatibility with ``typing_extensions`` v4.1+ on Python 3.10 (PR by David C.)
+- Fixed checking of ``Tuple[()]`` on Python 3.11 and ``tuple[()]`` on Python 3.9+
 
 **2.13.3** (2021-12-10)
 

@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from typeguard import TypeCheckError
+from typeguard import TypeCheckError, TypeHintWarning
 from typeguard.importhook import TypeguardFinder, install_import_hook
 
+pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
 cached_module_path = Path(
@@ -104,6 +105,11 @@ def test_class_in_function(dummymodule):
     create_inner = dummymodule.outer()
     retval = create_inner()
     assert retval.__class__.__qualname__ == "outer.<locals>.Inner"
+    pytest.warns(
+        TypeHintWarning,
+        retval.get_self,
+        match="Cannot resolve forward reference: Inner",
+    )
 
 
 def test_inner_class_method(dummymodule):
@@ -141,3 +147,9 @@ def test_package_name_matching():
     assert not finder.should_instrument("spam")
     assert not finder.should_instrument("ha")
     assert not finder.should_instrument("spam_eggs")
+
+
+def test_overload(dummymodule):
+    dummymodule.overloaded_func(1)
+    dummymodule.overloaded_func("x")
+    pytest.raises(TypeCheckError, dummymodule.overloaded_func, b"foo")

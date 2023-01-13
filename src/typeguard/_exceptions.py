@@ -4,8 +4,8 @@ from typing import Deque
 
 class TypeHintWarning(UserWarning):
     """
-    A warning that is emitted when a type hint in string form could not be resolved to an actual
-    type.
+    A warning that is emitted when a type hint in string form could not be resolved to
+    an actual type.
     """
 
 
@@ -30,6 +30,8 @@ class TypeCheckError(Exception):
 
     def __str__(self) -> str:
         if self._path:
-            return " of ".join(self._path) + " " + self.args[0]  # type: ignore[no-any-return]
+            return (
+                " of ".join(self._path) + " " + self.args[0]
+            )  # type: ignore[no-any-return]
         else:
             return self.args[0]  # type: ignore[no-any-return]

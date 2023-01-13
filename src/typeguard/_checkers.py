@@ -29,8 +29,9 @@ from typing import (
     Union,
 )
 
+from ._config import ForwardRefPolicy, TypeCheckerCallable
 from ._exceptions import TypeCheckError, TypeHintWarning
-from ._memo import TypeCheckMemo
+from ._memo import CallMemo, TypeCheckMemo
 from ._utils import (
     evaluate_forwardref,
     get_args,
@@ -39,6 +40,11 @@ from ._utils import (
     is_typeddict,
     qualified_name,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
@@ -50,11 +56,6 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-
-TypeCheckerCallable = Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]
-TypeCheckLookupCallback = Callable[
-    [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
-]
 
 # Sentinel
 _missing = object()
@@ -127,7 +128,7 @@ def check_callable(
             return
 
         argument_types = args[0]
-        if argument_types != (Ellipsis,):
+        if argument_types is not Ellipsis:
             # The callable must not have keyword-only arguments without defaults
             unfulfilled_kwonlyargs = [
                 param.name
@@ -158,13 +159,15 @@ def check_callable(
 
             if num_mandatory_args > len(argument_types):
                 raise TypeCheckError(
-                    f"has too many arguments in its declaration; expected {len(argument_types)} "
-                    f"but {num_mandatory_args} argument(s) declared"
+                    f"has too many arguments in its declaration; expected "
+                    f"{len(argument_types)} but {num_mandatory_args} argument(s) "
+                    f"declared"
                 )
             elif not has_varargs and num_mandatory_args < len(argument_types):
                 raise TypeCheckError(
-                    f"has too few arguments in its declaration; expected {len(argument_types)} "
-                    f"but {num_mandatory_args} argument(s) declared"
+                    f"has too few arguments in its declaration; expected "
+                    f"{len(argument_types)} but {num_mandatory_args} argument(s) "
+                    f"declared"
                 )
 
 
@@ -209,12 +212,12 @@ def check_typed_dict(
     existing_keys = frozenset(value)
     extra_keys = existing_keys - declared_keys
     if extra_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys))
+        keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys, key=repr))
         raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
     missing_keys = required_keys - existing_keys
     if missing_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys))
+        keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys, key=repr))
         raise TypeCheckError(f"is missing required key(s): {keys_formatted}")
 
     for key, argtype in get_type_hints(origin_type).items():
@@ -319,8 +322,8 @@ def check_tuple(
     else:
         if len(value) != len(tuple_params):
             raise TypeCheckError(
-                f"has wrong number of elements (expected {len(tuple_params)}, got {len(value)} "
-                f"instead)"
+                f"has wrong number of elements (expected {len(tuple_params)}, got "
+                f"{len(value)} instead)"
             )
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
@@ -376,7 +379,11 @@ def check_class(
         return
 
     expected_class = args[0]
-    if isinstance(expected_class, TypeVar):
+    if expected_class is Any:
+        return
+    elif getattr(expected_class, "_is_protocol", False):
+        check_protocol(value, expected_class, (), memo)
+    elif isinstance(expected_class, TypeVar):
         check_typevar(value, expected_class, (), memo, subclass_check=True)
     elif get_origin(expected_class) is Union:
         errors: Dict[str, TypeCheckError] = {}
@@ -465,9 +472,16 @@ def check_literal(
         return tuple(retval)
 
     final_args = tuple(get_literal_args(args))
-    if value not in final_args:
-        formatted_args = ", ".join(repr(arg) for arg in final_args)
-        raise TypeCheckError(f"is not any of ({formatted_args})")
+    try:
+        index = final_args.index(value)
+    except ValueError:
+        pass
+    else:
+        if type(final_args[index]) is type(value):
+            return
+
+    formatted_args = ", ".join(repr(arg) for arg in final_args)
+    raise TypeCheckError(f"is not any of ({formatted_args})") from None
 
 
 def check_number(
@@ -501,6 +515,12 @@ def check_protocol(
             raise TypeCheckError(
                 f"is not compatible with the {origin_type.__qualname__} protocol"
             )
+    else:
+        warnings.warn(
+            f"Typeguard cannot check the {origin_type.__qualname__} protocol because "
+            f"it is a non-runtime protocol. If you would like to type check this "
+            f"protocol, please use @typing.runtime_checkable"
+        )
 
 
 def check_byteslike(
@@ -508,6 +528,24 @@ def check_byteslike(
 ) -> None:
     if not isinstance(value, (bytearray, bytes, memoryview)):
         raise TypeCheckError("is not bytes-like")
+
+
+def check_self(
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    if not isinstance(memo, CallMemo) or memo.self_type is None:
+        raise TypeCheckError("cannot be checked against Self outside of a method call")
+
+    if isclass(value):
+        if not issubclass(value, memo.self_type):
+            raise TypeCheckError(
+                f"is not an instance of the self type "
+                f"({qualified_name(memo.self_type)})"
+            )
+    elif not isinstance(value, memo.self_type):
+        raise TypeCheckError(
+            f"is not an instance of the self type ({qualified_name(memo.self_type)})"
+        )
 
 
 def check_instanceof(
@@ -518,20 +556,22 @@ def check_instanceof(
 
 
 def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
-    from . import ForwardRefPolicy, config
-
     if isinstance(annotation, ForwardRef):
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if config.forward_ref_policy is ForwardRefPolicy.ERROR:
+            if memo.config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif config.forward_ref_policy is ForwardRefPolicy.WARN:
+            elif memo.config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(
-                    f"Cannot resolve forward reference {annotation}", TypeHintWarning
+                    f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
+                    TypeHintWarning,
                 )
 
             return
+
+    if annotation is Any:
+        return
 
     extras: Tuple[Any, ...]
     origin_type = get_origin(annotation)
@@ -543,11 +583,16 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
     if origin_type is not None:
         args = get_args(annotation)
+
+        # Compatibility hack to distinguish between unparametrized and empty tuple
+        # (tuple[()]), necessary due to https://github.com/python/cpython/issues/91137
+        if origin_type in (tuple, Tuple) and annotation is not Tuple and not args:
+            args = ((),)
     else:
         origin_type = annotation
         args = ()
 
-    for lookup_func in config.checker_lookup_functions:
+    for lookup_func in memo.config.checker_lookup_functions:
         checker = lookup_func(origin_type, args, extras)
         if checker:
             checker(value, origin_type, args, memo)
@@ -576,6 +621,7 @@ origin_type_checkers = {
     MutableMapping: check_mapping,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
+    Self: check_self,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,

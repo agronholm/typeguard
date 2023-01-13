@@ -34,13 +34,14 @@ from typing import (
 from unittest.mock import Mock
 from warnings import warn
 
-from ._checkers import (
-    BINARY_MAGIC_METHODS,
+from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
+from ._config import (
+    ForwardRefPolicy,
+    TypeCheckConfiguration,
     TypeCheckerCallable,
     TypeCheckLookupCallback,
-    check_type_internal,
+    warn_on_error,
 )
-from ._config import ForwardRefPolicy, TypeCheckConfiguration, warn_on_error
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._generators import (
     TypeCheckedAsyncGenerator,
@@ -76,9 +77,9 @@ def check_type(
     """
     Ensure that ``value`` matches ``expected_type``.
 
-    The types from the :mod:`typing` module do not support :func:`isinstance` or :func:`issubclass`
-    so a number of type specific checks are required. This function knows which checker to call
-    for which type.
+    The types from the :mod:`typing` module do not support :func:`isinstance` or
+    :func:`issubclass` so a number of type specific checks are required. This function
+    knows which checker to call for which type.
 
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
@@ -107,8 +108,8 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
-    Unless both ``args`` and ``kwargs`` are provided, the information will be retrieved from
-    the previous stack frame (ie. from the function that called this).
+    Unless both ``args`` and ``kwargs`` are provided, the information will be retrieved
+    from the previous stack frame (ie. from the function that called this).
 
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
@@ -122,7 +123,8 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
         try:
             func = find_function(frame)
         except LookupError:
-            return True  # This can happen with the Pydev/PyCharm debugger extension installed
+            # This can happen with the Pydev/PyCharm debugger extension installed
+            return True
 
         memo = CallMemo(func, frame.f_locals)
 
@@ -143,7 +145,8 @@ def check_argument_types(memo: Optional[CallMemo] = None) -> bool:
 
 def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
     """
-    Check that the return value is compatible with the return value annotation in the function.
+    Check that the return value is compatible with the return value annotation in the
+    function.
 
     :param retval: the value about to be returned from the call
     :return: ``True``
@@ -158,7 +161,8 @@ def check_return_type(retval, memo: Optional[CallMemo] = None) -> bool:
         try:
             func = find_function(frame)
         except LookupError:
-            return True  # This can happen with the Pydev/PyCharm debugger extension installed
+            # This can happen with the Pydev/PyCharm debugger extension installed
+            return True
 
         memo = CallMemo(func, frame.f_locals)
 
@@ -201,16 +205,17 @@ def typechecked(func: T_CallableOrType, *, always: bool = False) -> T_CallableOr
 
 def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None):
     """
-    Perform runtime type checking on the arguments that are passed to the wrapped function.
+    Perform runtime type checking on the arguments that are passed to the wrapped
+    function.
 
     The return value is also checked against the return annotation if any.
 
-    If the ``__debug__`` global variable is set to ``False``, no wrapping and therefore no type
-    checking is done, unless ``always`` is ``True``.
+    If the ``__debug__`` global variable is set to ``False``, no wrapping and therefore
+    no type checking is done, unless ``always`` is ``True``.
 
-    This can also be used as a class decorator. This will wrap all type annotated methods,
-    including ``@classmethod``, ``@staticmethod``,  and ``@property`` decorated methods,
-    in the class with the ``@typechecked`` decorator.
+    This can also be used as a class decorator. This will wrap all type annotated
+    methods, including ``@classmethod``, ``@staticmethod``,  and ``@property``
+    decorated methods, in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
     :param always: ``True`` to enable type checks even in optimized mode
@@ -269,7 +274,8 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         warn(f"no type annotations present -- not typechecking {function_name(func)}")
         return func
 
-    # Find the frame in which the function was declared, for resolving forward references later
+    # Find the frame in which the function was declared, for resolving forward
+    # references later
     if _localns is None:
         _localns = sys._getframe(1).f_locals
 
@@ -292,7 +298,8 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
         except TypeError as exc:
             raise TypeError(*exc.args) from None
 
-        # If a generator is returned, wrap it if its yield/send/return types can be checked
+        # If a generator is returned, wrap it if its yield/send/return types can be
+        # checked
         if inspect.isgenerator(retval) or isasyncgen(retval):
             return_type = memo.type_hints.get("return")
             if return_type:

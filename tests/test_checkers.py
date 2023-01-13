@@ -129,6 +129,12 @@ class TestComplexNumber:
 
 
 class TestCallable:
+    def test_any_args(self):
+        def some_callable(x: int, y: str) -> int:
+            pass
+
+        check_type(some_callable, Callable[..., int])
+
     def test_exact_arg_count(self):
         def some_callable(x: int, y: str) -> int:
             pass
@@ -158,8 +164,8 @@ class TestCallable:
         pytest.raises(
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(
-            r"has too many arguments in its declaration; expected 2 but 3 argument\(s\) "
-            r"declared"
+            r"has too many arguments in its declaration; expected 2 but 3 "
+            r"argument\(s\) declared"
         )
 
     def test_mandatory_kwonlyargs(self):
@@ -172,8 +178,8 @@ class TestCallable:
 
     def test_class(self):
         """
-        Test that passing a class as a callable does not count the "self" argument "a"gainst the
-        ones declared in the Callable specification.
+        Test that passing a class as a callable does not count the "self" argument
+        against the ones declared in the Callable specification.
 
         """
 
@@ -191,8 +197,8 @@ class TestCallable:
 
     def test_partial_class(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
 
@@ -204,24 +210,24 @@ class TestCallable:
 
     def test_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
         check_type(Child().method, Callable[[int], Any])
 
     def test_partial_bound_method(self):
         """
-        Test that passing a bound method as a callable does not count the "self" argument "a"gainst
-        the ones declared in the Callable specification.
+        Test that passing a bound method as a callable does not count the "self"
+        argument against the ones declared in the Callable specification.
 
         """
         check_type(partial(Child().method, 1), Callable[[], Any])
 
     def test_defaults(self):
         """
-        Test that a callable having "too many" arguments don't raise an error if the extra
-        arguments have default values.
+        Test that a callable having "too many" arguments don't raise an error if the
+        extra arguments have default values.
 
         """
 
@@ -232,8 +238,8 @@ class TestCallable:
 
     def test_builtin(self):
         """
-        Test that checking a Callable annotation against a builtin callable does not raise an
-        error.
+        Test that checking a Callable annotation against a builtin callable does not
+        raise an error.
 
         """
         check_type([].append, Callable[[int], Any])
@@ -255,6 +261,10 @@ class TestLiteral:
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
             r"value is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
         )
+
+    def test_literal_int_as_bool(self):
+        pytest.raises(TypeCheckError, check_type, 0, Literal[False])
+        pytest.raises(TypeCheckError, check_type, 1, Literal[True])
 
     def test_literal_illegal_value(self):
         pytest.raises(TypeError, check_type, 4, Literal[1, 1.1]).match(
@@ -289,6 +299,9 @@ class TestMapping:
         pytest.raises(
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]
         ).match(r"value of key 'a' of value is not an instance of str")
+
+    def test_any_value_type(self):
+        check_type(TestMapping.DummyMapping(), Mapping[str, Any])
 
 
 class TestMutableMapping:
@@ -391,6 +404,14 @@ class TestTypedDict:
         else:
             check_type(value, DummyDict)
 
+    def test_inconsistent_keys_invalid(self):
+        class DummyDict(TypedDict):
+            x: int
+
+        pytest.raises(
+            TypeCheckError, check_type, {"x": 1, "y": 2, b"z": 3}, DummyDict
+        ).match(r'value has unexpected extra key\(s\): "y", "b\'z\'"')
+
 
 class TestList:
     def test_valid(self):
@@ -460,37 +481,61 @@ class TestSet:
         )
 
 
+@pytest.mark.parametrize(
+    "annotated_type",
+    [
+        pytest.param(Tuple, id="typing"),
+        pytest.param(
+            tuple,
+            id="builtin",
+            marks=[
+                pytest.mark.skipif(
+                    sys.version_info < (3, 9),
+                    reason="builtins.tuple is not parametrizable before Python 3.9",
+                )
+            ],
+        ),
+    ],
+)
 class TestTuple:
-    def test_bad_type(self):
-        pytest.raises(TypeCheckError, check_type, 5, Tuple[int]).match(
+    def test_bad_type(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, 5, annotated_type[int]).match(
             "value is not a tuple"
         )
 
-    def test_too_many_elements(self):
-        pytest.raises(TypeCheckError, check_type, (1, "aa", 2), Tuple[int, str]).match(
-            r"value has wrong number of elements \(expected 2, got 3 instead\)"
+    def test_unparametrized_tuple(self, annotated_type: Any):
+        check_type((5, "foo"), annotated_type)
+
+    def test_unparametrized_tuple_fail(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, 5, annotated_type).match(
+            "value is not a tuple"
         )
 
-    def test_too_few_elements(self):
-        pytest.raises(TypeCheckError, check_type, (1,), Tuple[int, str]).match(
+    def test_too_many_elements(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError, check_type, (1, "aa", 2), annotated_type[int, str]
+        ).match(r"value has wrong number of elements \(expected 2, got 3 instead\)")
+
+    def test_too_few_elements(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, (1,), annotated_type[int, str]).match(
             r"value has wrong number of elements \(expected 2, got 1 instead\)"
         )
 
-    def test_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, (1, 2), Tuple[int, str]).match(
-            "value is not an instance of str"
-        )
-
-    def test_ellipsis_bad_element(self):
+    def test_bad_element(self, annotated_type: Any):
         pytest.raises(
-            TypeCheckError, check_type, (1, 2, "blah"), Tuple[int, ...]
+            TypeCheckError, check_type, (1, 2), annotated_type[int, str]
+        ).match("value is not an instance of str")
+
+    def test_ellipsis_bad_element(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError, check_type, (1, 2, "blah"), annotated_type[int, ...]
         ).match("value is not an instance of int")
 
-    def test_empty_tuple(self):
-        check_type((), Tuple[()])
+    def test_empty_tuple(self, annotated_type: Any):
+        check_type((), annotated_type[()])
 
-    def test_empty_tuple_fail(self):
-        pytest.raises(TypeCheckError, check_type, (1,), Tuple[()]).match(
+    def test_empty_tuple_fail(self, annotated_type: Any):
+        pytest.raises(TypeCheckError, check_type, (1,), annotated_type[()]).match(
             "value is not an empty tuple"
         )
 
@@ -617,6 +662,9 @@ class TestType:
     def test_union_any(self):
         check_type(list, Type[Union[str, int, Any]])
 
+    def test_any(self):
+        check_type(list, Type[Any])
+
     def test_union_fail(self):
         pytest.raises(
             TypeCheckError, check_type, dict, Type[Union[str, int, list]]
@@ -681,17 +729,7 @@ class TestIO:
 
 
 class TestProtocol:
-    @pytest.mark.parametrize("protocol_cls", [RuntimeProtocol, StaticProtocol])
-    def test_protocol(self, protocol_cls):
-        class Foo:
-            member = 1
-
-            def meth(self) -> None:
-                pass
-
-        check_type(Foo(), protocol_cls)
-
-    def test_non_method_members(self):
+    def test_protocol(self):
         class Foo:
             member = 1
 
@@ -699,6 +737,38 @@ class TestProtocol:
                 pass
 
         check_type(Foo(), RuntimeProtocol)
+        check_type(Foo, Type[RuntimeProtocol])
+
+    def test_protocol_warns_on_static(self):
+        class Foo:
+            member = 1
+
+            def meth(self) -> None:
+                pass
+
+        with pytest.warns(
+            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
+        ):
+            check_type(Foo(), StaticProtocol)
+
+        with pytest.warns(
+            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
+        ):
+            check_type(Foo, Type[StaticProtocol])
+
+    def test_fail_non_method_members(self):
+        class Foo:
+            val = 1
+
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
+        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
 
     def test_fail(self):
         class Foo:
@@ -706,6 +776,9 @@ class TestProtocol:
                 pass
 
         pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
+            "value is not compatible with the RuntimeProtocol protocol"
+        )
+        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
             "value is not compatible with the RuntimeProtocol protocol"
         )
 
@@ -743,8 +816,8 @@ class TestRecursiveType:
                 "  bool: is not an instance of bool\n"
                 "  NoneType: is not an instance of NoneType\n"
                 "  List\\[JSONType\\]: is not a list\n"
-                "  Dict\\[str, JSONType\\]: value of key 'a' did not match any element in "
-                "the union:\n"
+                "  Dict\\[str, JSONType\\]: value of key 'a' did not match any element "
+                "in the union:\n"
                 "    str: is not an instance of str\n"
                 "    float: is neither float or int\n"
                 "    bool: is not an instance of bool\n"

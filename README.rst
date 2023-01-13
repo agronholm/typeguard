@@ -1,11 +1,12 @@
-.. image:: https://travis-ci.com/agronholm/typeguard.svg?branch=master
-  :target: https://travis-ci.com/agronholm/typeguard
+.. image:: https://github.com/agronholm/typeguard/actions/workflows/test.yml/badge.svg
+  :target: https://github.com/agronholm/typeguard/actions/workflows/test.yml
   :alt: Build Status
 .. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/agronholm/typeguard?branch=master
   :alt: Code Coverage
 .. image:: https://readthedocs.org/projects/typeguard/badge/?version=latest
   :target: https://typeguard.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation
 
 This library provides run-time type checking for functions defined with
 `PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type annotations.

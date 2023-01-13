@@ -1,7 +1,7 @@
 """Module docstring."""
 
 from contextlib import contextmanager
-from typing import Generator, no_type_check, no_type_check_decorator
+from typing import Generator, Union, no_type_check, no_type_check_decorator, overload
 
 from typeguard import typeguard_ignore
 
@@ -68,7 +68,8 @@ class DummyClass(metaclass=Metaclass):
 
 def outer():
     class Inner:
-        pass
+        def get_self(self) -> "Inner":
+            return self
 
     def create_inner() -> "Inner":
         return Inner()
@@ -95,3 +96,25 @@ class Outer:
 @contextmanager
 def dummy_context_manager() -> Generator[int, None, None]:
     yield 1
+
+
+@overload
+def overloaded_func(a: int) -> int:
+    ...
+
+
+@overload
+def overloaded_func(a: str) -> str:
+    ...
+
+
+def overloaded_func(a: Union[str, int]) -> Union[str, int]:
+    return a
+
+
+def get_inner_class() -> type:
+    class InnerClass:
+        def get_self(self) -> "InnerClass":
+            return self
+
+    return InnerClass
