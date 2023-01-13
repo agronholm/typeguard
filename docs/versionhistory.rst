@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
+  ``@staticmethod`` (PR by jacobpbrugh)
 - Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
   among the extra keys (PR by biolds)
 - Fixed the configured ``forward_ref_policy`` not being used in

@@ -321,3 +321,27 @@ class TestSelf:
             rf"\({__name__}\.{self.__class__.__name__}\."
             rf"test_classmethod_arg_invalid\.<locals>\.Foo\)"
         )
+
+
+def test_decorator_before_classmethod():
+    class Foo:
+        @typechecked
+        @classmethod
+        def method(cls, x: int) -> None:
+            pass
+
+    pytest.raises(TypeCheckError, Foo().method, "bar").match(
+        'argument "x" is not an instance of int'
+    )
+
+
+def test_decorator_before_staticmethod():
+    class Foo:
+        @typechecked
+        @staticmethod
+        def method(x: int) -> None:
+            pass
+
+    pytest.raises(TypeCheckError, Foo().method, "bar").match(
+        'argument "x" is not an instance of int'
+    )
