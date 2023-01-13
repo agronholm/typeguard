@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
   ``@staticmethod`` (PR by jacobpbrugh)
+- Changed ``check_type()`` to return the passed value, so it can be used (to an extent)
+  in place of ``typing.cast()``, but with run-time type checking
 - Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
   among the extra keys (PR by biolds)
 - Fixed the configured ``forward_ref_policy`` not being used in

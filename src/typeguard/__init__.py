@@ -28,6 +28,7 @@ from typing import (
     Dict,
     NoReturn,
     Optional,
+    Type,
     TypeVar,
     overload,
 )
@@ -64,16 +65,39 @@ else:
 
 config = TypeCheckConfiguration()
 
+T = TypeVar("T")
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 
+@overload
 def check_type(
-    value: Any,
+    value: object,
+    expected_type: Type[T],
+    *,
+    argname: str = "value",
+    memo: Optional[TypeCheckMemo] = None,
+) -> T:
+    ...
+
+
+@overload
+def check_type(
+    value: object,
     expected_type: Any,
     *,
     argname: str = "value",
     memo: Optional[TypeCheckMemo] = None,
-) -> None:
+) -> Any:
+    ...
+
+
+def check_type(
+    value: object,
+    expected_type: Any,
+    *,
+    argname: str = "value",
+    memo: Optional[TypeCheckMemo] = None,
+) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -84,6 +108,7 @@ def check_type(
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
     :param argname: name of the argument to check; used for error messages
+    :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
     """
@@ -102,6 +127,8 @@ def check_type(
             memo.config.typecheck_fail_callback(exc, memo)
         else:
             raise
+
+    return value
 
 
 def check_argument_types(memo: Optional[CallMemo] = None) -> bool:

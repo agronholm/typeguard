@@ -857,3 +857,8 @@ def test_forward_reference_policy(
 
 def test_any():
     check_type("aa", Any)
+
+
+def test_return_checked_value():
+    value = {"foo": 1}
+    assert check_type(value, Dict[str, int]) is value
