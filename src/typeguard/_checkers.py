@@ -37,7 +37,6 @@ from ._utils import (
     get_args,
     get_origin,
     get_type_name,
-    is_typeddict,
     qualified_name,
 )
 
@@ -45,6 +44,11 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+if sys.version_info >= (3, 10):
+    from typing import is_typeddict
+else:
+    from typing_extensions import is_typeddict
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
