@@ -194,9 +194,8 @@ Type               Notes
 ``Type``
 ``TypedDict``      Contents are typechecked; On Python 3.8 and earlier,
                    ``total`` from superclasses is not respected (see `#101`_ for
-                   more information); On Python 3.9.0 or ``typing_extensions``
-                   <= 3.7.4.3, false positives can happen when constructing
-                   ``TypedDict`` classes using old-style syntax (see
+                   more information); On Python 3.9.0, false positives can happen when
+                   constructing ``TypedDict`` classes using old-style syntax (see
                    `issue 42059`_)
 ``TypeVar``        Constraints and bound types are typechecked
 ``Union``          :pep:`604` unions are supported on Python 3.10+
