@@ -16,7 +16,7 @@ project = "Typeguard"
 author = "Alex Grönholm"
 copyright = "2015, " + author
 
-v = parse(get_version("anyio"))
+v = parse(get_version("typeguard"))
 version = v.base_version
 release = v.public
 
