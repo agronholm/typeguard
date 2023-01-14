@@ -11,8 +11,12 @@
 This library provides run-time type checking for functions defined with
 `PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type annotations.
 
-Three principal ways to do type checking are provided, each with its pros and cons:
+Four principal ways to do type checking are provided, each with its pros and cons:
 
+#. The ``check_type`` function:
+
+   * like ``isinstance()``, but supports arbitrary type annotations (within limits)
+   * can be used as a ``cast()`` replacement, but with actual checking of the value
 #. the ``check_argument_types()`` and ``check_return_type()`` functions:
 
    * debugger friendly (except when running with the pydev debugger with the C extension installed)
@@ -29,6 +33,6 @@ Three principal ways to do type checking are provided, each with its pros and co
      been installed
    * may clash with other import hooks
 
-See the documentation_ for further instructions.
+See the documentation_ for further information.
 
 .. _documentation: https://typeguard.readthedocs.io/en/latest/
