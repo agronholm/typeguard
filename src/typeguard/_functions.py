@@ -17,6 +17,11 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Never
 
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
+
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
@@ -140,7 +145,7 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     return True
 
 
-def check_return_type(retval, memo: CallMemo | None = None) -> Literal[True]:
+def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
     """
     Check that the return value is compatible with the return value annotation in the
     function.

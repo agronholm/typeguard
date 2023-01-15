@@ -30,7 +30,7 @@ def arg_type(x: int) -> str:
 
 
 def ret_type() -> str:
-    return check_return_type(False)  # noqa: E501 # error: Incompatible return value type (got "Literal[True]", expected "str")  [return-value]
+    return check_return_type(False)  # noqa: E501 # error: Incompatible return value type (got "bool", expected "str")  [return-value]
 
 
 _ = arg_type(foo)  # noqa: E501 # error: Argument 1 to "arg_type" has incompatible type "Callable[[int], int]"; expected "int"  [arg-type]
