@@ -41,7 +41,7 @@ def get_type_name(type_) -> str:
     args = get_args(type_)
     if args:
         if name == "Literal":
-            formatted_args = ", ".join(str(arg) for arg in args)
+            formatted_args = ", ".join(repr(arg) for arg in args)
         else:
             formatted_args = ", ".join(get_type_name(arg) for arg in args)
 

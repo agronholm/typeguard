@@ -15,6 +15,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   in place of ``typing.cast()``, but with run-time type checking
 - Replaced custom implementation of ``is_typeddict()`` with the implementation from
   ``typing_extensions`` v4.1.0
+- Used ``repr()`` for rendering ``Literal`` elements within unions when raising a
+  ``TypeCheckError``
 - Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
   among the extra keys (PR by biolds)
 - Fixed the configured ``forward_ref_policy`` not being used in
