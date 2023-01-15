@@ -12,7 +12,7 @@ also supports checking against annotations in the :mod:`typing` module::
 
     from typeguard import check_type
 
-    # Raises TypeError if there's a problem
+    # Raises TypeCheckError if there's a problem
     check_type([1234], List[int])
 
 It's also useful for safely casting the types of objects dynamically constructed from
@@ -50,7 +50,7 @@ Two functions are provided, potentially for use with the ``assert`` statement:
 
 These can be used to implement fine grained type checking for select functions.
 If the function is called with incompatible types, or :func:`~typeguard.check_return_type` is used
-and the return value does not match the return type annotation, then a :exc:`TypeError` is raised.
+and the return value does not match the return type annotation, then a :exc:`~.TypeCheckError` is raised.
 
 For example::
 
