@@ -9,7 +9,10 @@
   :alt: Documentation
 
 This library provides run-time type checking for functions defined with
-`PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type annotations.
+`PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type
+annotations, and any arbitrary objects. It can be used together with static type
+checkers as an additional layer of type safety, to catch type violations that could only
+be detected at run time.
 
 Four principal ways to do type checking are provided, each with its pros and cons:
 
