@@ -55,6 +55,16 @@ from . import (
     myint,
 )
 
+if sys.version_info >= (3, 11):
+    from typing import LiteralString
+else:
+    from typing_extensions import LiteralString
+
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
+
 if sys.version_info >= (3, 9):
     from typing import Annotated
 else:
@@ -836,6 +846,26 @@ class TestAnnotated:
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, Annotated[str, "blah"]).match(
             "value is not an instance of str"
+        )
+
+
+class TestLiteralString:
+    def test_valid(self):
+        check_type("aa", LiteralString)
+
+    def test_fail(self):
+        pytest.raises(TypeCheckError, check_type, 1, LiteralString).match(
+            "value is not an instance of str"
+        )
+
+
+class TestTypeGuard:
+    def test_valid(self):
+        check_type(True, TypeGuard)
+
+    def test_fail(self):
+        pytest.raises(TypeCheckError, check_type, 1, TypeGuard).match(
+            "value is not an instance of bool"
         )
 
 

@@ -41,14 +41,14 @@ from ._utils import (
 )
 
 if sys.version_info >= (3, 11):
-    from typing import Self
+    from typing import LiteralString, Self
 else:
-    from typing_extensions import Self
+    from typing_extensions import LiteralString, Self
 
 if sys.version_info >= (3, 10):
-    from typing import is_typeddict
+    from typing import TypeGuard, is_typeddict
 else:
-    from typing_extensions import is_typeddict
+    from typing_extensions import TypeGuard, is_typeddict
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
@@ -488,6 +488,18 @@ def check_literal(
     raise TypeCheckError(f"is not any of ({formatted_args})") from None
 
 
+def check_literal_string(
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    check_type_internal(value, str, memo)
+
+
+def check_typeguard(
+    value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    check_type_internal(value, bool, memo)
+
+
 def check_number(
     value: Any, origin_type: Any, args: Tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -621,6 +633,7 @@ origin_type_checkers = {
     list: check_list,
     List: check_list,
     Literal: check_literal,
+    LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     collections.abc.Mapping: check_mapping,
@@ -636,6 +649,7 @@ origin_type_checkers = {
     Tuple: check_tuple,
     type: check_class,
     Type: check_class,
+    TypeGuard: check_typeguard,
     Union: check_union,
 }
 if sys.version_info >= (3, 10):

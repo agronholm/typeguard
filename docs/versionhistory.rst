@@ -9,6 +9,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   disabling type checks
 - Added support for ``typing.Never`` (and ``typing_extensions.Never``)
 - Added support for ``Never`` and ``NoReturn`` in argument annotations
+- Added support for ``LiteralString``
+- Added support for ``TypeGuard``
 - Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
   ``@staticmethod`` (PR by jacobpbrugh)
 - Changed ``check_type()`` to return the passed value, so it can be used (to an extent)

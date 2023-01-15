@@ -208,6 +208,7 @@ Type               Notes
 ``IO``             Specialized instance checks are performed
 ``List``           Contents are typechecked
 ``Literal``
+``LiteralString``  Checked as :class:`str`
 ``Mapping``        Keys and values are typechecked
 ``MutableMapping`` Keys and values are typechecked
 ``NamedTuple``     Field values are typechecked
@@ -222,6 +223,7 @@ Type               Notes
 ``TextIO``         Specialized instance checks are performed
 ``Tuple``          Contents are typechecked
 ``Type``
+``TypeGuard``      Checked as :class`bool`
 ``TypedDict``      Contents are typechecked; On Python 3.8 and earlier,
                    ``total`` from superclasses is not respected (see `#101`_ for
                    more information); On Python 3.9.0, false positives can happen when
