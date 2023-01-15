@@ -182,7 +182,8 @@ Type               Notes
 ``Mapping``        Keys and values are typechecked
 ``MutableMapping`` Keys and values are typechecked
 ``NamedTuple``     Field values are typechecked
-``NoReturn``
+``Never``          Supported in argument and return type annotations
+``NoReturn``       Supported in argument and return type annotations
 ``Protocol``       Run-time protocols are checked with :func:`isinstance`,
                    others are ignored
 ``Self``           Assumes first call argument to be a valid ``Self``; won't know if

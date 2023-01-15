@@ -12,6 +12,11 @@ from ._exceptions import TypeCheckError
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import find_function
 
+if sys.version_info >= (3, 11):
+    from typing import Never
+else:
+    from typing_extensions import Never
+
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
@@ -113,6 +118,15 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
 
     for argname, expected_type in memo.type_hints.items():
         if argname != "return" and argname in memo.arguments:
+            if expected_type is NoReturn or expected_type is Never:
+                exc = TypeCheckError(
+                    f"{memo.func_name}() was declared never to be called but it was"
+                )
+                if memo.config.typecheck_fail_callback:
+                    memo.config.typecheck_fail_callback(exc, memo)
+                else:
+                    raise exc
+
             value = memo.arguments[argname]
             try:
                 check_type_internal(value, expected_type, memo=memo)
@@ -153,16 +167,21 @@ def check_return_type(retval, memo: CallMemo | None = None) -> Literal[True]:
         memo = CallMemo(func, frame.f_locals)
 
     if "return" in memo.type_hints:
-        if memo.type_hints["return"] is NoReturn:
-            raise TypeCheckError(
+        annotation = memo.type_hints["return"]
+        if annotation is NoReturn or annotation is Never:
+            exc = TypeCheckError(
                 f"{memo.func_name}() was declared never to return but it did"
             )
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
+            else:
+                raise exc
 
         try:
-            check_type_internal(retval, memo.type_hints["return"], memo)
+            check_type_internal(retval, annotation, memo)
         except TypeCheckError as exc:
             # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if retval is NotImplemented and memo.type_hints["return"] is bool:
+            if retval is NotImplemented and annotation is bool:
                 # This does (and cannot) not check if it's actually a method
                 func_name = memo.func_name.rsplit(".", 1)[-1]
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
