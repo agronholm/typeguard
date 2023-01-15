@@ -3,6 +3,43 @@ User guide
 
 .. py:currentmodule:: typeguard
 
+Checking types directly
+-----------------------
+
+The most straightfoward way to do type checking with Typeguard is with
+:func:`.check_type`. It can be used as as a beefed-up version of :func:`isinstance` that
+also supports checking against annotations in the :mod:`typing` module::
+
+    from typeguard import check_type
+
+    # Raises TypeError if there's a problem
+    check_type([1234], List[int])
+
+It's also useful for safely casting the types of objects dynamically constructed from
+external sources::
+
+    import json
+    from typing import List, TypedDict
+
+    from typeguard import check_type
+
+    # Example contents of "people.json":
+    # [
+    #   {"name": "John Smith", "phone": "111-123123", "address": "123 Main Street"},
+    #   {"name": "Jane Smith", "phone": "111-456456", "address": "123 Main Street"}
+    # ]
+
+    class Person(TypedDict):
+        name: str
+        phone: str
+        address: str
+
+     with open("people.json") as f:
+        people = check_type(json.load(f), List[Person])
+
+With this code, static type checkers will recognize the type of ``people`` to be
+``List[Person]``.
+
 Using type checker functions
 ----------------------------
 
@@ -119,7 +156,6 @@ To exclude specific functions or classes from run time type checking, use the
 
 Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type checking.
 
-
 Using the pytest plugin
 -----------------------
 
@@ -133,17 +169,6 @@ can do the following:
     pytest --typeguard-packages=foo.bar,xyz
 
 There is currently no support for specifying a customized module finder.
-
-Checking types directly
------------------------
-
-Typeguard can also be used as a beefed-up version of :func:`isinstance` that also supports checking
-against annotations in the :mod:`typing` module::
-
-    from typeguard import check_type
-
-    # Raises TypeError if there's a problem
-    check_type([1234], List[int])
 
 Temporarily disabling type checks
 ---------------------------------
