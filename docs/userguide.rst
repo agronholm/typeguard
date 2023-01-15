@@ -200,6 +200,9 @@ support:
 ================== =============================================================
 Type               Notes
 ================== =============================================================
+``Any``            Any value passes when checked against ``Any``. An instance of a class
+                   inheriting from ``Any`` (``typing.Any`` on Python 3.11+, or
+                   ``typing_extensions.Any``) will pass any type check.
 ``Annotated``      Original annotation is unwrapped and typechecked normally
 ``AbstractSet``    Contents are typechecked
 ``BinaryIO``       Specialized instance checks are performed

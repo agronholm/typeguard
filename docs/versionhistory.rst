@@ -11,6 +11,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added support for ``Never`` and ``NoReturn`` in argument annotations
 - Added support for ``LiteralString``
 - Added support for ``TypeGuard``
+- Added support for the subclassable ``Any`` on Python 3.11 and ``typing_extensions``
 - Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
   ``@staticmethod`` (PR by jacobpbrugh)
 - Changed ``check_type()`` to return the passed value, so it can be used (to an extent)

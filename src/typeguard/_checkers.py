@@ -42,7 +42,10 @@ from ._utils import (
 
 if sys.version_info >= (3, 11):
     from typing import LiteralString, Self
+
+    SubclassableAny = Any
 else:
+    from typing_extensions import Any as SubclassableAny
     from typing_extensions import LiteralString, Self
 
 if sys.version_info >= (3, 10):
@@ -586,7 +589,11 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
             return
 
-    if annotation is Any:
+    if annotation is Any or annotation is SubclassableAny:
+        return
+
+    # Skip type checks if value is an instance of a class that inherits from Any
+    if not isclass(value) and SubclassableAny in type(value).__bases__:
         return
 
     extras: Tuple[Any, ...]

@@ -57,7 +57,10 @@ from . import (
 
 if sys.version_info >= (3, 11):
     from typing import LiteralString
+
+    SubclassableAny = Any
 else:
+    from typing_extensions import Any as SubclassableAny
     from typing_extensions import LiteralString
 
 if sys.version_info >= (3, 10):
@@ -887,6 +890,13 @@ def test_forward_reference_policy(
 
 def test_any():
     check_type("aa", Any)
+
+
+def test_any_subclass():
+    class Foo(SubclassableAny):
+        pass
+
+    check_type(Foo(), int)
 
 
 def test_return_checked_value():
