@@ -98,8 +98,8 @@ class TypeguardLoader(SourceFileLoader):
 
 class TypeguardFinder(MetaPathFinder):
     """
-    Wraps another path finder and instruments the module with ``@typechecked`` if
-    :meth:`should_instrument` returns ``True``.
+    Wraps another path finder and instruments the module with
+    :func:`@typechecked <typechecked>` if :meth:`should_instrument` returns ``True``.
 
     Should not be used directly, but rather via :func:`~.install_import_hook`.
 
@@ -156,7 +156,8 @@ def install_import_hook(
     packages: Iterable[str], *, cls: Type[TypeguardFinder] = TypeguardFinder
 ) -> ImportHookManager:
     """
-    Install an import hook that decorates classes and functions with ``@typechecked``.
+    Install an import hook that decorates classes and functions with
+    :func:`@typechecked <typechecked>`.
 
     This only affects modules loaded **after** this hook has been installed.
 

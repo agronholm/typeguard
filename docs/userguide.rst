@@ -1,6 +1,8 @@
 User guide
 ==========
 
+.. py:currentmodule:: typeguard
+
 Using type checker functions
 ----------------------------
 
@@ -31,13 +33,14 @@ interpreter, or by setting the ``PYTHONOPTIMIZE`` environment variable to ``1`` 
    other functions). This is because this operating mode relies on finding the correct function
    object using the garbage collector, and when a nested function is running, its function object
    may no longer be around anymore, as it is only bound to the closure of the enclosing function.
-   For this reason, it is recommended to use ``@typechecked`` instead for nested functions.
+   For this reason, it is recommended to use :func:`@typechecked <typechecked>` instead
+   for nested functions.
 
 Using the decorator
 -------------------
 
 The simplest way to type checking of both argument values and the return value for a single
-function is to use the ``@typechecked`` decorator::
+function is to use the :func:`@typechecked <typechecked>` decorator::
 
     from typeguard import typechecked
 
@@ -58,9 +61,10 @@ The decorator works just like the two previously mentioned checker functions exc
 issues with nested functions. The drawback, however, is that it adds one stack frame per wrapped
 function which may make debugging harder.
 
-When a generator function is wrapped with ``@typechecked``, the yields, sends and the return value
-are also type checked against the :class:`~typing.Generator` annotation. The same applies to the
-yields and sends of an async generator (annotated with :class:`~typing.AsyncGenerator`).
+When a generator function is wrapped with :func:`@typechecked <typechecked>`, the
+yields, sends and the return value are also type checked against the
+:class:`~typing.Generator` annotation. The same applies to the yields and sends of an
+async generator (annotated with :class:`~typing.AsyncGenerator`).
 
 .. note::
    The decorator also respects the optimized mode setting so it does nothing when the interpreter
@@ -70,7 +74,7 @@ Using the import hook
 ---------------------
 
 The import hook, when active, automatically decorates all type annotated functions with
-``@typechecked``. This allows for a noninvasive method of run time type checking. This method does
+:func:`@typechecked <typechecked>`. This allows for a noninvasive method of run time type checking. This method does
 not modify the source code on disk, but instead modifies its AST (Abstract Syntax Tree) when the
 module is loaded.
 
