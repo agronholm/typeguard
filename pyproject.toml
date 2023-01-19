@@ -96,5 +96,5 @@ commands = pytest {posargs}
 
 [testenv:docs]
 extras = doc
-commands = sphinx-build docs build/sphinx
+commands = sphinx-build -W docs build/sphinx
 """

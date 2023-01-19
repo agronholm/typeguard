@@ -21,10 +21,21 @@ API reference
 .. autoclass:: TypeCheckConfiguration
     :members:
 
+.. data:: config
+   :type: TypeCheckConfiguration
+
+   The global configuration object.
+
 .. autoclass:: ForwardRefPolicy
     :members:
 
 .. autofunction:: warn_on_error
+
+.. data:: checker_lookup_functions
+   :type: list[TypeCheckLookupCallback]
+   :canonical: typeguard._checkers.checker_lookup_functions
+
+   A list of callables that are used to look up a checker callable for an annotation.
 
 .. autoexception:: TypeCheckError
 

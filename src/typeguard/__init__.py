@@ -2,6 +2,7 @@ __all__ = (
     "CallMemo",
     "ForwardRefPolicy",
     "TypeCheckerCallable",
+    "TypeCheckFailCallback",
     "TypeCheckLookupCallback",
     "TypeCheckConfiguration",
     "TypeHintWarning",
@@ -12,19 +13,30 @@ __all__ = (
     "check_return_type",
     "check_type",
     "check_type_internal",
+    "checker_lookup_functions",
     "config",
+    "load_plugins",
     "suppress_type_checks",
     "typechecked",
     "typeguard_ignore",
     "warn_on_error",
 )
 
-from ._checkers import check_type_internal
+import os
+import sys
+from typing import Any
+
+from ._checkers import (
+    TypeCheckerCallable,
+    TypeCheckLookupCallback,
+    check_type_internal,
+    checker_lookup_functions,
+    load_plugins,
+)
 from ._config import (
     ForwardRefPolicy,
     TypeCheckConfiguration,
-    TypeCheckerCallable,
-    TypeCheckLookupCallback,
+    TypeCheckFailCallback,
     warn_on_error,
 )
 from ._decorators import typechecked, typeguard_ignore
@@ -37,9 +49,26 @@ from ._functions import (
 )
 from ._memo import CallMemo, TypeCheckMemo
 
-config = TypeCheckConfiguration()
+if sys.version_info >= (3, 8):
+    from typing import Final
+else:
+    from typing_extensions import Final
 
 # Re-export imports so they look like they live directly in this package
 for value in list(locals().values()):
     if getattr(value, "__module__", "").startswith(f"{__name__}."):
         value.__module__ = __name__
+
+
+config: TypeCheckConfiguration
+_config: Final[TypeCheckConfiguration] = TypeCheckConfiguration()
+
+
+def __getattr__(name: str) -> Any:
+    if name == "config":
+        return _config
+
+
+# Automatically load checker lookup functions unless explicitly disabled
+if "TYPEGUARD_DISABLE_PLUGIN_AUTOLOAD" not in os.environ:
+    load_plugins()

@@ -19,7 +19,7 @@ class TypeCheckedGenerator:
             rtype_args = memo.type_hints["return"].__args__
 
         self.__wrapped = wrapped
-        self.__memo = memo
+        self.__config = memo.config
         self.__yield_type = rtype_args[0] if rtype_args else Any
         self.__send_type = rtype_args[1] if len(rtype_args) > 1 else Any
         self.__return_type = rtype_args[2] if len(rtype_args) > 2 else Any
@@ -48,7 +48,7 @@ class TypeCheckedGenerator:
                 obj,
                 self.__send_type,
                 argname="value sent to generator",
-                memo=self.__memo,
+                config=self.__config,
             )
         else:
             self.__initialized = True
@@ -57,7 +57,10 @@ class TypeCheckedGenerator:
             value = self.__wrapped.send(obj)
         except StopIteration as exc:
             check_type(
-                exc.value, self.__return_type, argname="return value", memo=self.__memo
+                exc.value,
+                self.__return_type,
+                argname="return value",
+                config=self.__config,
             )
             raise
 
@@ -65,7 +68,7 @@ class TypeCheckedGenerator:
             value,
             self.__yield_type,
             argname="value yielded from generator",
-            memo=self.__memo,
+            config=self.__config,
         )
         return value
 
@@ -74,7 +77,7 @@ class TypeCheckedAsyncGenerator:
     def __init__(self, wrapped: AsyncGenerator, memo: CallMemo):
         rtype_args = memo.type_hints["return"].__args__
         self.__wrapped = wrapped
-        self.__memo = memo
+        self.__config = memo.config
         self.__yield_type = rtype_args[0]
         self.__send_type = rtype_args[1] if len(rtype_args) > 1 else Any
         self.__initialized = False
@@ -102,7 +105,7 @@ class TypeCheckedAsyncGenerator:
                 obj,
                 self.__send_type,
                 argname="value sent to generator",
-                memo=self.__memo,
+                config=self.__config,
             )
         else:
             self.__initialized = True
@@ -112,7 +115,7 @@ class TypeCheckedAsyncGenerator:
             value,
             self.__yield_type,
             argname="value yielded from generator",
-            memo=self.__memo,
+            config=self.__config,
         )
         return value
 

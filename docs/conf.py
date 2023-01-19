@@ -24,9 +24,13 @@ language = "en"
 
 exclude_patterns = ["_build"]
 pygments_style = "sphinx"
-highlight_language = "python3"
+autodoc_default_options = {"members": True}
+autodoc_type_aliases = {
+    "TypeCheckerCallable": "typeguard.TypeCheckerCallable",
+    "TypeCheckFailCallback": "typeguard.TypeCheckFailCallback",
+    "TypeCheckLookupCallback": "typeguard.TypeCheckLookupCallback",
+}
 todo_include_todos = False
-add_module_names = False
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]

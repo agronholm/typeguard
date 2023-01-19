@@ -1,6 +1,6 @@
-from _pytest.monkeypatch import MonkeyPatch
+from pytest import MonkeyPatch
 
-from typeguard import TypeCheckConfiguration
+from typeguard import load_plugins
 
 
 def test_custom_type_checker(monkeypatch: MonkeyPatch) -> None:
@@ -17,6 +17,10 @@ def test_custom_type_checker(monkeypatch: MonkeyPatch) -> None:
         assert group == "typeguard.checker_lookup"
         return [FakeEntryPoint()]
 
-    monkeypatch.setattr("typeguard._config.entry_points", fake_entry_points)
-    config = TypeCheckConfiguration()
-    assert config.checker_lookup_functions[0] is lookup_func
+    checker_lookup_functions = []
+    monkeypatch.setattr("typeguard._checkers.entry_points", fake_entry_points)
+    monkeypatch.setattr(
+        "typeguard._checkers.checker_lookup_functions", checker_lookup_functions
+    )
+    load_plugins()
+    assert checker_lookup_functions[0] is lookup_func

@@ -7,6 +7,7 @@ from threading import Lock
 from typing import Any, NoReturn, TypeVar, overload
 from unittest.mock import Mock
 
+from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._exceptions import TypeCheckError
 from ._memo import CallMemo, TypeCheckMemo
@@ -38,7 +39,7 @@ def check_type(
     expected_type: type[T],
     *,
     argname: str = "value",
-    memo: TypeCheckMemo | None = None,
+    config: TypeCheckConfiguration | None = None,
 ) -> T:
     ...
 
@@ -49,7 +50,7 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    memo: TypeCheckMemo | None = None,
+    config: TypeCheckConfiguration | None = None,
 ) -> Any:
     ...
 
@@ -59,7 +60,7 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    memo: TypeCheckMemo | None = None,
+    config: TypeCheckConfiguration | None = None,
 ) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
@@ -68,9 +69,17 @@ def check_type(
     :func:`issubclass` so a number of type specific checks are required. This function
     knows which checker to call for which type.
 
+    This function wraps :func:`~.check_type_internal` in the following ways:
+
+    * Respects type checking suppression (:func:`~.suppress_type_checks`)
+    * Forms a :class:`~.TypeCheckMemo` from the current stack frame
+    * Calls the configured type check fail callback if the check fails
+
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
     :param argname: name of the argument to check; used for error messages
+    :param config: explicit configuration to use for this check (uses the global
+        configuration if omitted)
     :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
@@ -78,10 +87,8 @@ def check_type(
     if type_checks_suppressed or expected_type is Any or isinstance(value, Mock):
         return
 
-    if memo is None:
-        frame = sys._getframe(1)
-        memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
-
+    frame = sys._getframe(1)
+    memo = TypeCheckMemo(frame.f_globals, frame.f_locals, config)
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:

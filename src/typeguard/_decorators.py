@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import inspect
 import sys
 from functools import partial, wraps
 from inspect import isasyncgen, isclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
 from warnings import warn
 
+from . import TypeCheckConfiguration
 from ._functions import check_argument_types, check_return_type
 from ._generators import (
     TypeCheckedAsyncGenerator,
@@ -30,17 +33,24 @@ T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 @overload
 def typechecked(
-    *, always: bool = False
+    *, config: TypeCheckConfiguration | None = None
 ) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
 
 
 @overload
-def typechecked(func: T_CallableOrType, *, always: bool = False) -> T_CallableOrType:
+def typechecked(
+    func: T_CallableOrType, *, config: TypeCheckConfiguration | None = None
+) -> T_CallableOrType:
     ...
 
 
-def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] = None):
+def typechecked(
+    func: T_CallableOrType | None = None,
+    *,
+    config: TypeCheckConfiguration | None = None,
+    _localns: dict[str, Any] | None = None,
+):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped
     function.
@@ -55,14 +65,11 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
     decorated methods, in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
-    :param always: ``True`` to enable type checks even in optimized mode
+    :param config:
 
     """
     if func is None:
-        return partial(typechecked, always=always, _localns=_localns)
-
-    if not __debug__ and not always:  # pragma: no cover
-        return func
+        return partial(typechecked, config=config, _localns=_localns)
 
     if isinstance(func, (classmethod, staticmethod)):
         if isinstance(func, classmethod):
@@ -84,12 +91,12 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
                     setattr(
                         func,
                         key,
-                        typechecked(attr, always=always, _localns=func.__dict__),
+                        typechecked(attr, config=config, _localns=func.__dict__),
                     )
             elif isinstance(attr, (classmethod, staticmethod)):
                 if getattr(attr.__func__, "__annotations__", None):
                     wrapped = typechecked(
-                        attr.__func__, always=always, _localns=func.__dict__
+                        attr.__func__, config=config, _localns=func.__dict__
                     )
                     setattr(func, key, type(attr)(wrapped))
             elif isinstance(attr, property):
@@ -100,7 +107,7 @@ def typechecked(func=None, *, always=False, _localns: Optional[Dict[str, Any]] =
                         property_func, "__annotations__", ()
                     ):
                         kwargs[name] = typechecked(
-                            property_func, always=always, _localns=func.__dict__
+                            property_func, config=config, _localns=func.__dict__
                         )
 
                 setattr(func, key, attr.__class__(**kwargs))

@@ -3,6 +3,14 @@ User guide
 
 .. py:currentmodule:: typeguard
 
+Setting configuration options
+-----------------------------
+
+There are several configuration options that can be set that influence how type checking
+is done. To change the options, import ``typeguard.config`` (which is of type
+:class:`~.TypeCheckConfiguration`) and set the attributes you want to change. Reasonable
+defaults have been used, so most users shouldn't have any need to change the options.
+
 Checking types directly
 -----------------------
 
