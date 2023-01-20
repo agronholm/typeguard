@@ -19,7 +19,7 @@ API reference
 .. autofunction:: suppress_type_checks
 
 .. autoclass:: TypeCheckConfiguration
-    :members:
+   :members:
 
 .. data:: config
    :type: TypeCheckConfiguration
@@ -31,9 +31,16 @@ API reference
 
 .. autofunction:: warn_on_error
 
+.. autofunction:: check_type_internal
+
+.. autoclass:: TypeCheckMemo
+    :members:
+
+.. autoclass:: CallMemo
+    :members:
+
 .. data:: checker_lookup_functions
-   :type: list[TypeCheckLookupCallback]
-   :canonical: typeguard._checkers.checker_lookup_functions
+   :type: list[Callable[[Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]]]]
 
    A list of callables that are used to look up a checker callable for an annotation.
 
@@ -49,6 +56,9 @@ API reference
 .. module:: typeguard.importhook
 
 .. autoclass:: TypeguardFinder
+    :members:
+
+.. autoclass:: ImportHookManager
     :members:
 
 .. autofunction:: install_import_hook

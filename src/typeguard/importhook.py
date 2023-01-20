@@ -99,7 +99,8 @@ class TypeguardLoader(SourceFileLoader):
 class TypeguardFinder(MetaPathFinder):
     """
     Wraps another path finder and instruments the module with
-    :func:`@typechecked <typechecked>` if :meth:`should_instrument` returns ``True``.
+    :func:`@typechecked <typeguard.typechecked>` if :meth:`should_instrument` returns
+    ``True``.
 
     Should not be used directly, but rather via :func:`~.install_import_hook`.
 
@@ -136,6 +137,10 @@ class TypeguardFinder(MetaPathFinder):
 
 
 class ImportHookManager:
+    """
+    A handle that can be used to uninstall the Typeguard import hook.
+    """
+
     def __init__(self, hook: MetaPathFinder):
         self.hook = hook
 
@@ -145,7 +150,8 @@ class ImportHookManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.uninstall()
 
-    def uninstall(self):
+    def uninstall(self) -> None:
+        """Uninstall the import hook."""
         try:
             sys.meta_path.remove(self.hook)
         except ValueError:
@@ -157,7 +163,7 @@ def install_import_hook(
 ) -> ImportHookManager:
     """
     Install an import hook that decorates classes and functions with
-    :func:`@typechecked <typechecked>`.
+    :func:`@typechecked <typeguard.typechecked>`.
 
     This only affects modules loaded **after** this hook has been installed.
 

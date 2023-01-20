@@ -4,18 +4,16 @@ import inspect
 import sys
 from inspect import isclass
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Dict, ForwardRef, Mapping, Tuple
+from typing import Any, Dict, ForwardRef, Mapping, Tuple
 from weakref import WeakKeyDictionary
 
+from ._config import TypeCheckConfiguration, global_config
 from ._utils import function_name
 
 if sys.version_info >= (3, 9):
     from typing import get_type_hints
 else:
     from typing_extensions import get_type_hints
-
-if TYPE_CHECKING:
-    from ._config import TypeCheckConfiguration
 
 _type_hints_map: WeakKeyDictionary[FunctionType, dict[str, Any]] = WeakKeyDictionary()
 
@@ -29,8 +27,6 @@ class TypeCheckMemo:
         locals: dict[str, Any],
         config: TypeCheckConfiguration | None = None,
     ):
-        from . import config as global_config
-
         self.globals = globals
         self.locals = locals
         self.config = config or global_config

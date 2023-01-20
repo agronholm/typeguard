@@ -23,7 +23,6 @@ __all__ = (
 )
 
 import os
-import sys
 from typing import Any
 
 from ._checkers import (
@@ -33,26 +32,19 @@ from ._checkers import (
     checker_lookup_functions,
     load_plugins,
 )
-from ._config import (
-    ForwardRefPolicy,
-    TypeCheckConfiguration,
-    TypeCheckFailCallback,
-    warn_on_error,
-)
+from ._config import ForwardRefPolicy, TypeCheckConfiguration
+from ._config import global_config as _global_config
 from ._decorators import typechecked, typeguard_ignore
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._functions import (
+    TypeCheckFailCallback,
     check_argument_types,
     check_return_type,
     check_type,
     suppress_type_checks,
+    warn_on_error,
 )
 from ._memo import CallMemo, TypeCheckMemo
-
-if sys.version_info >= (3, 8):
-    from typing import Final
-else:
-    from typing_extensions import Final
 
 # Re-export imports so they look like they live directly in this package
 for value in list(locals().values()):
@@ -61,12 +53,11 @@ for value in list(locals().values()):
 
 
 config: TypeCheckConfiguration
-_config: Final[TypeCheckConfiguration] = TypeCheckConfiguration()
 
 
 def __getattr__(name: str) -> Any:
     if name == "config":
-        return _config
+        return _global_config
 
 
 # Automatically load checker lookup functions unless explicitly disabled

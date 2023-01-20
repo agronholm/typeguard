@@ -590,11 +590,15 @@ def check_instanceof(
 
 def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
     """
-    This function should only be used by type checker callables.
+    Check that the given object is compatible with the given type annotation.
+
+    This function should only be used by type checker callables. Applications should use
+    :func:`~.check_type` instead.
 
     :param value: the value to check
     :param annotation: the type annotation to check against
-    :param memo:
+    :param memo: a memo object containing configuration and information necessary for
+        looking up forward references
     """
 
     if isinstance(annotation, ForwardRef):

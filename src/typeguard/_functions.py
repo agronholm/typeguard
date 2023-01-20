@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any, NoReturn, TypeVar, overload
+from typing import Any, Callable, NoReturn, TypeVar, overload
 from unittest.mock import Mock
 
 from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
-from ._exceptions import TypeCheckError
+from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import find_function
 
@@ -19,9 +20,9 @@ else:
     from typing_extensions import Never
 
 if sys.version_info >= (3, 10):
-    from typing import TypeGuard
+    from typing import TypeAlias, TypeGuard
 else:
-    from typing_extensions import TypeGuard
+    from typing_extensions import TypeAlias, TypeGuard
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -29,6 +30,8 @@ else:
     from typing_extensions import Literal
 
 T = TypeVar("T")
+TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
+
 type_checks_suppressed = 0
 type_checks_suppress_lock = Lock()
 
@@ -105,8 +108,9 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     """
     Check that the argument values match the annotated types.
 
-    Unless both ``args`` and ``kwargs`` are provided, the information will be retrieved
-    from the previous stack frame (ie. from the function that called this).
+    This should be called first thing within the body of a type annotated function.
+    If ``memo`` is not provided, the information will be retrieved from the previous
+    stack frame (ie. from the function that called this).
 
     :return: ``True``
     :raises TypeError: if there is an argument type mismatch
@@ -157,9 +161,11 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
     Check that the return value is compatible with the return value annotation in the
     function.
 
+    This should be called just before returning a value from a type annotated function.
+
     :param retval: the value about to be returned from the call
     :return: ``True``
-    :raises TypeError: if there is a type mismatch
+    :raises TypeCheckError: if there is a type mismatch
 
     """
     if type_checks_suppressed:
@@ -206,6 +212,17 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
                 raise
 
     return True
+
+
+def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
+    """
+    Emit a warning on a type mismatch.
+
+    This is intended to be used as an error handler in
+    :attr:`TypeCheckConfiguration.typecheck_fail_callback`.
+
+    """
+    warnings.warn(TypeCheckWarning(str(exc)))
 
 
 @contextmanager
