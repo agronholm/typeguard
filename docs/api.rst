@@ -26,8 +26,9 @@ API reference
 
    The global configuration object.
 
+.. autoclass:: CollectionCheckStrategy
+
 .. autoclass:: ForwardRefPolicy
-    :members:
 
 .. autofunction:: warn_on_error
 

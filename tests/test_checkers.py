@@ -34,7 +34,9 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from typeguard import (
+    CollectionCheckStrategy,
     ForwardRefPolicy,
+    TypeCheckConfiguration,
     TypeCheckError,
     TypeHintWarning,
     check_type,
@@ -313,6 +315,30 @@ class TestMapping:
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]
         ).match(r"value of key 'a' of value is not an instance of str")
 
+    def test_bad_key_type_full_check(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"x": 1, 3: 2},
+            Mapping[str, int],
+            config=override,
+        ).match("key 3 of value is not an instance of str")
+
+    def test_bad_value_type_full_check(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"x": 1, "y": "a"},
+            Mapping[str, int],
+            config=override,
+        ).match("value of key 'y' of value is not an instance of int")
+
     def test_any_value_type(self):
         check_type(TestMapping.DummyMapping(), Mapping[str, Any])
 
@@ -374,6 +400,26 @@ class TestDict:
             "value of key 'x' of value is not an instance of int"
         )
 
+    def test_bad_key_type_full_check(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError, check_type, {"x": 1, 3: 2}, Dict[str, int], config=override
+        ).match("key 3 of value is not an instance of str")
+
+    def test_bad_value_type_full_check(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"x": 1, "y": "a"},
+            Dict[str, int],
+            config=override,
+        ).match("value of key 'y' of value is not an instance of int")
+
 
 class TestTypedDict:
     @pytest.mark.parametrize(
@@ -427,31 +473,53 @@ class TestTypedDict:
 
 
 class TestList:
-    def test_valid(self):
-        check_type(["aa", "bb"], List[str])
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, List[int]).match(
+            "value is not a list"
+        )
 
-    def test_list_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, [1, 2, "bb"], List[int]).match(
+    def test_first_check_success(self):
+        check_type(["aa", "bb", 1], List[str])
+
+    def test_first_check_fail(self):
+        pytest.raises(TypeCheckError, check_type, ["bb"], List[int]).match(
             "value is not an instance of int"
         )
 
+    def test_full_check_fail(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError, check_type, [1, 2, "bb"], List[int], config=override
+        ).match("value is not an instance of int")
+
 
 class TestSequence:
-    @pytest.mark.parametrize(
-        "value", [pytest.param([1, 8], id="list"), pytest.param((1, 8), id="tuple")]
-    )
-    def test_valid(self, value):
-        check_type(value, Sequence[int])
-
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Sequence[int]).match(
             "value is not a sequence"
         )
 
-    def test_sequence_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, [1, 2, "bb"], Sequence[int]).match(
+    @pytest.mark.parametrize(
+        "value",
+        [pytest.param([1, "bb"], id="list"), pytest.param((1, "bb"), id="tuple")],
+    )
+    def test_first_check_success(self, value):
+        check_type(value, Sequence[int])
+
+    def test_first_check_fail(self):
+        pytest.raises(TypeCheckError, check_type, ["bb"], Sequence[int]).match(
             "value is not an instance of int"
         )
+
+    def test_full_check_fail(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError, check_type, [1, 2, "bb"], Sequence[int], config=override
+        ).match("value is not an instance of int")
 
 
 class TestAbstractSet:
@@ -473,25 +541,53 @@ class TestAbstractSet:
             "value is not a set"
         )
 
-    def test_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, {1, 2, "bb"}, AbstractSet[int]).match(
+    def test_first_check_fail(self):
+        # Create a set which, when iterated, returns "bb" as the first item
+        for num in range(10):
+            sample_set = {"bb", num}
+            if next(iter(sample_set)) == "bb":
+                break
+
+        pytest.raises(TypeCheckError, check_type, sample_set, AbstractSet[int]).match(
             "value is not an instance of int"
         )
 
+    def test_full_check_fail(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError, check_type, {1, 2, "bb"}, AbstractSet[int], config=override
+        ).match("value is not an instance of int")
+
 
 class TestSet:
-    def test_valid(self):
-        check_type({1, 2}, Set[int])
-
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Set[int]).match(
             "value is not a set"
         )
 
-    def test_bad_element(self):
-        pytest.raises(TypeCheckError, check_type, {1, 2, "bb"}, Set[int]).match(
+    def test_valid(self):
+        check_type({1, 2}, Set[int])
+
+    def test_first_check_fail(self):
+        # Create a set which, when iterated, returns "bb" as the first item
+        for num in range(10):
+            sample_set = {"bb", num}
+            if next(iter(sample_set)) == "bb":
+                break
+
+        pytest.raises(TypeCheckError, check_type, sample_set, Set[int]).match(
             "value is not an instance of int"
         )
+
+    def test_full_check_fail(self):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError, check_type, {1, 2, "bb"}, Set[int], config=override
+        ).match("value is not an instance of int")
 
 
 @pytest.mark.parametrize(
@@ -541,7 +637,19 @@ class TestTuple:
 
     def test_ellipsis_bad_element(self, annotated_type: Any):
         pytest.raises(
-            TypeCheckError, check_type, (1, 2, "blah"), annotated_type[int, ...]
+            TypeCheckError, check_type, ("blah",), annotated_type[int, ...]
+        ).match("value is not an instance of int")
+
+    def test_ellipsis_bad_element_full_check(self, annotated_type: Any):
+        override = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            (1, 2, "blah"),
+            annotated_type[int, ...],
+            config=override,
         ).match("value is not an instance of int")
 
     def test_empty_tuple(self, annotated_type: Any):

@@ -1,5 +1,6 @@
 __all__ = (
     "CallMemo",
+    "CollectionCheckStrategy",
     "ForwardRefPolicy",
     "TypeCheckerCallable",
     "TypeCheckFailCallback",
@@ -32,7 +33,7 @@ from ._checkers import (
     checker_lookup_functions,
     load_plugins,
 )
-from ._config import ForwardRefPolicy, TypeCheckConfiguration
+from ._config import CollectionCheckStrategy, ForwardRefPolicy, TypeCheckConfiguration
 from ._config import global_config as _global_config
 from ._decorators import typechecked, typeguard_ignore
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning

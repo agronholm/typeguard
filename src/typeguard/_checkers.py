@@ -207,7 +207,10 @@ def check_mapping(
     if args:
         key_type, value_type = args
         if key_type is not Any or value_type is not Any:
-            for k, v in value.items():
+            samples = memo.config.collection_check_strategy.iterate_samples(
+                value.items()
+            )
+            for k, v in samples:
                 try:
                     check_type_internal(k, key_type, memo)
                 except TypeCheckError as exc:
@@ -258,7 +261,8 @@ def check_list(
         raise TypeCheckError("is not a list")
 
     if args and args != (Any,):
-        for i, v in enumerate(value):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
@@ -273,7 +277,8 @@ def check_sequence(
         raise TypeCheckError("is not a sequence")
 
     if args and args != (Any,):
-        for i, v in enumerate(value):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
@@ -288,7 +293,8 @@ def check_set(
         raise TypeCheckError("is not a set")
 
     if args and args != (Any,):
-        for v in value:
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for v in samples:
             try:
                 check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
@@ -331,7 +337,8 @@ def check_tuple(
 
     if use_ellipsis:
         element_type = tuple_params[0]
-        for i, element in enumerate(value):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for i, element in enumerate(samples):
             try:
                 check_type_internal(element, element_type, memo)
             except TypeCheckError as exc:
