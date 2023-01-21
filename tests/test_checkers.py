@@ -540,13 +540,8 @@ class TestAbstractSet:
             "value is not a set"
         )
 
-    def test_first_check_fail(self):
+    def test_first_check_fail(self, sample_set):
         # Create a set which, when iterated, returns "bb" as the first item
-        for num in range(10):
-            sample_set = {"bb", num}
-            if next(iter(sample_set)) == "bb":
-                break
-
         pytest.raises(TypeCheckError, check_type, sample_set, AbstractSet[int]).match(
             "value is not an instance of int"
         )
@@ -569,13 +564,7 @@ class TestSet:
     def test_valid(self):
         check_type({1, 2}, Set[int])
 
-    def test_first_check_fail(self):
-        # Create a set which, when iterated, returns "bb" as the first item
-        for num in range(10):
-            sample_set = {"bb", num}
-            if next(iter(sample_set)) == "bb":
-                break
-
+    def test_first_check_fail(self, sample_set: set):
         pytest.raises(TypeCheckError, check_type, sample_set, Set[int]).match(
             "value is not an instance of int"
         )
