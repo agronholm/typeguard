@@ -28,7 +28,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from unittest.mock import Mock
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -902,25 +901,6 @@ class TestProtocol:
         pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
             "value is not compatible with the RuntimeProtocol protocol"
         )
-
-
-class TestMock:
-    def test_plain_mock(self):
-        check_type(Mock(), Parent)
-
-    @pytest.mark.parametrize(
-        "value_class",
-        [
-            pytest.param(Parent, id="parent"),
-            pytest.param(Child, id="child"),
-        ],
-    )
-    def test_mock_with_spec(self, value_class):
-        check_type(Mock(Parent), value_class)
-
-    @pytest.mark.xfail(reason="Typeguard cannot support this yet")
-    def test_mock_with_spec_fail(self):
-        pytest.raises(TypeCheckError, check_type, Mock(Parent), Child)
 
 
 class TestRecursiveType:

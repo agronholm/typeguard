@@ -30,6 +30,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from unittest.mock import Mock
 
 from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
@@ -622,7 +623,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
 
             return
 
-    if annotation is Any or annotation is SubclassableAny:
+    if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
 
     # Skip type checks if value is an instance of a class that inherits from Any

@@ -1,5 +1,6 @@
 import sys
 from typing import NoReturn
+from unittest.mock import Mock
 
 import pytest
 
@@ -23,6 +24,10 @@ def test_check_type_suppressed():
         check_type(1, str)
 
 
+def test_check_type_mock():
+    check_type(Mock(), int)
+
+
 def test_check_argument_types_suppressed():
     def foo(x: int):
         check_argument_types()
@@ -37,6 +42,20 @@ def test_check_return_value_suppressed():
 
     with suppress_type_checks():
         foo()
+
+
+def test_check_argument_types_mock():
+    def foo(x: int):
+        check_argument_types()
+
+    foo(Mock())
+
+
+def test_check_return_value_mock():
+    def foo() -> int:
+        check_return_type(Mock())
+
+    foo()
 
 
 @pytest.mark.parametrize("annotation", [NoReturn, Never])

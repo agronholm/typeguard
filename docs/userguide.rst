@@ -197,8 +197,8 @@ managers have exited.
 Support for mock objects
 ------------------------
 
-Typeguard handles the :class:`unittest.mock.Mock` and :class:`unittest.mock.MagicMock` classes
-specially, bypassing any type checks when encountering instances of these classes. Note that any
+Typeguard handles the :class:`unittest.mock.Mock` class (and its subclasses) specially,
+bypassing any type checks when encountering instances of these classes. Note that any
 "spec" class passed to the mock object is currently not respected.
 
 Supported typing.* types

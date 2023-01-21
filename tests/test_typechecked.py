@@ -10,6 +10,7 @@ from typing import (
     Iterator,
     List,
 )
+from unittest.mock import Mock
 
 import pytest
 
@@ -321,6 +322,22 @@ class TestSelf:
             rf"\({__name__}\.{self.__class__.__name__}\."
             rf"test_classmethod_arg_invalid\.<locals>\.Foo\)"
         )
+
+
+class TestMock:
+    def test_mock_argument(self):
+        @typechecked
+        def foo(x: int) -> None:
+            pass
+
+        foo(Mock())
+
+    def test_return_mock(self):
+        @typechecked
+        def foo() -> int:
+            return Mock()
+
+        foo()
 
 
 def test_decorator_before_classmethod():

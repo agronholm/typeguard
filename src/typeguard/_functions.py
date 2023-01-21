@@ -6,7 +6,6 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Lock
 from typing import Any, Callable, NoReturn, TypeVar, overload
-from unittest.mock import Mock
 
 from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -87,7 +86,7 @@ def check_type(
     :raises TypeCheckError: if there is a type mismatch
 
     """
-    if type_checks_suppressed or expected_type is Any or isinstance(value, Mock):
+    if type_checks_suppressed or expected_type is Any:
         return
 
     frame = sys._getframe(1)
