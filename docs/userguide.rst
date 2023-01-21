@@ -8,8 +8,10 @@ Setting configuration options
 
 There are several configuration options that can be set that influence how type checking
 is done. To change the options, import ``typeguard.config`` (which is of type
-:class:`~.TypeCheckConfiguration`) and set the attributes you want to change. Reasonable
-defaults have been used, so most users shouldn't have any need to change the options.
+:class:`~.TypeCheckConfiguration`) and set the attributes you want to change.
+
+You can also override the configuration in the type checking functions below by passing
+them a custom configuration object.
 
 Checking types directly
 -----------------------
