@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- **BACKWARD INCOMPATIBLE** ``check_return_value`` now returns the value it was passed,
+  making it possible to use it together with ``return`` on the same line
 - Added the ``suppress_type_checks()`` context manager function for temporarily
   disabling type checks
 - Added support for ``typing.Never`` (and ``typing_extensions.Never``)
@@ -15,8 +17,6 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added configuration option ``collection_check_strategy`` and changed the default to
   only check the first item of collections (list, set, abstractset, dict, sequence,
   mapping)
-- ``check_return_value`` now uses ``TypeGuard`` in its own return type annotation,
-  making it more useful when used together with static type checkers
 - Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
   ``@staticmethod`` (PR by jacobpbrugh)
 - Changed ``check_type()`` to return the passed value, so it can be used (to an extent)

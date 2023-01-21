@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import ast
 import sys
+from collections.abc import Iterable
 from importlib.abc import MetaPathFinder
 from importlib.machinery import SourceFileLoader
 from importlib.util import cache_from_source, decode_source
 from inspect import isclass
-from typing import Iterable, List, Type
 from unittest.mock import patch
+
+CALL_MEMO_ARG = "_call_memo"
 
 
 # The name of this function is magical
@@ -17,9 +21,9 @@ def optimized_cache_from_source(path, debug_override=None):
     return cache_from_source(path, debug_override, optimization="typeguard")
 
 
-class TypeguardTransformer(ast.NodeVisitor):
+class TypeguardTransformer(ast.NodeTransformer):
     def __init__(self) -> None:
-        self._parents: List[ast.AST] = []
+        self._parents: list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef] = []
 
     def visit_Module(self, node: ast.Module):
         # Insert "import typeguard" after any "from __future__ ..." imports
@@ -32,39 +36,99 @@ class TypeguardTransformer(ast.NodeVisitor):
                 node.body.insert(i, ast.Import(names=[ast.alias("typeguard", None)]))
                 break
 
-        self._parents.append(node)
         self.generic_visit(node)
-        self._parents.pop()
         return node
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        node.decorator_list.append(
-            ast.Attribute(
-                ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load()
-            )
-        )
         self._parents.append(node)
         self.generic_visit(node)
         self._parents.pop()
         return node
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-        # Let the class level decorator handle the methods of a class
-        if isinstance(self._parents[-1], ast.ClassDef):
-            return node
+    def visit_Return(self, node: ast.Return):
+        if self._parents[-1].returns:
+            retval = node.value or ast.Name(id="None", ctx=ast.Load())
+            node = ast.Return(
+                ast.Call(
+                    ast.Attribute(
+                        ast.Name(id="typeguard", ctx=ast.Load()),
+                        "check_return_type",
+                        ctx=ast.Load(),
+                    ),
+                    [retval, ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                    [],
+                )
+            )
 
+        self.generic_visit(node)
+        return node
+
+    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef):
         has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
-            node.decorator_list.append(
+            func_reference = ast.Name(id=node.name, ctx=ast.Load())
+            if self._parents and isinstance(self._parents[-1], ast.ClassDef):
+                # This is a method, not a free function.
+                # Walk through the parents and build the attribute chain from containing
+                # classes like A.B.C.methodname
+                previous_attribute: ast.Attribute | None = None
+                for parent_node in reversed(self._parents):
+                    if isinstance(parent_node, ast.ClassDef):
+                        attrname = (
+                            previous_attribute.value.id
+                            if previous_attribute
+                            else func_reference.id
+                        )
+                        attribute = ast.Attribute(
+                            ast.Name(id=parent_node.name, ctx=ast.Load()),
+                            attrname,
+                            ctx=ast.Load(),
+                        )
+                        if previous_attribute is None:
+                            func_reference = attribute
+                        else:
+                            previous_attribute.value = attribute
+
+                        previous_attribute = attribute
+                    else:
+                        break
+
+            locals_call = ast.Call(ast.Name(id="locals", ctx=ast.Load()), [], [])
+            memo_expr = ast.Call(
                 ast.Attribute(
-                    ast.Name(id="typeguard", ctx=ast.Load()), "typechecked", ast.Load()
-                )
+                    ast.Name(id="typeguard", ctx=ast.Load()), "CallMemo", ctx=ast.Load()
+                ),
+                [func_reference, locals_call],
+                [],
+            )
+            node.body.insert(
+                0, ast.Assign([ast.Name(id=CALL_MEMO_ARG, ctx=ast.Store())], memo_expr)
+            )
+
+        if has_annotated_args:
+            node.body.insert(
+                1,
+                ast.Expr(
+                    ast.Call(
+                        ast.Attribute(
+                            ast.Name(id="typeguard", ctx=ast.Load()),
+                            "check_argument_types",
+                            ctx=ast.Load(),
+                        ),
+                        [ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                        [],
+                    )
+                ),
             )
 
         self._parents.append(node)
         self.generic_visit(node)
         self._parents.pop()
+        return node
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self.visit_FunctionDef(node)
         return node
 
 
@@ -159,7 +223,7 @@ class ImportHookManager:
 
 
 def install_import_hook(
-    packages: Iterable[str], *, cls: Type[TypeguardFinder] = TypeguardFinder
+    packages: Iterable[str], *, cls: type[TypeguardFinder] = TypeguardFinder
 ) -> ImportHookManager:
     """
     Install an import hook that decorates classes and functions with

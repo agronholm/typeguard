@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import warnings
 from importlib import import_module
@@ -6,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from typeguard import TypeCheckError, TypeHintWarning
+from typeguard import TypeCheckError
 from typeguard.importhook import TypeguardFinder, install_import_hook
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
@@ -101,17 +102,6 @@ def test_dynamic_type_checking_func(dummymodule, argtype, returntype, error):
         assert dummymodule.dynamic_type_checking_func(4, argtype, returntype) == "4"
 
 
-def test_class_in_function(dummymodule):
-    create_inner = dummymodule.outer()
-    retval = create_inner()
-    assert retval.__class__.__qualname__ == "outer.<locals>.Inner"
-    pytest.warns(
-        TypeHintWarning,
-        retval.get_self,
-        match="Cannot resolve forward reference: Inner",
-    )
-
-
 def test_inner_class_method(dummymodule):
     retval = dummymodule.Outer().create_inner()
     assert retval.__class__.__qualname__ == "Outer.Inner"
@@ -153,3 +143,7 @@ def test_overload(dummymodule):
     dummymodule.overloaded_func(1)
     dummymodule.overloaded_func("x")
     pytest.raises(TypeCheckError, dummymodule.overloaded_func, b"foo")
+
+
+def test_async_func(dummymodule):
+    pytest.raises(TypeCheckError, asyncio.run, dummymodule.async_func(b"foo"))

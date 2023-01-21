@@ -118,3 +118,7 @@ def get_inner_class() -> type:
             return self
 
     return InnerClass
+
+
+async def async_func(a: int) -> str:
+    return str(a)

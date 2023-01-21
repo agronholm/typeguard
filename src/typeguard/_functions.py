@@ -19,9 +19,9 @@ else:
     from typing_extensions import Never
 
 if sys.version_info >= (3, 10):
-    from typing import TypeAlias, TypeGuard
+    from typing import TypeAlias
 else:
-    from typing_extensions import TypeAlias, TypeGuard
+    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -155,20 +155,25 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     return True
 
 
-def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
+def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     """
     Check that the return value is compatible with the return value annotation in the
     function.
 
-    This should be called just before returning a value from a type annotated function.
+    This should be used to wrap the return statement, as in::
 
-    :param retval: the value about to be returned from the call
-    :return: ``True``
+        # Before
+        return "foo"
+        # After
+        return check_return_type("foo")
+
+    :param retval: the value that should be returned from the call
+    :return: ``retval``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
     """
     if type_checks_suppressed:
-        return True
+        return retval
 
     if memo is None:
         # faster than inspect.currentframe(), but not officially
@@ -179,7 +184,7 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
             func = find_function(frame)
         except LookupError:
             # This can happen with the Pydev/PyCharm debugger extension installed
-            return True
+            return retval
 
         memo = CallMemo(func, frame.f_locals)
 
@@ -202,7 +207,7 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
                 # This does (and cannot) not check if it's actually a method
                 func_name = memo.func_name.rsplit(".", 1)[-1]
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
-                    return True
+                    return retval
 
             exc.append_path_element("the return value")
             if memo.config.typecheck_fail_callback:
@@ -210,7 +215,7 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> TypeGuard[T]:
             else:
                 raise
 
-    return True
+    return retval
 
 
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
