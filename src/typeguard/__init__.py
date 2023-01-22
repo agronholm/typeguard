@@ -14,6 +14,7 @@ __all__ = (
     "check_return_type",
     "check_type",
     "check_type_internal",
+    "check_yield_type",
     "checker_lookup_functions",
     "config",
     "load_plugins",
@@ -42,6 +43,7 @@ from ._functions import (
     check_argument_types,
     check_return_type,
     check_type,
+    check_yield_type,
     suppress_type_checks,
     warn_on_error,
 )

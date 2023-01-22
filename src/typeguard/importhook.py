@@ -63,6 +63,24 @@ class TypeguardTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         return node
 
+    def visit_Yield(self, node: ast.Yield):
+        if self._parents[-1].returns:
+            yieldval = node.value or ast.Name(id="None", ctx=ast.Load())
+            node = ast.Yield(
+                ast.Call(
+                    ast.Attribute(
+                        ast.Name(id="typeguard", ctx=ast.Load()),
+                        "check_yield_type",
+                        ctx=ast.Load(),
+                    ),
+                    [yieldval, ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                    [],
+                )
+            )
+
+        self.generic_visit(node)
+        return node
+
     def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef):
         has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
         has_annotated_return = bool(node.returns)
@@ -109,8 +127,12 @@ class TypeguardTransformer(ast.NodeTransformer):
                 [func_reference, locals_call],
                 [
                     ast.keyword(
-                        "has_self_arg", ast.Name(id=str(has_self_arg), ctx=ast.Load())
-                    )
+                        "has_self_arg", ast.Constant(has_self_arg, ctx=ast.Load())
+                    ),
+                    ast.keyword(
+                        "unwrap_generator_annotations",
+                        ast.Constant(True, ctx=ast.Load()),
+                    ),
                 ],
             )
             node.body.insert(

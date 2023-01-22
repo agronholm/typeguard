@@ -218,6 +218,69 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     return retval
 
 
+def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
+    """
+    Check that the yielded value is compatible with the generator return value
+    annotation in the function.
+
+    This should be used to wrap a ``yield`` statement, as in::
+
+        # Before
+        yield "foo"
+        # After
+        yield check_yield_value("foo")
+
+    :param yieldval: the value that should be yielded from the generator
+    :return: ``yieldval``, unmodified
+    :raises TypeCheckError: if there is a type mismatch
+
+    """
+    if type_checks_suppressed:
+        return yieldval
+
+    if memo is None:
+        # faster than inspect.currentframe(), but not officially
+        # supported in all python implementations
+        frame = sys._getframe(1)
+
+        try:
+            func = find_function(frame)
+        except LookupError:
+            # This can happen with the Pydev/PyCharm debugger extension installed
+            return yieldval
+
+        memo = CallMemo(func, frame.f_locals)
+
+    if "yield" in memo.type_hints:
+        annotation = memo.type_hints["yield"]
+        if annotation is NoReturn or annotation is Never:
+            exc = TypeCheckError(
+                f"{memo.func_name}() was declared never to yield but it did"
+            )
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
+            else:
+                raise exc
+
+        try:
+            check_type_internal(yieldval, annotation, memo)
+        except TypeCheckError as exc:
+            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
+            if yieldval is NotImplemented and annotation is bool:
+                # This does (and cannot) not check if it's actually a method
+                func_name = memo.func_name.rsplit(".", 1)[-1]
+                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
+                    return yieldval
+
+            exc.append_path_element("the yielded value")
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
+            else:
+                raise
+
+    return yieldval
+
+
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
     """
     Emit a warning on a type mismatch.

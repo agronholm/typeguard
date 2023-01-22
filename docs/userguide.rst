@@ -57,6 +57,7 @@ Two functions are provided, potentially for use with the ``assert`` statement:
 
 * :func:`~typeguard.check_argument_types`
 * :func:`~typeguard.check_return_type`
+* :func:`~typeguard.check_yield_type`
 
 These can be used to implement fine grained type checking for select functions.
 If the function is called with incompatible types, or :func:`~typeguard.check_return_type` is used

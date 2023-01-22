@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - **BACKWARD INCOMPATIBLE** ``check_return_value`` now returns the value it was passed,
   making it possible to use it together with ``return`` on the same line
+- Added the ``check_yield_type()`` function for type checking yields in generator
+  functions
 - Added the ``suppress_type_checks()`` context manager function for temporarily
   disabling type checks
 - Added support for ``typing.Never`` (and ``typing_extensions.Never``)

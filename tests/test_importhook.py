@@ -147,3 +147,43 @@ def test_overload(dummymodule):
 
 def test_async_func(dummymodule):
     pytest.raises(TypeCheckError, asyncio.run, dummymodule.async_func(b"foo"))
+
+
+def test_generator_valid(dummymodule):
+    gen = dummymodule.generator_func(6, "foo")
+    assert gen.send(None) == 6
+    try:
+        gen.send(None)
+    except StopIteration as exc:
+        assert exc.value == "foo"
+    else:
+        pytest.fail("Generator did not exit")
+
+
+def test_generator_bad_yield_type(dummymodule):
+    gen = dummymodule.generator_func("foo", "foo")
+    pytest.raises(TypeCheckError, gen.send, None).match(
+        "yielded value is not an instance of int"
+    )
+    gen.close()
+
+
+def test_generator_bad_return_type(dummymodule):
+    gen = dummymodule.generator_func(6, 6)
+    assert gen.send(None) == 6
+    pytest.raises(TypeCheckError, gen.send, None).match(
+        "return value is not an instance of str"
+    )
+    gen.close()
+
+
+def test_asyncgen_valid(dummymodule):
+    gen = dummymodule.asyncgen_func(6)
+    assert asyncio.run(gen.asend(None)) == 6
+
+
+def test_asyncgen_bad_yield_type(dummymodule):
+    gen = dummymodule.asyncgen_func("foo")
+    pytest.raises(TypeCheckError, asyncio.run, gen.asend(None)).match(
+        "yielded value is not an instance of int"
+    )

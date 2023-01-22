@@ -12,6 +12,8 @@ API reference
 
 .. autofunction:: check_return_type
 
+.. autofunction:: check_yield_type
+
 .. autodecorator:: typechecked
 
 .. autodecorator:: typeguard_ignore

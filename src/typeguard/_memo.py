@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import sys
-from inspect import isclass
+from collections.abc import AsyncGenerator, Generator
+from inspect import isasyncgenfunction, isclass, isgeneratorfunction
 from types import FunctionType
 from typing import Any, Dict, ForwardRef, Mapping, Tuple
 from weakref import WeakKeyDictionary
@@ -15,7 +16,11 @@ if sys.version_info >= (3, 9):
 else:
     from typing_extensions import get_type_hints
 
-_type_hints_map: WeakKeyDictionary[FunctionType, dict[str, Any]] = WeakKeyDictionary()
+from typing_extensions import get_args, get_origin
+
+_type_hints_map: WeakKeyDictionary[
+    FunctionType, tuple[dict[str, Any], Any, Any]
+] = WeakKeyDictionary()
 
 
 class TypeCheckMemo:
@@ -48,6 +53,7 @@ class CallMemo(TypeCheckMemo):
         config: TypeCheckConfiguration | None = None,
         *,
         has_self_arg: bool = True,
+        unwrap_generator_annotations: bool = False,
     ):
         super().__init__(func.__globals__, frame_locals, config)
         self.func = func
@@ -86,8 +92,24 @@ class CallMemo(TypeCheckMemo):
 
                 self.type_hints = type_hints
 
-            for key, annotation in self.type_hints.items():
-                if key == "return":
+            if (
+                unwrap_generator_annotations
+                and "return" in self.type_hints
+                and (isgeneratorfunction(func) or isasyncgenfunction(func))
+            ):
+                annotation = self.type_hints["return"]
+                origin_type = get_origin(annotation)
+                if origin_type in (Generator, AsyncGenerator):
+                    generator_args = get_args(annotation)
+                    self.type_hints["yield"] = (
+                        generator_args[0] if generator_args else Any
+                    )
+                    self.type_hints["return"] = (
+                        generator_args[2] if len(generator_args) == 3 else Any
+                    )
+
+            for key, annotation in list(self.type_hints.items()):
+                if key in ("yield", "return"):
                     continue
 
                 param = signature.parameters[key]

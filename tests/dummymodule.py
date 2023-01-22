@@ -1,7 +1,14 @@
 """Module docstring."""
-
 from contextlib import contextmanager
-from typing import Generator, Union, no_type_check, no_type_check_decorator, overload
+from typing import (
+    Any,
+    AsyncGenerator,
+    Generator,
+    Union,
+    no_type_check,
+    no_type_check_decorator,
+    overload,
+)
 
 from typeguard import typeguard_ignore
 
@@ -122,3 +129,12 @@ def get_inner_class() -> type:
 
 async def async_func(a: int) -> str:
     return str(a)
+
+
+def generator_func(yield_value: Any, return_value: Any) -> Generator[int, Any, str]:
+    yield yield_value
+    return return_value
+
+
+async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
+    yield yield_value
