@@ -82,7 +82,7 @@ class CallMemo(TypeCheckMemo):
                 self.type_hints = _type_hints_map[func] = get_type_hints(
                     func, localns=frame_locals, include_extras=True
                 )
-            except NameError:
+            except (TypeError, NameError):
                 type_hints = {}
                 for key, annotation in func.__annotations__.items():
                     if type(annotation) is str:

@@ -167,6 +167,14 @@ To exclude specific functions or classes from run time type checking, use the
 
 Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type checking.
 
+Using PEP 604 unions on Pythons older than 3.10
+-----------------------------------------------
+
+The :pep:`604` ``X | Y`` notation was introduced in Python 3.10, but it can be used with
+older Python versions in modules where ``from __future__ import annotations`` is
+present. Typeguard contains a special parser that lets it convert these to older
+:class:`~typing.Union` annotations internally.
+
 Using the pytest plugin
 -----------------------
 

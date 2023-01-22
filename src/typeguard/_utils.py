@@ -10,7 +10,7 @@ from weakref import WeakValueDictionary
 if TYPE_CHECKING:
     from ._memo import TypeCheckMemo
 
-if sys.version_info >= (3, 9):
+if sys.version_info >= (3, 10):
     from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
@@ -19,8 +19,21 @@ if sys.version_info >= (3, 9):
 else:
     from typing_extensions import get_args, get_origin
 
+    evaluate_extra_args = (frozenset(),) if sys.version_info >= (3, 9) else ()
+
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(memo.globals, memo.locals)
+        try:
+            return forwardref._evaluate(memo.globals, memo.locals, *evaluate_extra_args)
+        except TypeError:
+            if "|" in forwardref.__forward_arg__:
+                from ._union_transformer import translate_type_hint
+
+                forwardref = ForwardRef(translate_type_hint(forwardref.__forward_arg__))
+                return forwardref._evaluate(
+                    memo.globals, memo.locals, *evaluate_extra_args
+                )
+
+            raise
 
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
