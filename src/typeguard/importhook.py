@@ -23,6 +23,7 @@ class TypeguardTransformer(ast.NodeTransformer):
     def __init__(self, memo_variable_name: str) -> None:
         self._memo_variable_name = memo_variable_name
         self._parents: list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef] = []
+        self._contains_yields: set[ast.FunctionDef] = set()
 
     def visit_Module(self, node: ast.Module):
         # Insert "import typeguard" after any "from __future__ ..." imports
@@ -63,6 +64,7 @@ class TypeguardTransformer(ast.NodeTransformer):
         return node
 
     def visit_Yield(self, node: ast.Yield):
+        self._contains_yields.add(self._parents[-1])
         if self._parents[-1].returns:
             yieldval = node.value or ast.Name(id="None", ctx=ast.Load())
             node = ast.Yield(
@@ -160,6 +162,33 @@ class TypeguardTransformer(ast.NodeTransformer):
         self._parents.append(node)
         self.generic_visit(node)
         self._parents.pop()
+
+        # Add a checked "return None" to the end if there's no explicit return
+        if node not in self._contains_yields:
+            if has_annotated_return and not isinstance(node.body[-1], ast.Return):
+                # Replace a placeholder "pass" at the end
+                if isinstance(node.body[-1], ast.Pass):
+                    del node.body[-1]
+
+                node.body.append(
+                    ast.Return(
+                        ast.Call(
+                            ast.Attribute(
+                                ast.Name(id="typeguard", ctx=ast.Load()),
+                                "check_return_type",
+                                ctx=ast.Load(),
+                            ),
+                            [
+                                ast.Constant(None),
+                                ast.Name(id=self._memo_variable_name, ctx=ast.Load()),
+                            ],
+                            [],
+                        )
+                    ),
+                )
+        else:
+            self._contains_yields.remove(node)
+
         return node
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):

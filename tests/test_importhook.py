@@ -187,3 +187,9 @@ def test_asyncgen_bad_yield_type(dummymodule):
     pytest.raises(TypeCheckError, asyncio.run, gen.asend(None)).match(
         "yielded value is not an instance of int"
     )
+
+
+def test_missing_return(dummymodule):
+    pytest.raises(TypeCheckError, dummymodule.missing_return).match(
+        "the return value is not an instance of int"
+    )

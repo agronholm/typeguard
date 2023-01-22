@@ -121,6 +121,10 @@ def overloaded_func(a: Union[str, int]) -> Union[str, int]:
     return a
 
 
+def missing_return() -> int:
+    pass
+
+
 def get_inner_class() -> type:
     class InnerClass:
         def get_self(self) -> "InnerClass":
