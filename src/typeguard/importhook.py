@@ -67,6 +67,7 @@ class TypeguardTransformer(ast.NodeTransformer):
         has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
+            has_self_arg = False
             func_reference = ast.Name(id=node.name, ctx=ast.Load())
             if self._parents and isinstance(self._parents[-1], ast.ClassDef):
                 # This is a method, not a free function.
@@ -94,13 +95,23 @@ class TypeguardTransformer(ast.NodeTransformer):
                     else:
                         break
 
+                for expr in node.decorator_list:
+                    if isinstance(expr, ast.Name) and expr.id == "staticmethod":
+                        break
+                else:
+                    has_self_arg = True
+
             locals_call = ast.Call(ast.Name(id="locals", ctx=ast.Load()), [], [])
             memo_expr = ast.Call(
                 ast.Attribute(
                     ast.Name(id="typeguard", ctx=ast.Load()), "CallMemo", ctx=ast.Load()
                 ),
                 [func_reference, locals_call],
-                [],
+                [
+                    ast.keyword(
+                        "has_self_arg", ast.Name(id=str(has_self_arg), ctx=ast.Load())
+                    )
+                ],
             )
             node.body.insert(
                 0, ast.Assign([ast.Name(id=CALL_MEMO_ARG, ctx=ast.Store())], memo_expr)

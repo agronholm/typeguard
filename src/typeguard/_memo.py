@@ -46,17 +46,13 @@ class CallMemo(TypeCheckMemo):
         args: tuple = None,
         kwargs: dict[str, Any] = None,
         config: TypeCheckConfiguration | None = None,
+        *,
+        has_self_arg: bool = True,
     ):
         super().__init__(func.__globals__, frame_locals, config)
         self.func = func
         self.func_name = function_name(func)
         signature = inspect.signature(func)
-
-        # Assume the first argument is bound as "self"
-        if args:
-            self.self_type = args[0] if isclass(args[0]) else type(args[0])
-        else:
-            self.self_type = None
 
         if args is not None and kwargs is not None:
             self.arguments = signature.bind(*args, **kwargs).arguments
@@ -65,6 +61,13 @@ class CallMemo(TypeCheckMemo):
                 frame_locals is not None
             ), "frame must be specified if args or kwargs is None"
             self.arguments = frame_locals
+
+        # Assume the first argument is bound as "self"
+        if has_self_arg and self.arguments:
+            first_arg = next(iter(self.arguments.values()))
+            self.self_type = first_arg if isclass(first_arg) else type(first_arg)
+        else:
+            self.self_type = None
 
         try:
             self.type_hints = _type_hints_map[func]
