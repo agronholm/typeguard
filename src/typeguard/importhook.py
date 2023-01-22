@@ -9,8 +9,6 @@ from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from unittest.mock import patch
 
-CALL_MEMO_ARG = "_call_memo"
-
 
 # The name of this function is magical
 def _call_with_frames_removed(f, *args, **kwargs):
@@ -22,7 +20,8 @@ def optimized_cache_from_source(path, debug_override=None):
 
 
 class TypeguardTransformer(ast.NodeTransformer):
-    def __init__(self) -> None:
+    def __init__(self, memo_variable_name: str) -> None:
+        self._memo_variable_name = memo_variable_name
         self._parents: list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef] = []
 
     def visit_Module(self, node: ast.Module):
@@ -55,7 +54,7 @@ class TypeguardTransformer(ast.NodeTransformer):
                         "check_return_type",
                         ctx=ast.Load(),
                     ),
-                    [retval, ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                    [retval, ast.Name(id=self._memo_variable_name, ctx=ast.Load())],
                     [],
                 )
             )
@@ -73,7 +72,7 @@ class TypeguardTransformer(ast.NodeTransformer):
                         "check_yield_type",
                         ctx=ast.Load(),
                     ),
-                    [yieldval, ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                    [yieldval, ast.Name(id=self._memo_variable_name, ctx=ast.Load())],
                     [],
                 )
             )
@@ -136,7 +135,10 @@ class TypeguardTransformer(ast.NodeTransformer):
                 ],
             )
             node.body.insert(
-                0, ast.Assign([ast.Name(id=CALL_MEMO_ARG, ctx=ast.Store())], memo_expr)
+                0,
+                ast.Assign(
+                    [ast.Name(id=self._memo_variable_name, ctx=ast.Store())], memo_expr
+                ),
             )
 
         if has_annotated_args:
@@ -149,7 +151,7 @@ class TypeguardTransformer(ast.NodeTransformer):
                             "check_argument_types",
                             ctx=ast.Load(),
                         ),
-                        [ast.Name(id=CALL_MEMO_ARG, ctx=ast.Load())],
+                        [ast.Name(id=self._memo_variable_name, ctx=ast.Load())],
                         [],
                     )
                 ),
@@ -168,6 +170,14 @@ class TypeguardTransformer(ast.NodeTransformer):
 class TypeguardLoader(SourceFileLoader):
     def source_to_code(self, data, path, *, _optimize=-1):
         source = decode_source(data)
+
+        # Find a variable name for the call memo that isn't found in the source code
+        memo_variable_name = "_call_memo"
+        i = 1
+        while memo_variable_name in source:
+            memo_variable_name = f"_call_memo_{i}"
+            i += 1
+
         tree = _call_with_frames_removed(
             compile,
             source,
@@ -177,7 +187,7 @@ class TypeguardLoader(SourceFileLoader):
             dont_inherit=True,
             optimize=_optimize,
         )
-        tree = TypeguardTransformer().visit(tree)
+        tree = TypeguardTransformer(memo_variable_name).visit(tree)
         ast.fix_missing_locations(tree)
         return _call_with_frames_removed(
             compile, tree, path, "exec", dont_inherit=True, optimize=_optimize

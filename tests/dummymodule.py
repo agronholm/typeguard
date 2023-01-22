@@ -29,6 +29,8 @@ def non_type_checked_func(x: int, y: str) -> 6:
 
 @dummy_decorator
 def non_type_checked_decorated_func(x: int, y: str) -> 6:
+    # This is to ensure that we avoid using a local variable that's already in use
+    _call_memo = "foo"  # noqa: F841
     return "foo"
 
 
@@ -138,3 +140,11 @@ def generator_func(yield_value: Any, return_value: Any) -> Generator[int, Any, s
 
 async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
     yield yield_value
+
+
+def pep_602_union_args(x: "str | int") -> None:
+    pass
+
+
+def pep_602_union_retval(x: Any) -> "str | int":
+    return x
