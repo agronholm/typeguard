@@ -11,12 +11,15 @@ from weakref import WeakKeyDictionary
 from ._config import TypeCheckConfiguration, global_config
 from ._utils import function_name
 
+if sys.version_info >= (3, 11):
+    from typing import get_args, get_origin
+else:
+    from typing_extensions import get_args, get_origin
+
 if sys.version_info >= (3, 9):
     from typing import get_type_hints
 else:
     from typing_extensions import get_type_hints
-
-from typing_extensions import get_args, get_origin
 
 _type_hints_map: WeakKeyDictionary[
     FunctionType, tuple[dict[str, Any], Any, Any]
