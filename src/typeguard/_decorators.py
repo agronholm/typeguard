@@ -57,15 +57,12 @@ def typechecked(
 
     The return value is also checked against the return annotation if any.
 
-    If the ``__debug__`` global variable is set to ``False``, no wrapping and therefore
-    no type checking is done, unless ``always`` is ``True``.
-
     This can also be used as a class decorator. This will wrap all type annotated
     methods, including ``@classmethod``, ``@staticmethod``,  and ``@property``
     decorated methods, in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
-    :param config:
+    :param config: configuration that will be used instead of the global config
 
     """
     if func is None:

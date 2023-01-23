@@ -121,13 +121,15 @@ async generator (annotated with :class:`~typing.AsyncGenerator`).
 Using the import hook
 ---------------------
 
-The import hook, when active, automatically decorates all type annotated functions with
-:func:`@typechecked <typechecked>`. This allows for a noninvasive method of run time type checking. This method does
-not modify the source code on disk, but instead modifies its AST (Abstract Syntax Tree) when the
-module is loaded.
+The import hook, when active, automatically instruments all type annotated functions to
+type check arguments, return values and yield values (for generators). This allows for a
+noninvasive method of run time type checking. This method does not modify the source
+code on disk, but instead modifies its AST (Abstract Syntax Tree) when the module is
+loaded.
 
-Using the import hook is as straightforward as installing it before you import any modules you wish
-to be type checked. Give it the name of your top level package (or a list of package names)::
+Using the import hook is as straightforward as installing it before you import any
+modules you wish to be type checked. Give it the name of your top level package (or a
+list of package names)::
 
     from typeguard.importhook import install_import_hook
 
@@ -165,7 +167,8 @@ To exclude specific functions or classes from run time type checking, use the
     def f(x: int) -> int:
         return str(x)
 
-Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type checking.
+Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type
+checking.
 
 Using PEP 604 unions on Pythons older than 3.10
 -----------------------------------------------

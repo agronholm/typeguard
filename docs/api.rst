@@ -40,6 +40,7 @@ API reference
     :members:
 
 .. autoclass:: CallMemo
+    :show-inheritance:
     :members:
 
 .. data:: checker_lookup_functions

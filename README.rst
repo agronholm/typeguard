@@ -30,10 +30,9 @@ Four principal ways to do type checking are provided, each with its pros and con
    * adds an extra frame to the call stack for every call to a decorated function
 #. the import hook (``typeguard.importhook.install_import_hook()``):
 
-   * automatically annotates classes and functions with ``@typechecked`` on import
-   * no code changes required in target modules
-   * requires imports of modules you need to check to be deferred until after the import hook has
-     been installed
+   * automatically instruments targeted modules on import
+   * no manual code changes required in the target modules
+   * requires the import hook to be installed before the targeted modules are imported
    * may clash with other import hooks
 
 See the documentation_ for further information.
