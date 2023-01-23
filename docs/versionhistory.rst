@@ -3,6 +3,63 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- **BACKWARD INCOMPATIBLE** ``check_return_value`` now returns the value it was passed,
+  making it possible to use it together with ``return`` on the same line
+- Added support for PEP 604 union types (``X | Y``) on all Python versions using a
+  Lark based parser (contributed by supersergiy)
+- Added the ``check_yield_type()`` function for type checking yields in generator
+  functions
+- Added the ``suppress_type_checks()`` context manager function for temporarily
+  disabling type checks
+- Added support for ``typing.Never`` (and ``typing_extensions.Never``)
+- Added support for ``Never`` and ``NoReturn`` in argument annotations
+- Added support for ``LiteralString``
+- Added support for ``TypeGuard``
+- Added support for the subclassable ``Any`` on Python 3.11 and ``typing_extensions``
+- Added configuration option ``collection_check_strategy`` and changed the default to
+  only check the first item of collections (list, set, abstractset, dict, sequence,
+  mapping)
+- Made it possible to apply ``@typechecked`` on top of ``@classmethod`` /
+  ``@staticmethod`` (PR by jacobpbrugh)
+- Changed ``check_type()`` to return the passed value, so it can be used (to an extent)
+  in place of ``typing.cast()``, but with run-time type checking
+- Replaced custom implementation of ``is_typeddict()`` with the implementation from
+  ``typing_extensions`` v4.1.0
+- Used ``repr()`` for rendering ``Literal`` elements within unions when raising a
+  ``TypeCheckError``
+- Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
+  among the extra keys (PR by biolds)
+- Fixed the configured ``forward_ref_policy`` not being used in
+  ``check_type_internal()``
+- Fixed checks against ``unittest.Mock`` and derivatives being done in the wrong place
+
+**3.0.0b2** (2023-01-11)
+
+- Fixed ``TypeError: object of type 'ellipsis' has no len()`` when checking against
+  ``Callable[..., Any]``
+- Fixed integers 0 and 1 passing for ``Literal[False]`` and ``Literal[True]``,
+  respectively
+- Fixed type checking of annotated variable positional and keyword arguments (``*args``
+  and ``**kwargs``)
+
+**3.0.0b1** (2023-01-09)
+
+- Dropped Python 3.5 and 3.6 support
+- Dropped the deprecated profiler hook (``TypeChecker``)
+- Added a configuration system
+- Added support for custom type checking functions
+- Added support for PEP 604 union types (``X | Y``) on Python 3.10+
+- Added support for checking arbitrary ``Mapping`` types
+- Added support for the ``Self`` type
+- Much improved error messages showing where the type check failed
+- Changed the import hook to append ``@typechecked`` to the decorator list instead of inserting it
+  as the first decorator (fixes type checking inconsistencies with mypy regarding at least
+  ``@contextmanager``, probably others too)
+- Fixed incompatibility with ``typing_extensions`` v4.1+ on Python 3.10 (PR by David C.)
+- Fixed checking of ``Tuple[()]`` on Python 3.11 and ``tuple[()]`` on Python 3.9+
+
 **2.13.3** (2021-12-10)
 
 - Fixed ``TypeError`` when using typeguard within ``exec()`` (where ``__module__`` is ``None``)

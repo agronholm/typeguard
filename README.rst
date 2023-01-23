@@ -1,17 +1,25 @@
-.. image:: https://travis-ci.com/agronholm/typeguard.svg?branch=master
-  :target: https://travis-ci.com/agronholm/typeguard
+.. image:: https://github.com/agronholm/typeguard/actions/workflows/test.yml/badge.svg
+  :target: https://github.com/agronholm/typeguard/actions/workflows/test.yml
   :alt: Build Status
 .. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/agronholm/typeguard?branch=master
   :alt: Code Coverage
 .. image:: https://readthedocs.org/projects/typeguard/badge/?version=latest
   :target: https://typeguard.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation
 
 This library provides run-time type checking for functions defined with
-`PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type annotations.
+`PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type
+annotations, and any arbitrary objects. It can be used together with static type
+checkers as an additional layer of type safety, to catch type violations that could only
+be detected at run time.
 
 Four principal ways to do type checking are provided, each with its pros and cons:
 
+#. The ``check_type`` function:
+
+   * like ``isinstance()``, but supports arbitrary type annotations (within limits)
+   * can be used as a ``cast()`` replacement, but with actual checking of the value
 #. the ``check_argument_types()`` and ``check_return_type()`` functions:
 
    * debugger friendly (except when running with the pydev debugger with the C extension installed)
@@ -20,14 +28,6 @@ Four principal ways to do type checking are provided, each with its pros and con
 
    * automatically type checks yields and sends of returned generators (regular and async)
    * adds an extra frame to the call stack for every call to a decorated function
-#. the stack profiler hook (``with TypeChecker('packagename'):``) (deprecated):
-
-   * emits warnings instead of raising ``TypeError``
-   * requires very few modifications to the code
-   * multiple TypeCheckers can be stacked/nested
-   * does not work reliably with dynamically defined type hints (e.g. in nested functions)
-   * may cause problems with badly behaving debuggers or profilers
-   * cannot distinguish between an exception being raised and a ``None`` being returned
 #. the import hook (``typeguard.importhook.install_import_hook()``):
 
    * automatically annotates classes and functions with ``@typechecked`` on import
@@ -36,6 +36,6 @@ Four principal ways to do type checking are provided, each with its pros and con
      been installed
    * may clash with other import hooks
 
-See the documentation_ for further instructions.
+See the documentation_ for further information.
 
 .. _documentation: https://typeguard.readthedocs.io/en/latest/

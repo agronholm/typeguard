@@ -1,10 +1,55 @@
 [build-system]
 requires = [
-    "setuptools >= 42",
-    "wheel >= 0.29.0",
-    "setuptools_scm[toml] >= 3.4"
+    "setuptools >= 64",
+    "setuptools_scm[toml] >= 6.4"
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "typeguard"
+description = "Run-time type checker for Python"
+readme = "README.rst"
+authors = [{name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"}]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">= 3.7.4"
+dependencies = [
+    "importlib_metadata >= 3.6; python_version < '3.10'",
+    "typing_extensions >= 4.4.0; python_version < '3.11'",
+    "lark >= 1.1.5; python_version < '3.10'",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://typeguard.readthedocs.io/en/latest/"
+"Change log" = "https://typeguard.readthedocs.io/en/latest/versionhistory.html"
+"Source code" = "https://github.com/agronholm/typeguard"
+"Issue tracker" = "https://github.com/agronholm/typeguard/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    'mypy >= 0.991; python_implementation != "PyPy"',
+]
+doc = [
+    "packaging",
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints >= 1.2.0",
+]
+
+[project.entry-points]
+pytest11 = {typeguard = "typeguard.pytest_plugin"}
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
@@ -19,19 +64,38 @@ source = ["typeguard"]
 
 [tool.coverage.report]
 show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:"
+]
 
 [tool.isort]
 src_paths = ["src"]
+profile = "black"
 skip_gitignore = true
-line_length = 99
-multi_line_output = 4
 
 [tool.flake8]
-max-line-length = 99
-ignore = ["E251", "W504"]
+max-line-length = 88
+ignore = ["E203", "W503"]
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.7"
 ignore_missing_imports = true
-strict = true
+#strict = true
 pretty = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = pypy3, py37, py38, py39, py310, py311
+skip_missing_interpreters = true
+minversion = 4.0
+
+[testenv]
+extras = test
+commands = pytest {posargs}
+
+[testenv:docs]
+extras = doc
+commands = sphinx-build -W -n docs build/sphinx
+"""

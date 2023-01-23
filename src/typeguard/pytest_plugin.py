@@ -4,10 +4,13 @@ from typeguard.importhook import install_import_hook, TypeguardFinder
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup('typeguard')
-    group.addoption('--typeguard-packages', action='store',
-                    help='comma separated name list of packages and modules to instrument for '
-                         'type checking')
+    group = parser.getgroup("typeguard")
+    group.addoption(
+        "--typeguard-packages",
+        action="store",
+        help="comma separated name list of packages and modules to instrument for "
+        "type checking",
+    )
 
 
 def pytest_configure(config):

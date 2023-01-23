@@ -12,18 +12,46 @@ API reference
 
 .. autofunction:: check_return_type
 
+.. autofunction:: check_yield_type
+
 .. autodecorator:: typechecked
 
 .. autodecorator:: typeguard_ignore
 
-.. autoclass:: TypeChecker
+.. autofunction:: suppress_type_checks
 
-.. autoexception:: TypeHintWarning
+.. autoclass:: TypeCheckConfiguration
+   :members:
 
-.. autoexception:: TypeWarning
+.. data:: config
+   :type: TypeCheckConfiguration
+
+   The global configuration object.
+
+.. autoclass:: CollectionCheckStrategy
 
 .. autoclass:: ForwardRefPolicy
+
+.. autofunction:: warn_on_error
+
+.. autofunction:: check_type_internal
+
+.. autoclass:: TypeCheckMemo
     :members:
+
+.. autoclass:: CallMemo
+    :members:
+
+.. data:: checker_lookup_functions
+   :type: list[Callable[[Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]]]]
+
+   A list of callables that are used to look up a checker callable for an annotation.
+
+.. autoexception:: TypeCheckError
+
+.. autoexception:: TypeCheckWarning
+
+.. autoexception:: TypeHintWarning
 
 :mod:`typeguard.importhook`
 ---------------------------
@@ -31,6 +59,9 @@ API reference
 .. module:: typeguard.importhook
 
 .. autoclass:: TypeguardFinder
+    :members:
+
+.. autoclass:: ImportHookManager
     :members:
 
 .. autofunction:: install_import_hook
