@@ -22,6 +22,9 @@ class UnionTransformer(Transformer):
     def name(self, children):
         return children[0].value
 
+    def ellipsis(self, _):
+        return "..."
+
     def number(self, children):
         if len(children) == 2:  # minus sign
             return f"-{children[1].value}"
@@ -34,10 +37,11 @@ HINT_PARSER = Lark(
     ?hint: pep604_union | typ
     pep604_union: typ ("|" typ)+
 
-    typ: name (qualification)? | qualification | number | string
-    qualification: "[" hint ("," hint)* "]"
+    typ: name (qualification)? | qualification | number | string | ellipsis
+    qualification: "[" hint ("," hint)* "]" | "[]"
     number: (minus)? (DEC_NUMBER | HEX_NUMBER | BIN_NUMBER | OCT_NUMBER)
     ?minus: "-"
+    ellipsis: "..."
 
     %import python.name
     %import python.string
