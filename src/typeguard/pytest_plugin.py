@@ -9,7 +9,7 @@ def pytest_addoption(parser):
         "--typeguard-packages",
         action="store",
         help="comma separated name list of packages and modules to instrument for "
-        "type checking",
+        "type checking, or :all: to instrument all modules loaded after typeguard",
     )
 
 
@@ -18,16 +18,18 @@ def pytest_configure(config):
     if not value:
         return
 
-    packages = [pkg.strip() for pkg in value.split(",")]
-
-    already_imported_packages = sorted(
-        package for package in packages if package in sys.modules
-    )
-    if already_imported_packages:
-        message = (
-            "typeguard cannot check these packages because they "
-            "are already imported: {}"
+    if value == ":all:":
+        packages: list[str] | None = None
+    else:
+        packages = [pkg.strip() for pkg in value.split(",")]
+        already_imported_packages = sorted(
+            package for package in packages if package in sys.modules
         )
-        raise RuntimeError(message.format(", ".join(already_imported_packages)))
+        if already_imported_packages:
+            message = (
+                "typeguard cannot check these packages because they "
+                "are already imported: {}"
+            )
+            raise RuntimeError(message.format(", ".join(already_imported_packages)))
 
     install_import_hook(packages=packages)

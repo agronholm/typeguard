@@ -244,7 +244,7 @@ class TypeguardFinder(MetaPathFinder):
 
     """
 
-    def __init__(self, packages, original_pathfinder):
+    def __init__(self, packages: list[str] | None, original_pathfinder):
         self.packages = packages
         self._original_pathfinder = original_pathfinder
 
@@ -265,6 +265,9 @@ class TypeguardFinder(MetaPathFinder):
             ``xyz.abc``)
 
         """
+        if self.packages is None:
+            return True
+
         for package in self.packages:
             if module_name == package or module_name.startswith(package + "."):
                 return True
@@ -295,22 +298,29 @@ class ImportHookManager:
 
 
 def install_import_hook(
-    packages: Iterable[str], *, cls: type[TypeguardFinder] = TypeguardFinder
+    packages: Iterable[str] | None = None,
+    *,
+    cls: type[TypeguardFinder] = TypeguardFinder,
 ) -> ImportHookManager:
     """
-    Install an import hook that decorates classes and functions with
-    :func:`@typechecked <typeguard.typechecked>`.
+    Install an import hook that instruments functions for automatic type checking.
 
     This only affects modules loaded **after** this hook has been installed.
 
+    :param packages: an iterable of package names to instrument, or ``None`` to
+        instrument all packages
     :return: a context manager that uninstalls the hook on exit (or when you call
         ``.uninstall()``)
 
     .. versionadded:: 2.6
 
     """
-    if isinstance(packages, str):
-        packages = [packages]
+    if packages is None:
+        target_packages: list[str] | None = None
+    elif isinstance(packages, str):
+        target_packages = [packages]
+    else:
+        target_packages = list(packages)
 
     for i, finder in enumerate(sys.meta_path):
         if (
@@ -322,6 +332,6 @@ def install_import_hook(
     else:
         raise RuntimeError("Cannot find a PathFinder in sys.meta_path")
 
-    hook = cls(packages, finder)
+    hook = cls(target_packages, finder)
     sys.meta_path.insert(0, hook)
     return ImportHookManager(hook)
