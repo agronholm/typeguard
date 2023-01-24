@@ -1,7 +1,8 @@
 import pytest
-import typeguard
 
+import typeguard
 from typeguard._union_transformer import translate_type_hint
+
 
 @pytest.mark.parametrize(
     "inputval, expected",
@@ -15,9 +16,11 @@ from typeguard._union_transformer import translate_type_hint
         ["a | b | Literal[1]", "Union[a, b, Literal[1]]"],
         ["a | b | Literal[-1]", "Union[a, b, Literal[-1]]"],
         ["a | b | Literal[-1]", "Union[a, b, Literal[-1]]"],
-        ["a | b | Literal[\"It's a string \'\\\"\"]", "Union[a, b, Literal[\"It's a string \'\\\"\"]]"],
+        [
+            'a | b | Literal["It\'s a string \'\\""]',
+            'Union[a, b, Literal["It\'s a string \'\\""]]',
+        ],
     ],
 )
 def test_union_transformer(inputval, expected):
     assert translate_type_hint(inputval) == expected
-

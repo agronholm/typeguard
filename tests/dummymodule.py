@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from typing import (
     Any,
     AsyncGenerator,
-    Generator,
     Callable,
+    Generator,
     Literal,
     Union,
     no_type_check,
@@ -149,11 +149,10 @@ async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
 
 
 def pep_604_union_args(
-    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]"
+    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]",
 ) -> None:
     pass
 
 
 def pep_604_union_retval(x: Any) -> "str | int":
     return x
-

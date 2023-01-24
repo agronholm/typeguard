@@ -204,6 +204,6 @@ def test_pep_604_union_args(dummymodule):
 
 def test_pep_604_union_retval(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.pep_604_union_retval, 1.1).match(
-        'the return value did not match any element in the union:\n  str: is '
-        'not an instance of str\n  int: is not an instance of int'
+        "the return value did not match any element in the union:\n  str: is "
+        "not an instance of str\n  int: is not an instance of int"
     )
