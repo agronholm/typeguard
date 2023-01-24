@@ -38,7 +38,7 @@ HINT_PARSER = Lark(
     pep604_union: typ ("|" typ)+
 
     typ: name (qualification)? | qualification | number | string | ellipsis
-    qualification: "[" hint ("," hint)* "]"
+    qualification: "[" hint ("," hint)* "]" | "[]"
     number: (minus)? (DEC_NUMBER | HEX_NUMBER | BIN_NUMBER | OCT_NUMBER)
     ?minus: "-"
     ellipsis: "..."

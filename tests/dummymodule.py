@@ -4,6 +4,8 @@ from typing import (
     Any,
     AsyncGenerator,
     Generator,
+    Callable,
+    Literal,
     Union,
     no_type_check,
     no_type_check_decorator,
@@ -146,9 +148,12 @@ async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
     yield yield_value
 
 
-def pep_604_union_args(x: "str | int") -> None:
+def pep_604_union_args(
+    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]"
+) -> None:
     pass
 
 
 def pep_604_union_retval(x: Any) -> "str | int":
     return x
+

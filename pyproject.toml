@@ -40,6 +40,7 @@ Documentation = "https://typeguard.readthedocs.io/en/latest/"
 [project.optional-dependencies]
 test = [
     "pytest",
+    "lark >= 1.1.5",
     'mypy >= 0.991; python_implementation != "PyPy"',
 ]
 doc = [

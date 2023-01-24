@@ -197,13 +197,13 @@ def test_missing_return(dummymodule):
 
 def test_pep_604_union_args(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
-        'argument "x" did not match any element in the union:\n  str: is not an '
-        "instance of str\n  int: is not an instance of int"
+        r'argument "x" did not match any element in the union:\n  Callable\[list, '
+        r"Literal\[-1\]\]: is not callable\n  Callable\[ellipsis, Union\[int, str\]\]: is not callable"
     )
 
 
 def test_pep_604_union_retval(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
-        'argument "x" did not match any element in the union:\n  str: is not an '
-        "instance of str\n  int: is not an instance of int"
+    pytest.raises(TypeCheckError, dummymodule.pep_604_union_retval, 1.1).match(
+        'the return value did not match any element in the union:\n  str: is '
+        'not an instance of str\n  int: is not an instance of int'
     )
