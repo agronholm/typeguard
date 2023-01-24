@@ -146,9 +146,9 @@ async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
     yield yield_value
 
 
-def pep_602_union_args(x: "str | int") -> None:
+def pep_604_union_args(x: "str | int") -> None:
     pass
 
 
-def pep_602_union_retval(x: Any) -> "str | int":
+def pep_604_union_retval(x: Any) -> "str | int":
     return x

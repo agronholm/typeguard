@@ -195,15 +195,15 @@ def test_missing_return(dummymodule):
     )
 
 
-def test_pep_602_union_args(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.pep_602_union_args, 1.1).match(
+def test_pep_604_union_args(dummymodule):
+    pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
         'argument "x" did not match any element in the union:\n  str: is not an '
         "instance of str\n  int: is not an instance of int"
     )
 
 
-def test_pep_602_union_retval(dummymodule):
-    pytest.raises(TypeCheckError, dummymodule.pep_602_union_args, 1.1).match(
+def test_pep_604_union_retval(dummymodule):
+    pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
         'argument "x" did not match any element in the union:\n  str: is not an '
         "instance of str\n  int: is not an instance of int"
     )
