@@ -1,6 +1,5 @@
 import pytest
 
-import typeguard
 from typeguard._union_transformer import translate_type_hint
 
 

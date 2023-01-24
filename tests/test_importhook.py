@@ -198,7 +198,8 @@ def test_missing_return(dummymodule):
 def test_pep_604_union_args(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
         r'argument "x" did not match any element in the union:\n  Callable\[list, '
-        r"Literal\[-1\]\]: is not callable\n  Callable\[ellipsis, Union\[int, str\]\]: is not callable"
+        r"Literal\[-1\]\]: is not callable\n  Callable\[ellipsis, Union\[int, str\]\]: "
+        "is not callable"
     )
 
 
