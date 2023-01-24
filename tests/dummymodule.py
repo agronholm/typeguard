@@ -3,14 +3,19 @@ from contextlib import contextmanager
 from typing import (
     Any,
     AsyncGenerator,
-    Callable,
     Generator,
-    Literal,
+    Callable,
     Union,
     no_type_check,
     no_type_check_decorator,
     overload,
 )
+import sys
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 from typeguard import typeguard_ignore
 
@@ -149,10 +154,11 @@ async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
 
 
 def pep_604_union_args(
-    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]",
+    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]"
 ) -> None:
     pass
 
 
 def pep_604_union_retval(x: Any) -> "str | int":
     return x
+
