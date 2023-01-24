@@ -21,7 +21,7 @@ class UnionTransformer(Transformer):
 
     def name(self, children):
         return children[0].value
-    
+
     def ellipsis(self, _):
         return "..."
 
