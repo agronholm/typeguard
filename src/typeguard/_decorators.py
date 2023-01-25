@@ -121,7 +121,7 @@ def typechecked(
         _localns = sys._getframe(1).f_locals
 
     # Find either the first Python wrapper or the actual function
-    python_func = inspect.unwrap(func, stop=lambda f: hasattr(f, "__code__"))
+    python_func = inspect.unwrap(func, stop=inspect.isfunction)
 
     if not getattr(python_func, "__code__", None):
         warn(f"no code associated -- not typechecking {function_name(func)}")

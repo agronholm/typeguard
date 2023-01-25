@@ -35,6 +35,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed the configured ``forward_ref_policy`` not being used in
   ``check_type_internal()``
 - Fixed checks against ``unittest.Mock`` and derivatives being done in the wrong place
+- Fixed ``@typechecked`` not unwrapping non-function callable objects
 
 **3.0.0b2** (2023-01-11)
 
