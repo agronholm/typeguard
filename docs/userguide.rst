@@ -7,7 +7,7 @@ Setting configuration options
 -----------------------------
 
 There are several configuration options that can be set that influence how type checking
-is done. To change the options, import ``typeguard.config`` (which is of type
+is done. To change the options, import :data:`typeguard.config` (which is of type
 :class:`~.TypeCheckConfiguration`) and set the attributes you want to change.
 
 You can also override the configuration in the type checking functions below by passing
