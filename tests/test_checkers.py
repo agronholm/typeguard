@@ -480,6 +480,9 @@ class TestList:
     def test_first_check_success(self):
         check_type(["aa", "bb", 1], List[str])
 
+    def test_first_check_empty(self):
+        check_type([], List[str])
+
     def test_first_check_fail(self):
         pytest.raises(TypeCheckError, check_type, ["bb"], List[int]).match(
             "value is not an instance of int"
@@ -506,6 +509,9 @@ class TestSequence:
     )
     def test_first_check_success(self, value):
         check_type(value, Sequence[int])
+
+    def test_first_check_empty(self):
+        check_type([], Sequence[int])
 
     def test_first_check_fail(self):
         pytest.raises(TypeCheckError, check_type, ["bb"], Sequence[int]).match(
@@ -564,6 +570,9 @@ class TestSet:
     def test_valid(self):
         check_type({1, 2}, Set[int])
 
+    def test_first_check_empty(self):
+        check_type(set(), Set[int])
+
     def test_first_check_fail(self, sample_set: set):
         pytest.raises(TypeCheckError, check_type, sample_set, Set[int]).match(
             "value is not an instance of int"
@@ -599,6 +608,9 @@ class TestTuple:
         pytest.raises(TypeCheckError, check_type, 5, annotated_type[int]).match(
             "value is not a tuple"
         )
+
+    def test_first_check_empty(self, annotated_type: Any):
+        check_type((), annotated_type[int, ...])
 
     def test_unparametrized_tuple(self, annotated_type: Any):
         check_type((5, "foo"), annotated_type)
