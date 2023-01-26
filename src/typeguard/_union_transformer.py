@@ -19,6 +19,9 @@ class UnionTransformer(Transformer):
     def string(self, children):
         return children[0].value
 
+    def reference(self, children):
+        return ".".join(children)
+
     def name(self, children):
         return children[0].value
 
@@ -37,7 +40,8 @@ HINT_PARSER = Lark(
     ?hint: pep604_union | typ
     pep604_union: typ ("|" typ)+
 
-    typ: name (qualification)? | qualification | number | string | ellipsis
+    typ: reference (qualification)? | qualification | number | string | ellipsis
+    reference: name ("." name)*
     qualification: "[" hint ("," hint)* "]" | "[]"
     number: (minus)? (DEC_NUMBER | HEX_NUMBER | BIN_NUMBER | OCT_NUMBER)
     ?minus: "-"

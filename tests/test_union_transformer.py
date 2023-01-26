@@ -19,6 +19,10 @@ from typeguard._union_transformer import translate_type_hint
             'a | b | Literal["It\'s a string \'\\""]',
             'Union[a, b, Literal["It\'s a string \'\\""]]',
         ],
+        [
+            "typing.Tuple | typing.List | Literal[-1]",
+            "Union[typing.Tuple, typing.List, Literal[-1]]",
+        ],
     ],
 )
 def test_union_transformer(inputval, expected):
