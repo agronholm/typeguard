@@ -21,7 +21,7 @@ from typeguard._union_transformer import translate_type_hint
         ],
         [
             "typing.Tuple | typing.List | Literal[-1]",
-            "Union[typing.Tuple, typing.List, Literal[-1]]"
+            "Union[typing.Tuple, typing.List, Literal[-1]]",
         ],
     ],
 )
