@@ -218,6 +218,32 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     return retval
 
 
+def check_send_type(sendval: T, memo: CallMemo) -> T:
+    if type_checks_suppressed:
+        return sendval
+
+    annotation = memo.type_hints[":send"]
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(
+            f"{memo.func_name}() was declared never to be sent a value to but it was"
+        )
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
+
+    try:
+        check_type_internal(sendval, annotation, memo)
+    except TypeCheckError as exc:
+        exc.append_path_element("the value sent to generator")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
+
+    return sendval
+
+
 def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
     """
     Check that the yielded value is compatible with the generator return value
@@ -265,13 +291,6 @@ def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
         try:
             check_type_internal(yieldval, annotation, memo)
         except TypeCheckError as exc:
-            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if yieldval is NotImplemented and annotation is bool:
-                # This does (and cannot) not check if it's actually a method
-                func_name = memo.func_name.rsplit(".", 1)[-1]
-                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
-                    return yieldval
-
             exc.append_path_element("the yielded value")
             if memo.config.typecheck_fail_callback:
                 memo.config.typecheck_fail_callback(exc, memo)

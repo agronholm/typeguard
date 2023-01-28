@@ -67,7 +67,7 @@ class TypeguardTransformer(ast.NodeTransformer):
         self._contains_yields.add(self._parents[-1])
         if self._parents[-1].returns:
             yieldval = node.value or ast.Name(id="None", ctx=ast.Load())
-            node = ast.Yield(
+            yield_node = ast.Yield(
                 ast.Call(
                     ast.Attribute(
                         ast.Name(id="typeguard", ctx=ast.Load()),
@@ -78,15 +78,29 @@ class TypeguardTransformer(ast.NodeTransformer):
                     [],
                 )
             )
+            node = ast.Call(
+                ast.Attribute(
+                    ast.Name(id="typeguard", ctx=ast.Load()),
+                    "check_send_type",
+                    ctx=ast.Load(),
+                ),
+                [yield_node, ast.Name(id=self._memo_variable_name, ctx=ast.Load())],
+                [],
+            )
+        else:
+            self.generic_visit(node)
 
-        self.generic_visit(node)
         return node
 
-    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef):
+    def visit_FunctionDef(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        *,
+        has_self_arg: bool = False,
+    ):
         has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
-            has_self_arg = False
             func_reference = ast.Name(id=node.name, ctx=ast.Load())
             if self._parents and isinstance(self._parents[-1], ast.ClassDef):
                 # This is a method, not a free function.

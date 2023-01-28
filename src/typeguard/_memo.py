@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterable,
+    AsyncIterator,
+    Generator,
+    Iterable,
+    Iterator,
+)
 from inspect import isasyncgenfunction, isclass, isgeneratorfunction
 from types import FunctionType
 from typing import Any, Dict, ForwardRef, Mapping, Tuple
@@ -41,7 +48,13 @@ class TypeCheckMemo:
 
 
 class CallMemo(TypeCheckMemo):
-    __slots__ = "func", "func_name", "arguments", "self_type", "type_hints"
+    __slots__ = (
+        "func",
+        "func_name",
+        "arguments",
+        "self_type",
+        "type_hints",
+    )
 
     arguments: Mapping[str, Any]
     self: Any
@@ -78,6 +91,7 @@ class CallMemo(TypeCheckMemo):
         else:
             self.self_type = None
 
+        func = inspect.unwrap(func)
         try:
             self.type_hints = _type_hints_map[func]
         except KeyError:
@@ -102,17 +116,42 @@ class CallMemo(TypeCheckMemo):
             ):
                 annotation = self.type_hints["return"]
                 origin_type = get_origin(annotation)
-                if origin_type in (Generator, AsyncGenerator):
-                    generator_args = get_args(annotation)
-                    self.type_hints["yield"] = (
-                        generator_args[0] if generator_args else Any
-                    )
-                    self.type_hints["return"] = (
-                        generator_args[2] if len(generator_args) == 3 else Any
-                    )
+                annotation_args = get_args(annotation)
+                if isgeneratorfunction(func):
+                    if origin_type is Generator:
+                        self.type_hints["yield"] = (
+                            annotation_args[0] if annotation_args else Any
+                        )
+                        self.type_hints[":send"] = (
+                            annotation_args[1] if annotation_args else Any
+                        )
+                        self.type_hints["return"] = (
+                            annotation_args[2] if annotation_args else Any
+                        )
+                    elif origin_type is Iterator or origin_type is Iterable:
+                        self.type_hints["yield"] = (
+                            annotation_args[0] if annotation_args else Any
+                        )
+                        self.type_hints[":send"] = type(None)
+                        del self.type_hints["return"]
+                elif isasyncgenfunction(func):
+                    if origin_type is AsyncGenerator:
+                        self.type_hints["yield"] = (
+                            annotation_args[0] if annotation_args else Any
+                        )
+                        self.type_hints[":send"] = (
+                            annotation_args[1] if annotation_args else Any
+                        )
+                        del self.type_hints["return"]
+                    elif origin_type is AsyncIterator or origin_type is AsyncIterable:
+                        self.type_hints["yield"] = (
+                            annotation_args[0] if annotation_args else Any
+                        )
+                        self.type_hints[":send"] = type(None)
+                        del self.type_hints["return"]
 
             for key, annotation in list(self.type_hints.items()):
-                if key in ("yield", "return"):
+                if key in ("yield", "return", ":send"):
                     continue
 
                 param = signature.parameters[key]
