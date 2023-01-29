@@ -50,45 +50,12 @@ external sources::
 With this code, static type checkers will recognize the type of ``people`` to be
 ``List[Person]``.
 
-Using type checker functions
-----------------------------
-
-Two functions are provided, potentially for use with the ``assert`` statement:
-
-* :func:`~typeguard.check_argument_types`
-* :func:`~typeguard.check_return_type`
-* :func:`~typeguard.check_yield_type`
-
-These can be used to implement fine grained type checking for select functions.
-If the function is called with incompatible types, or :func:`~typeguard.check_return_type` is used
-and the return value does not match the return type annotation, then a :exc:`~.TypeCheckError` is raised.
-
-For example::
-
-    from typeguard import check_argument_types, check_return_type
-
-    def some_function(a: int, b: float, c: str, *args: str) -> bool:
-        assert check_argument_types()
-        ...
-        assert check_return_type(retval)
-        return retval
-
-When combined with the ``assert`` statement, these checks are automatically removed from the code
-by the compiler when Python is executed in optimized mode (by passing the ``-O`` switch to the
-interpreter, or by setting the ``PYTHONOPTIMIZE`` environment variable to ``1`` (or higher).
-
-.. note:: This method is not reliable when used in nested functions (i.e. functions defined inside
-   other functions). This is because this operating mode relies on finding the correct function
-   object using the garbage collector, and when a nested function is running, its function object
-   may no longer be around anymore, as it is only bound to the closure of the enclosing function.
-   For this reason, it is recommended to use :func:`@typechecked <typechecked>` instead
-   for nested functions.
-
 Using the decorator
 -------------------
 
-The simplest way to type checking of both argument values and the return value for a single
-function is to use the :func:`@typechecked <typechecked>` decorator::
+The :func:`@typechecked <typechecked>` decorator is the simplest way to add type
+checking on a case-by-case basis. It can be used on functions directly, or on entire
+classes, in which case all the contained methods are instrumented::
 
     from typeguard import typechecked
 
@@ -105,27 +72,19 @@ function is to use the :func:`@typechecked <typechecked>` decorator::
         def method(x: int) -> int:
             ...
 
-The decorator works just like the two previously mentioned checker functions except that it has no
-issues with nested functions. The drawback, however, is that it adds one stack frame per wrapped
-function which may make debugging harder.
-
-When a generator function is wrapped with :func:`@typechecked <typechecked>`, the
-yields, sends and the return value are also type checked against the
-:class:`~typing.Generator` annotation. The same applies to the yields and sends of an
-async generator (annotated with :class:`~typing.AsyncGenerator`).
-
-.. note::
-   The decorator also respects the optimized mode setting so it does nothing when the interpreter
-   is running in optimized mode.
+The decorator instruments functions by fetching the source code, parsing it to an
+abstract syntax tree using :func:`ast.parse`, modifying it to add type checking, and
+finally compiling the modified AST into byte code. This code is then used to make a new
+function object that is used to replace the original one.
 
 Using the import hook
 ---------------------
 
 The import hook, when active, automatically instruments all type annotated functions to
-type check arguments, return values and yield values (for generators). This allows for a
-noninvasive method of run time type checking. This method does not modify the source
-code on disk, but instead modifies its AST (Abstract Syntax Tree) when the module is
-loaded.
+type check arguments, return values and values yielded by or sent to generator
+functions. This allows for a non-invasive method of run time type checking. This method
+does not modify the source code on disk, but instead modifies its AST (Abstract Syntax
+Tree) when the module is loaded.
 
 Using the import hook is as straightforward as installing it before you import any
 modules you wish to be type checked. Give it the name of your top level package (or a

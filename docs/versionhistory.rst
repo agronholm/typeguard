@@ -5,13 +5,11 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- **BACKWARD INCOMPATIBLE** ``check_return_value`` now returns the value it was passed,
-  making it possible to use it together with ``return`` on the same line
+- **BACKWARD INCOMPATIBLE** Removed the ``check_argument_types()`` and
+  ``check_return_type()`` functions (use ``@typechecked`` instead)
 - Added support for PEP 604 union types (``X | Y``) on all Python versions using a
   Lark based parser (contributed by supersergiy)
 - Added the possibility to have the import hook instrument all packages
-- Added the ``check_yield_type()`` function for type checking yields in generator
-  functions
 - Added the ``suppress_type_checks()`` context manager function for temporarily
   disabling type checks
 - Added support for ``typing.Never`` (and ``typing_extensions.Never``)
