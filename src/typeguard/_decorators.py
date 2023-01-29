@@ -25,91 +25,6 @@ else:
     from typing import no_type_check as typeguard_ignore  # noqa: F401
 
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
-DUMMY_FUNC_NAME = "__typeguard_dummy_func"
-
-
-class Instrumentor(ast.NodeTransformer):
-    def __init__(self, target_name: str):
-        self._target_path = [
-            item for item in target_name.split(".") if item != "<locals>"
-        ]
-        self._path: list[str] = []
-        self._transformer = TypeguardTransformer()
-        self._typeguard_import_name: str | None = None
-        self._typechecked_import_name: str | None = None
-        self._parent: ast.ClassDef | ast.FunctionDef | None = None
-
-    def visit_Module(self, node: ast.Module) -> Any:
-        self.generic_visit(node)
-        ast.fix_missing_locations(node)
-        return node
-
-    def visit_Import(self, node: ast.Import) -> ast.Import:
-        for name in node.names:
-            if name.name == "typeguard":
-                self._typeguard_import_name = name.asname or name.name
-
-        return node
-
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.ImportFrom:
-        if node.module == "typeguard":
-            for name in node.names:
-                if name.name == "typechecked":
-                    self._typechecked_import_name = name.asname or name.name
-
-        return node
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef | None:
-        # Eliminate top level classes not belonging to the target path
-        if not self._path and node.name != self._target_path[0]:
-            return None
-
-        self._path.append(node.name)
-        previous_parent = self._parent
-        self._parent = node
-        self.generic_visit(node)
-        self._parent = previous_parent
-        del self._path[-1]
-        return node
-
-    def visit_FunctionDef(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
-        # Eliminate top level functions not belonging to the target path
-        if not self._path and node.name != self._target_path[0]:
-            return None
-
-        self._path.append(node.name)
-        previous_parent = self._parent
-        self._parent = node
-        self.generic_visit(node)
-        self._parent = previous_parent
-        if self._path == self._target_path:
-            has_self_arg = isinstance(self._parent, ast.ClassDef)
-            node = self._transformer.visit_FunctionDef(node, has_self_arg=has_self_arg)
-            node.body.insert(0, ast.Import([ast.alias("typeguard")]))
-
-            # Remove both @typeguard.typechecked and @typechecked (while taking aliased
-            # imports into account)
-            for decorator in node.decorator_list.copy():
-                if self._typechecked_import_name and isinstance(decorator, ast.Name):
-                    if decorator.id == self._typechecked_import_name:
-                        node.decorator_list.remove(decorator)
-                elif self._typeguard_import_name and isinstance(
-                    decorator, ast.Attribute
-                ):
-                    if isinstance(decorator.value, ast.Name):
-                        if decorator.value.id == self._typeguard_import_name:
-                            if decorator.attr == "typechecked":
-                                node.decorator_list.remove(decorator)
-
-        del self._path[-1]
-        return node
-
-    def visit_AsyncFunctionDef(
-        self, node: ast.AsyncFunctionDef
-    ) -> ast.AsyncFunctionDef:
-        return self.visit_FunctionDef(node)
 
 
 def make_cell():
@@ -125,14 +40,15 @@ def instrument(f: T_CallableOrType) -> Callable | str:
     elif not getattr(f, "__module__", None):
         return "__module__ attribute is not set"
 
+    target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
     module = sys.modules[f.__module__]
     module_source = inspect.getsource(sys.modules[f.__module__])
     module_ast = ast.parse(module_source)
-    instrumentor = Instrumentor(f.__qualname__)
+    instrumentor = TypeguardTransformer(target_path)
     instrumentor.visit(module_ast)
     module_code = compile(module_ast, module.__file__, "exec", dont_inherit=True)
     new_code = module_code
-    for level, name in enumerate(instrumentor._target_path):
+    for level, name in enumerate(target_path):
         for const in new_code.co_consts:
             if isinstance(const, CodeType):
                 if const.co_name == name:
@@ -152,7 +68,7 @@ def instrument(f: T_CallableOrType) -> Callable | str:
         closure = (cell,) + f.__closure__
     else:
         # Make a brand new closure
-        assert new_code.co_freevars == (f.__name__,)
+        # assert new_code.co_freevars == (f.__name__,)
         cell = make_cell()
         closure = (cell,)
 
