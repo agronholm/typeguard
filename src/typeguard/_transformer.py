@@ -30,6 +30,21 @@ class TypeguardTransformer(NodeTransformer):
         self._memo_variable_name = memo_variable_name
         self._parents: list[ClassDef | FunctionDef | AsyncFunctionDef] = []
         self._contains_yields: set[FunctionDef] = set()
+        self._used_names = set()
+        self._used_function_names = set()
+        self._store_names = {
+            "call_memo": Name(id="_call_memo", ctx=Load()),
+            "check_argument_types": Name(
+                id="_typeguard_check_argument_types", ctx=Load()
+            ),
+            "check_return_type": Name(id="_typeguard_check_return_type", ctx=Load()),
+            "check_yield_type": Name(id="_typeguard_check_yieldtype", ctx=Load()),
+            "check_send_type": Name(id="_typeguard_check_send_type", ctx=Load()),
+        }
+        self._load_names = {
+            key: Name(id=value.id, ctx=Load())
+            for key, value in self._store_names.items()
+        }
 
     def visit_Module(self, node: Module):
         # Insert "import typeguard" after any "from __future__ ..." imports
@@ -46,6 +61,7 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_ClassDef(self, node: ClassDef):
+        self._used_names.add(node.name)
         self._parents.append(node)
         self.generic_visit(node)
         self._parents.pop()
@@ -53,7 +69,7 @@ class TypeguardTransformer(NodeTransformer):
 
     def visit_Return(self, node: Return):
         if self._parents[-1].returns:
-            retval = node.value or Name(id="None", ctx=Load())
+            retval = node.value or Constant(None)
             node = Return(
                 Call(
                     Attribute(
@@ -65,6 +81,7 @@ class TypeguardTransformer(NodeTransformer):
                     [],
                 )
             )
+            self._used_function_names.add("check_return_type")
 
         self.generic_visit(node)
         return node
@@ -98,12 +115,20 @@ class TypeguardTransformer(NodeTransformer):
 
         return node
 
+    def visit_Assign(self, node: Assign) -> Assign:
+        for target in node.targets:
+            if isinstance(target, Name):
+                self._used_names.add(target.id)
+
+        return node
+
     def visit_FunctionDef(
         self,
         node: FunctionDef | AsyncFunctionDef,
         *,
         has_self_arg: bool = False,
     ):
+        self._used_names.add(node.name)
         has_annotated_args = any(arg for arg in node.args.args if arg.annotation)
         has_annotated_return = bool(node.returns)
         if has_annotated_args or has_annotated_return:
@@ -172,6 +197,7 @@ class TypeguardTransformer(NodeTransformer):
                     )
                 ),
             )
+            self._used_function_names.add("check_argument_types")
 
         self._parents.append(node)
         self.generic_visit(node)
@@ -200,6 +226,7 @@ class TypeguardTransformer(NodeTransformer):
                         )
                     ),
                 )
+                self._used_function_names.add("check_return_type")
         else:
             self._contains_yields.remove(node)
 
