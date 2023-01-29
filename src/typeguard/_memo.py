@@ -12,7 +12,7 @@ from collections.abc import (
 )
 from inspect import isasyncgenfunction, isclass, isgeneratorfunction
 from types import FunctionType
-from typing import Any, Dict, ForwardRef, Mapping, Tuple
+from typing import Any, Dict, ForwardRef, Tuple
 from weakref import WeakKeyDictionary
 
 from ._config import TypeCheckConfiguration, global_config
@@ -48,24 +48,15 @@ class TypeCheckMemo:
 
 
 class CallMemo(TypeCheckMemo):
-    __slots__ = (
-        "func",
-        "func_name",
-        "arguments",
-        "self_type",
-        "type_hints",
-    )
+    __slots__ = "func", "arguments", "self_type", "type_hints"
 
-    arguments: Mapping[str, Any]
-    self: Any
+    arguments: dict[str, Any]
     self_type: type[Any] | None
 
     def __init__(
         self,
         func: FunctionType,
         frame_locals: dict[str, Any] | None = None,
-        args: tuple = None,
-        kwargs: dict[str, Any] = None,
         config: TypeCheckConfiguration | None = None,
         *,
         has_self_arg: bool = True,
@@ -73,16 +64,12 @@ class CallMemo(TypeCheckMemo):
     ):
         super().__init__(func.__globals__, frame_locals, config)
         self.func = func
-        self.func_name = function_name(func)
-        signature = inspect.signature(func)
 
-        if args is not None and kwargs is not None:
-            self.arguments = signature.bind(*args, **kwargs).arguments
-        else:
-            assert (
-                frame_locals is not None
-            ), "frame must be specified if args or kwargs is None"
-            self.arguments = frame_locals
+        assert (
+            frame_locals is not None
+        ), "frame must be specified if args or kwargs is None"
+        self.arguments = frame_locals.copy()
+        self.arguments.pop("typeguard", None)
 
         # Assume the first argument is bound as "self"
         if has_self_arg and self.arguments:
@@ -150,6 +137,7 @@ class CallMemo(TypeCheckMemo):
                         self.type_hints[":send"] = type(None)
                         del self.type_hints["return"]
 
+            signature = inspect.signature(func)
             for key, annotation in list(self.type_hints.items()):
                 if key in ("yield", "return", ":send"):
                     continue
@@ -159,3 +147,7 @@ class CallMemo(TypeCheckMemo):
                     self.type_hints[key] = Tuple[annotation, ...]
                 elif param.kind is inspect.Parameter.VAR_KEYWORD:
                     self.type_hints[key] = Dict[str, annotation]
+
+    @property
+    def func_name(self) -> str:
+        return function_name(self.func)
