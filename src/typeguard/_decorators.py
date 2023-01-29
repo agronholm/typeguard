@@ -34,7 +34,7 @@ class Instrumentor(ast.NodeTransformer):
             item for item in target_name.split(".") if item != "<locals>"
         ]
         self._path: list[str] = []
-        self._transformer = TypeguardTransformer("_call_memo")
+        self._transformer = TypeguardTransformer()
         self._typeguard_import_name: str | None = None
         self._typechecked_import_name: str | None = None
         self._parent: ast.ClassDef | ast.FunctionDef | None = None

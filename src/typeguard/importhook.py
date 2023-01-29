@@ -25,13 +25,6 @@ class TypeguardLoader(SourceFileLoader):
     def source_to_code(self, data, path, *, _optimize=-1):
         source = decode_source(data)
 
-        # Find a variable name for the call memo that isn't found in the source code
-        memo_variable_name = "_call_memo"
-        i = 1
-        while memo_variable_name in source:
-            memo_variable_name = f"_call_memo_{i}"
-            i += 1
-
         tree = _call_with_frames_removed(
             compile,
             source,
@@ -41,7 +34,7 @@ class TypeguardLoader(SourceFileLoader):
             dont_inherit=True,
             optimize=_optimize,
         )
-        tree = TypeguardTransformer(memo_variable_name).visit(tree)
+        tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
         return _call_with_frames_removed(
             compile, tree, path, "exec", dont_inherit=True, optimize=_optimize

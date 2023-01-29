@@ -9,7 +9,6 @@ from ast import (
     Constant,
     Expr,
     FunctionDef,
-    Import,
     ImportFrom,
     Load,
     Module,
@@ -26,20 +25,19 @@ from ast import (
 
 
 class TypeguardTransformer(NodeTransformer):
-    def __init__(self, memo_variable_name: str) -> None:
-        self._memo_variable_name = memo_variable_name
+    def __init__(self) -> None:
         self._parents: list[ClassDef | FunctionDef | AsyncFunctionDef] = []
         self._contains_yields: set[FunctionDef] = set()
         self._used_names = set()
-        self._used_function_names = set()
+        self._used_imports = set()
         self._store_names = {
-            "call_memo": Name(id="_call_memo", ctx=Load()),
+            "call_memo": Name(id="_call_memo", ctx=Store()),
             "check_argument_types": Name(
-                id="_typeguard_check_argument_types", ctx=Load()
+                id="_typeguard_check_argument_types", ctx=Store()
             ),
-            "check_return_type": Name(id="_typeguard_check_return_type", ctx=Load()),
-            "check_yield_type": Name(id="_typeguard_check_yieldtype", ctx=Load()),
-            "check_send_type": Name(id="_typeguard_check_send_type", ctx=Load()),
+            "check_return_type": Name(id="_typeguard_check_return_type", ctx=Store()),
+            "check_yield_type": Name(id="_typeguard_check_yieldtype", ctx=Store()),
+            "check_send_type": Name(id="_typeguard_check_send_type", ctx=Store()),
         }
         self._load_names = {
             key: Name(id=value.id, ctx=Load())
@@ -47,6 +45,14 @@ class TypeguardTransformer(NodeTransformer):
         }
 
     def visit_Module(self, node: Module):
+        self.generic_visit(node)
+
+        # Ensure that there are no name conflicts
+        for key, name in self._load_names.items():
+            while name.id in self._used_names:
+                name.id += "_"
+                self._store_names[key].id = name.id
+
         # Insert "import typeguard" after any "from __future__ ..." imports
         for i, child in enumerate(node.body):
             if isinstance(child, ImportFrom) and child.module == "__future__":
@@ -54,10 +60,10 @@ class TypeguardTransformer(NodeTransformer):
             elif isinstance(child, Expr) and isinstance(child.value, Str):
                 continue  # module docstring
             else:
-                node.body.insert(i, Import(names=[alias("typeguard", None)]))
+                aliases = [alias(funcname) for funcname in sorted(self._used_imports)]
+                node.body.insert(i, ImportFrom("typeguard", aliases))
                 break
 
-        self.generic_visit(node)
         return node
 
     def visit_ClassDef(self, node: ClassDef):
@@ -72,16 +78,12 @@ class TypeguardTransformer(NodeTransformer):
             retval = node.value or Constant(None)
             node = Return(
                 Call(
-                    Attribute(
-                        Name(id="typeguard", ctx=Load()),
-                        "check_return_type",
-                        ctx=Load(),
-                    ),
-                    [retval, Name(id=self._memo_variable_name, ctx=Load())],
+                    Name(id="check_return_type", ctx=Load()),
+                    [retval, self._load_names["call_memo"]],
                     [],
                 )
             )
-            self._used_function_names.add("check_return_type")
+            self._used_imports.add("check_return_type")
 
         self.generic_visit(node)
         return node
@@ -92,24 +94,19 @@ class TypeguardTransformer(NodeTransformer):
             yieldval = node.value or Name(id="None", ctx=Load())
             yield_node = Yield(
                 Call(
-                    Attribute(
-                        Name(id="typeguard", ctx=Load()),
-                        "check_yield_type",
-                        ctx=Load(),
-                    ),
-                    [yieldval, Name(id=self._memo_variable_name, ctx=Load())],
+                    Name(id="check_yield_type", ctx=Load()),
+                    [yieldval, self._load_names["call_memo"]],
                     [],
                 )
             )
+            self._used_imports.add("check_yield_type")
+
             node = Call(
-                Attribute(
-                    Name(id="typeguard", ctx=Load()),
-                    "check_send_type",
-                    ctx=Load(),
-                ),
-                [yield_node, Name(id=self._memo_variable_name, ctx=Load())],
+                Name(id="check_send_type", ctx=Load()),
+                [yield_node, self._load_names["call_memo"]],
                 [],
             )
+            self._used_imports.add("check_send_type")
         else:
             self.generic_visit(node)
 
@@ -167,7 +164,7 @@ class TypeguardTransformer(NodeTransformer):
 
             locals_call = Call(Name(id="locals", ctx=Load()), [], [])
             memo_expr = Call(
-                Attribute(Name(id="typeguard", ctx=Load()), "CallMemo", ctx=Load()),
+                Name(id="CallMemo", ctx=Load()),
                 [func_reference, locals_call],
                 [
                     keyword("has_self_arg", Constant(has_self_arg, ctx=Load())),
@@ -179,25 +176,22 @@ class TypeguardTransformer(NodeTransformer):
             )
             node.body.insert(
                 0,
-                Assign([Name(id=self._memo_variable_name, ctx=Store())], memo_expr),
+                Assign([self._store_names["call_memo"]], memo_expr),
             )
+            self._used_imports.add("CallMemo")
 
         if has_annotated_args:
             node.body.insert(
                 1,
                 Expr(
                     Call(
-                        Attribute(
-                            Name(id="typeguard", ctx=Load()),
-                            "check_argument_types",
-                            ctx=Load(),
-                        ),
-                        [Name(id=self._memo_variable_name, ctx=Load())],
+                        Name(id="check_argument_types", ctx=Load()),
+                        [self._load_names["call_memo"]],
                         [],
                     )
                 ),
             )
-            self._used_function_names.add("check_argument_types")
+            self._used_imports.add("check_argument_types")
 
         self._parents.append(node)
         self.generic_visit(node)
@@ -213,20 +207,16 @@ class TypeguardTransformer(NodeTransformer):
                 node.body.append(
                     Return(
                         Call(
-                            Attribute(
-                                Name(id="typeguard", ctx=Load()),
-                                "check_return_type",
-                                ctx=Load(),
-                            ),
+                            Name(id="check_return_type", ctx=Load()),
                             [
                                 Constant(None),
-                                Name(id=self._memo_variable_name, ctx=Load()),
+                                self._load_names["call_memo"],
                             ],
                             [],
                         )
                     ),
                 )
-                self._used_function_names.add("check_return_type")
+                self._used_imports.add("check_return_type")
         else:
             self._contains_yields.remove(node)
 
