@@ -11,8 +11,8 @@ from warnings import warn
 
 from ._config import TypeCheckConfiguration
 from ._exceptions import InstrumentationWarning
+from ._transformer import TypeguardTransformer
 from ._utils import function_name
-from .importhook import TypeguardTransformer
 
 if TYPE_CHECKING:
     _F = TypeVar("_F")
