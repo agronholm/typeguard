@@ -22,18 +22,16 @@ else:
     evaluate_extra_args = (frozenset(),) if sys.version_info >= (3, 9) else ()
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        try:
-            return forwardref._evaluate(memo.globals, memo.locals, *evaluate_extra_args)
-        except TypeError:
-            if "|" in forwardref.__forward_arg__:
-                from ._union_transformer import translate_type_hint
+        from ._union_transformer import compile_type_hint, type_substitutions
 
-                forwardref = ForwardRef(translate_type_hint(forwardref.__forward_arg__))
-                return forwardref._evaluate(
-                    memo.globals, memo.locals, *evaluate_extra_args
-                )
+        if not forwardref.__forward_evaluated__:
+            forwardref.__forward_code__ = compile_type_hint(forwardref.__forward_arg__)
 
-            raise
+        new_globals = type_substitutions.copy()
+        new_globals.update(memo.globals)
+        return forwardref._evaluate(
+            new_globals, memo.locals or new_globals, *evaluate_extra_args
+        )
 
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
