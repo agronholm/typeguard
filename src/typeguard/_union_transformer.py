@@ -4,7 +4,7 @@ Python versions older than 3.10.
 """
 from __future__ import annotations
 
-from ast import BinOp, Index, Load, Name, NodeTransformer, Subscript
+from ast import BinOp, BitOr, Index, Load, Name, NodeTransformer, Subscript
 from ast import Tuple as ASTTuple
 from ast import fix_missing_locations, parse
 from types import CodeType
@@ -23,11 +23,16 @@ type_substitutions = {
 class UnionTransformer(NodeTransformer):
     def visit_BinOp(self, node: BinOp) -> Any:
         self.generic_visit(node)
-        return Subscript(
-            value=Name(id="Union", ctx=Load()),
-            slice=Index(ASTTuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()),
-            ctx=Load(),
-        )
+        if isinstance(node.op, BitOr):
+            return Subscript(
+                value=Name(id="Union", ctx=Load()),
+                slice=Index(
+                    ASTTuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
+                ),
+                ctx=Load(),
+            )
+
+        return node
 
 
 def compile_type_hint(hint: str) -> CodeType:
