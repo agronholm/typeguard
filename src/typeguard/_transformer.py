@@ -205,18 +205,6 @@ class TypeguardTransformer(NodeTransformer):
                 )
                 self._used_imports.add("check_argument_types")
 
-                # debug
-                node.body.insert(
-                    0,
-                    Expr(
-                        Call(
-                            Name(id="print", ctx=Load()),
-                            [Call(Name(id="locals", ctx=Load()), [], [])],
-                            [],
-                        )
-                    ),
-                )
-
             # Add a checked "return None" to the end if there's no explicit return
             if node not in self._contains_yields:
                 if has_annotated_return and not isinstance(node.body[-1], Return):
