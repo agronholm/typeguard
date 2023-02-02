@@ -33,6 +33,7 @@ eval_globals.update(type_substitutions)
             "typing.Tuple | typing.List | Literal[-1]",
             "Union[Tuple, List, Literal[-1]]",
         ],
+        ["tuple[int, ...]", "Tuple[int, ...]"],
     ],
 )
 def test_union_transformer(inputval: str, expected: str) -> None:
