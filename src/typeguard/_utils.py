@@ -27,11 +27,18 @@ else:
         if not forwardref.__forward_evaluated__:
             forwardref.__forward_code__ = compile_type_hint(forwardref.__forward_arg__)
 
-        new_globals = type_substitutions.copy()
-        new_globals.update(memo.globals)
-        return forwardref._evaluate(
-            new_globals, memo.locals or new_globals, *evaluate_extra_args
-        )
+        try:
+            return forwardref._evaluate(memo.globals, memo.locals, *evaluate_extra_args)
+        except NameError:
+            if sys.version_info < (3, 9):
+                # Try again, with the type substitutions (list -> List etc.) in place
+                new_globals = type_substitutions.copy()
+                new_globals.update(memo.globals)
+                return forwardref._evaluate(
+                    new_globals, memo.locals or new_globals, *evaluate_extra_args
+                )
+
+            raise
 
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
