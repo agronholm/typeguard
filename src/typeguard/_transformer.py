@@ -21,6 +21,7 @@ from ast import (
     Str,
     Yield,
     alias,
+    copy_location,
     fix_missing_locations,
     keyword,
 )
@@ -208,22 +209,23 @@ class TypeguardTransformer(NodeTransformer):
             # Add a checked "return None" to the end if there's no explicit return
             if node not in self._contains_yields:
                 if has_annotated_return and not isinstance(node.body[-1], Return):
+                    return_node = Return(
+                        Call(
+                            Name(id="check_return_type", ctx=Load()),
+                            [
+                                Constant(None),
+                                self._load_names["call_memo"],
+                            ],
+                            [],
+                        )
+                    )
+
                     # Replace a placeholder "pass" at the end
                     if isinstance(node.body[-1], Pass):
+                        copy_location(return_node, node.body[-1])
                         del node.body[-1]
 
-                    node.body.append(
-                        Return(
-                            Call(
-                                Name(id="check_return_type", ctx=Load()),
-                                [
-                                    Constant(None),
-                                    self._load_names["call_memo"],
-                                ],
-                                [],
-                            )
-                        ),
-                    )
+                    node.body.append(return_node)
                     self._used_imports.add("check_return_type")
             else:
                 self._contains_yields.remove(node)
@@ -239,8 +241,10 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_Return(self, node: Return):
+        self.generic_visit(node)
         if self._parents[-1].returns:
-            retval = node.value or Constant(None)
+            old_node = node
+            retval = old_node.value or Constant(None)
             node = Return(
                 Call(
                     Name(id="check_return_type", ctx=Load()),
@@ -248,32 +252,31 @@ class TypeguardTransformer(NodeTransformer):
                     [],
                 )
             )
+            copy_location(node, old_node)
             self._used_imports.add("check_return_type")
 
-        self.generic_visit(node)
         return node
 
     def visit_Yield(self, node: Yield):
         self._contains_yields.add(self._parents[-1])
+        self.generic_visit(node)
         if self._parents[-1].returns:
-            yieldval = node.value or Name(id="None", ctx=Load())
-            yield_node = Yield(
-                Call(
-                    Name(id="check_yield_type", ctx=Load()),
-                    [yieldval, self._load_names["call_memo"]],
-                    [],
-                )
+            yieldval = node.value or Constant(None)
+            node.value = Call(
+                Name(id="check_yield_type", ctx=Load()),
+                [yieldval, self._load_names["call_memo"]],
+                [],
             )
             self._used_imports.add("check_yield_type")
 
+            old_node = node
             node = Call(
                 Name(id="check_send_type", ctx=Load()),
-                [yield_node, self._load_names["call_memo"]],
+                [old_node, self._load_names["call_memo"]],
                 [],
             )
+            copy_location(node, old_node)
             self._used_imports.add("check_send_type")
-        else:
-            self.generic_visit(node)
 
         return node
 
