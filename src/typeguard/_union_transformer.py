@@ -2,64 +2,41 @@
 Transforms lazily evaluated PEP 604 unions into typing.Unions, for compatibility with
 Python versions older than 3.10.
 """
+from __future__ import annotations
 
-from lark import Lark, Transformer
+from ast import BinOp, BitOr, Index, Load, Name, NodeTransformer, Subscript
+from ast import Tuple as ASTTuple
+from ast import fix_missing_locations, parse
+from types import CodeType
+from typing import Any, Dict, FrozenSet, List, Set, Tuple, Union
 
-
-class UnionTransformer(Transformer):
-    def typ(self, children):
-        return "".join(children)
-
-    def pep604_union(self, children):
-        return "Union[" + ", ".join(children) + "]"
-
-    def qualification(self, children):
-        return "[" + ", ".join(children) + "]"
-
-    def string(self, children):
-        return children[0].value
-
-    def reference(self, children):
-        return ".".join(children)
-
-    def name(self, children):
-        return children[0].value
-
-    def ellipsis(self, _):
-        return "..."
-
-    def number(self, children):
-        if len(children) == 2:  # minus sign
-            return f"-{children[1].value}"
-        else:
-            return str(children[0].value)
+type_substitutions = {
+    "dict": Dict,
+    "list": List,
+    "tuple": Tuple,
+    "set": Set,
+    "frozenset": FrozenSet,
+    "Union": Union,
+}
 
 
-HINT_PARSER = Lark(
-    """
-    ?hint: pep604_union | typ
-    pep604_union: typ ("|" typ)+
+class UnionTransformer(NodeTransformer):
+    def visit_BinOp(self, node: BinOp) -> Any:
+        self.generic_visit(node)
+        if isinstance(node.op, BitOr):
+            return Subscript(
+                value=Name(id="Union", ctx=Load()),
+                slice=Index(
+                    ASTTuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
+                ),
+                ctx=Load(),
+            )
 
-    typ: reference (qualification)? | qualification | number | string | ellipsis
-    reference: name ("." name)*
-    qualification: "[" hint ("," hint)* "]" | "[]"
-    number: (minus)? (DEC_NUMBER | HEX_NUMBER | BIN_NUMBER | OCT_NUMBER)
-    ?minus: "-"
-    ellipsis: "..."
-
-    %import python.name
-    %import python.string
-    %import python.DEC_NUMBER
-    %import python.HEX_NUMBER
-    %import python.BIN_NUMBER
-    %import python.OCT_NUMBER
-    %import common.WS
-    %ignore WS
-    """,
-    start="hint",
-)
+        return node
 
 
-def translate_type_hint(hint: str) -> str:
-    tree = HINT_PARSER.parse(hint)
-    return UnionTransformer(tree).transform(tree)
+def compile_type_hint(hint: str) -> CodeType:
+    parsed = parse(hint, "<string>", "eval")
+    UnionTransformer().visit(parsed)
+    fix_missing_locations(parsed)
+    return compile(parsed, "<string>", "eval")

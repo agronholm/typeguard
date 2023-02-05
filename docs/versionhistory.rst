@@ -7,6 +7,10 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - **BACKWARD INCOMPATIBLE** Removed the ``check_argument_types()`` and
   ``check_return_type()`` functions (use ``@typechecked`` instead)
+- Added support for PEP 604 union types (``X | Y``) on all Python versions (initial
+  implementation contributed by supersergiy)
+- Added support for generic built-in collection types (``list[int]`` et al) on all
+  Python versions
 - Added support for PEP 604 union types (``X | Y``) on all Python versions using a
   Lark based parser (contributed by supersergiy)
 - Added the possibility to have the import hook instrument all packages
