@@ -178,6 +178,15 @@ older Python versions in modules where ``from __future__ import annotations`` is
 present. Typeguard contains a special parser that lets it convert these to older
 :class:`~typing.Union` annotations internally.
 
+Support for generic built-in collection types on Pythons older than 3.9
+-----------------------------------------------------------------------
+
+The built-in collection types (:class:`list`, :class:`tuple`, :class:`dict`,
+:class:`set` and :class:`frozenset`) gained support for generics in Python 3.9.
+For earlier Python versions, Typeguard provides a way to work with such annotations by
+substituting them with the equivalent :mod:`typing` types. The only requirement for this
+to work is the use of ``from __future__ import annotations`` in all such modules.
+
 Using the pytest plugin
 -----------------------
 
