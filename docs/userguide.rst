@@ -10,9 +10,6 @@ There are several configuration options that can be set that influence how type 
 is done. To change the options, import :data:`typeguard.config` (which is of type
 :class:`~.TypeCheckConfiguration`) and set the attributes you want to change.
 
-You can also override the configuration in the type checking functions below by passing
-them a custom configuration object.
-
 Checking types directly
 -----------------------
 
@@ -117,42 +114,13 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
-To exclude specific functions or classes from run time type checking, use the
-:func:`@typeguard_ignore <typeguard_ignore>` decorator::
-
-    from typeguard import typeguard_ignore
-
-    @typeguard_ignore
-    def f(x: int) -> int:
-        return str(x)
-
-Unlike :func:`~typing.no_type_check`, this decorator has no effect on static type
-checking.
-
-Using PEP 604 unions on Pythons older than 3.10
------------------------------------------------
-
-The :pep:`604` ``X | Y`` notation was introduced in Python 3.10, but it can be used with
-older Python versions in modules where ``from __future__ import annotations`` is
-present. Typeguard contains a special parser that lets it convert these to older
-:class:`~typing.Union` annotations internally.
-
-Support for generic built-in collection types on Pythons older than 3.9
------------------------------------------------------------------------
-
-The built-in collection types (:class:`list`, :class:`tuple`, :class:`dict`,
-:class:`set` and :class:`frozenset`) gained support for generics in Python 3.9.
-For earlier Python versions, Typeguard provides a way to work with such annotations by
-substituting them with the equivalent :mod:`typing` types. The only requirement for this
-to work is the use of ``from __future__ import annotations`` in all such modules.
-
 Using the pytest plugin
 -----------------------
 
-Typeguard comes with a pytest plugin that installs the import hook (explained in the previous
-section). To use it, run ``pytest`` with the appropriate ``--typeguard-packages`` option. For
-example, if you wanted to instrument the ``foo.bar`` and ``xyz`` packages for type checking, you
-can do the following:
+Typeguard comes with a pytest plugin that installs the import hook (explained in the
+previous section). To use it, run ``pytest`` with the appropriate
+``--typeguard-packages`` option. For example, if you wanted to instrument the
+``foo.bar`` and ``xyz`` packages for type checking, you can do the following:
 
 .. code-block:: bash
 
@@ -160,8 +128,11 @@ can do the following:
 
 There is currently no support for specifying a customized module finder.
 
+Suppressing type checks
+-----------------------
+
 Temporarily disabling type checks
----------------------------------
++++++++++++++++++++++++++++++++++
 
 If you need to temporarily suppress type checking, you can use the
 :func:`~.suppress_type_checks` context manager to skip the checks::
@@ -174,57 +145,22 @@ If you need to temporarily suppress type checking, you can use the
 These context managers will stack, so type checking is only done once all such context
 managers have exited.
 
-Support for mock objects
-------------------------
+Permanently suppressing type checks for selected functions
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Typeguard handles the :class:`unittest.mock.Mock` class (and its subclasses) specially,
-bypassing any type checks when encountering instances of these classes. Note that any
-"spec" class passed to the mock object is currently not respected.
+To exclude specific functions from run time type checking, you can use one of the
+following decorators:
 
-Supported typing.* types
-------------------------
+  * :func:`@typeguard_ignore <typeguard_ignore>`: prevents the decorated
+    function from being instrumentated by the import hook
+  * :func:`@no_type_check <typing.no_type_check>`: as above, but disables static type
+    checking too
 
-The following types from the ``typing`` (and ``typing_extensions``) package have specialized
-support:
+For example, calling the function defined below will not result in a type check error
+when the containing module is instrumented by the import hook::
 
-================== =============================================================
-Type               Notes
-================== =============================================================
-``Any``            Any value passes when checked against ``Any``. An instance of a class
-                   inheriting from ``Any`` (``typing.Any`` on Python 3.11+, or
-                   ``typing_extensions.Any``) will pass any type check.
-``Annotated``      Original annotation is unwrapped and typechecked normally
-``AbstractSet``    Contents are typechecked
-``BinaryIO``       Specialized instance checks are performed
-``Callable``       Argument count is checked but types are not (yet)
-``Dict``           Keys and values are typechecked
-``IO``             Specialized instance checks are performed
-``List``           Contents are typechecked
-``Literal``
-``LiteralString``  Checked as :class:`str`
-``Mapping``        Keys and values are typechecked
-``MutableMapping`` Keys and values are typechecked
-``NamedTuple``     Field values are typechecked
-``Never``          Supported in argument and return type annotations
-``NoReturn``       Supported in argument and return type annotations
-``Protocol``       Run-time protocols are checked with :func:`isinstance`,
-                   others are ignored
-``Self``           Assumes first call argument to be a valid ``Self``; won't know if
-                   the called function is actually a method or not
-``Set``            Contents are typechecked
-``Sequence``       Contents are typechecked
-``TextIO``         Specialized instance checks are performed
-``Tuple``          Contents are typechecked
-``Type``
-``TypeGuard``      Checked as :class`bool`
-``TypedDict``      Contents are typechecked; On Python 3.8 and earlier,
-                   ``total`` from superclasses is not respected (see `#101`_ for
-                   more information); On Python 3.9.0, false positives can happen when
-                   constructing ``TypedDict`` classes using old-style syntax (see
-                   `issue 42059`_)
-``TypeVar``        Constraints and bound types are typechecked
-``Union``          :pep:`604` unions are supported on Python 3.10+
-================== =============================================================
+    from typeguard import typeguard_ignore
 
-.. _#101: https://github.com/agronholm/typeguard/issues/101
-.. _issue 42059: https://bugs.python.org/issue42059
+    @typeguard_ignore
+    def f(x: int) -> int:
+        return str(x)

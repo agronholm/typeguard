@@ -276,10 +276,9 @@ def suppress_type_checks() -> Generator[None, None, None]:
     """
     A context manager that can be used to temporarily suppress type checks.
 
-    While this context manager is active, :func:`check_argument_types`,
-    :func:`check_return_type`, :func:`@typechecked <typechecked>` and :func:`check_type`
-    all skip the actual type checking. These context managers can be nested. Type
-    checking will resume once the last context manager block is exited.
+    While this context manager is active, :func:`check_type` and any automatically
+    instrumented functions skip the actual type checking. These context managers can be
+    nested. Type checking will resume once the last context manager block is exited.
 
     This context manager is thread-safe.
 
