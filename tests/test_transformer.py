@@ -2,12 +2,14 @@ import sys
 from ast import parse
 from textwrap import dedent
 
+import pytest
+
 from typeguard._transformer import TypeguardTransformer
 
 if sys.version_info >= (3, 9):
     from ast import unparse
 else:
-    from astunparse import unparse
+    pytest.skip("Requires Python 3.9 or newer", allow_module_level=True)
 
 
 def test_arguments_only() -> None:
