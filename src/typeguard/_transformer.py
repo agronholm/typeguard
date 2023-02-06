@@ -22,6 +22,7 @@ from ast import (
     Yield,
     alias,
     copy_location,
+    expr,
     fix_missing_locations,
 )
 from collections.abc import Generator, Sequence
@@ -47,6 +48,10 @@ anytype_names = (
     "typing.Any",
     "typing_extensions.Any",
 )
+ignore_decorators = (
+    "typing.no_type_check",
+    "typeguard.typeguard_ignore",
+)
 
 
 @dataclass
@@ -57,10 +62,7 @@ class TransformMemo:
     return_annotation: Expr | None = None
     is_async: bool = False
     local_names: set[str] = field(init=False, default_factory=set)
-    any_names: set[str] = field(init=False, default_factory=set)
-    typing_module_names: set[str] = field(init=False, default_factory=set)
-    typeguard_module_name: str | None = field(init=False, default=None)
-    typechecked_import_name: str | None = field(init=False, default=None)
+    imported_names: dict[str, str] = field(init=False, default_factory=dict)
     load_names: dict[str, Name] = field(init=False, default_factory=dict)
     store_names: dict[str, Name] = field(init=False, default_factory=dict)
     has_yield_expressions: bool = field(init=False, default=False)
@@ -116,27 +118,28 @@ class TransformMemo:
                 node.body.insert(i, ImportFrom("typeguard._functions", aliases, 0))
                 break
 
-    def is_any(self, annotation: Expr | None) -> bool:
-        if annotation is None:
+    def name_matches(self, expression: expr | None, *names: str) -> bool:
+        if expression is None:
             return False
 
-        # Check for "Any"
-        if isinstance(annotation, Name) and annotation.id in self.any_names:
+        path: list[str] = []
+        top_expression = expression
+        while isinstance(top_expression, Attribute):
+            path.insert(0, top_expression.attr)
+            top_expression = top_expression.value
+
+        if not isinstance(top_expression, Name):
+            return False
+
+        translated = self.imported_names.get(top_expression.id, top_expression.id)
+        path.insert(0, translated)
+        joined_path = ".".join(path)
+        if joined_path in names:
             return True
-
-        # Check for "typing.Any" and "typing_extensions.Any"
-        if (
-            isinstance(annotation, Attribute)
-            and isinstance(annotation, Name)
-            and annotation.value.id in self.typing_module_names
-            and annotation.attr == "Any"
-        ):
-            return True
-
-        if self.parent:
-            return self.parent.is_any(annotation)
-
-        return False
+        elif self.parent:
+            return self.parent.name_matches(expression, *names)
+        else:
+            return False
 
 
 class TypeguardTransformer(NodeTransformer):
@@ -181,22 +184,15 @@ class TypeguardTransformer(NodeTransformer):
     def visit_Import(self, node: Import) -> Import:
         for name in node.names:
             self._memo.local_names.add(name.asname or name.name)
-            if name.name == "typeguard":
-                self._memo.typeguard_module_name = name.asname or name.name
-            elif name.name in ("typing", "typing_extensions"):
-                self._memo.typing_module_names.add(name.asname or name.name)
+            self._memo.imported_names[name.asname or name.name] = name.name
 
         return node
 
     def visit_ImportFrom(self, node: ImportFrom) -> ImportFrom:
         for name in node.names:
-            self._memo.local_names.add(name.asname or name.name)
-            if node.module == "typeguard":
-                if name.name == "typechecked":
-                    self._memo.typechecked_import_name = name.asname or name.name
-            elif node.module in ("typing", "typing_extensions"):
-                if name.name == "Any":
-                    self._memo.any_names.add(name.asname or name.name)
+            alias = name.asname or name.name
+            self._memo.local_names.add(alias)
+            self._memo.imported_names[alias] = f"{node.module}.{name.name}"
 
         return node
 
@@ -228,17 +224,25 @@ class TypeguardTransformer(NodeTransformer):
         ):
             return None
 
+        # Skip instrumentation if we're instrumenting the whole module and the function
+        # contains either @no_type_check or @typeguard_ignore
+        if self._target_path is None:
+            for decorator in node.decorator_list:
+                if self._memo.name_matches(decorator, *ignore_decorators):
+                    return node
+
         with self._use_memo(node):
             self.generic_visit(node)
 
             if self._target_path is None or self._memo.path == self._target_path:
                 has_annotated_args = any(
-                    arg.annotation and not self._memo.is_any(arg.annotation)
+                    arg.annotation
+                    and not self._memo.name_matches(arg.annotation, *anytype_names)
                     for arg in node.args.args
                 )
-                has_annotated_return = bool(node.returns) and not self._memo.is_any(
+                has_annotated_return = bool(
                     node.returns
-                )
+                ) and not self._memo.name_matches(node.returns, *anytype_names)
 
                 if has_annotated_args:
                     func_name = self._get_typeguard_import("check_argument_types")
@@ -287,10 +291,16 @@ class TypeguardTransformer(NodeTransformer):
                     if self._memo.parent and isinstance(
                         self._memo.parent.node, ClassDef
                     ):
-                        for expr in node.decorator_list:
-                            if isinstance(expr, Name) and expr.id == "staticmethod":
+                        for decorator in node.decorator_list:
+                            if (
+                                isinstance(decorator, Name)
+                                and decorator.id == "staticmethod"
+                            ):
                                 break
-                            elif isinstance(expr, Name) and expr.id == "classmethod":
+                            elif (
+                                isinstance(decorator, Name)
+                                and decorator.id == "classmethod"
+                            ):
                                 extra_args.append(
                                     Name(id=node.args.args[0].arg, ctx=Load())
                                 )
@@ -373,7 +383,9 @@ class TypeguardTransformer(NodeTransformer):
         if (
             self._memo.should_instrument
             and self._memo.return_annotation
-            and not self._memo.is_any(self._memo.return_annotation)
+            and not self._memo.name_matches(
+                self._memo.return_annotation, *anytype_names
+            )
         ):
             func_name = self._get_typeguard_import("check_return_type")
             old_node = node
@@ -395,7 +407,9 @@ class TypeguardTransformer(NodeTransformer):
         if (
             self._memo.should_instrument
             and self._memo.return_annotation
-            and not self._memo.is_any(self._memo.return_annotation)
+            and not self._memo.name_matches(
+                self._memo.return_annotation, *anytype_names
+            )
         ):
             func_name = self._get_typeguard_import("check_yield_type")
             yieldval = node.value or Constant(None)

@@ -31,8 +31,8 @@ else:
         except NameError:
             if sys.version_info < (3, 9):
                 # Try again, with the type substitutions (list -> List etc.) in place
-                new_globals = type_substitutions.copy()
-                new_globals.update(memo.globals)
+                new_globals = memo.globals.copy()
+                new_globals.update(type_substitutions)
                 return forwardref._evaluate(
                     new_globals, memo.locals or new_globals, *evaluate_extra_args
                 )

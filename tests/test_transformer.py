@@ -141,13 +141,61 @@ def test_pass_only() -> None:
     )
 
 
-def test_no_instrumentation() -> None:
+@pytest.mark.parametrize(
+    "import_line, decorator",
+    [
+        pytest.param("from typing import no_type_check", "@no_type_check"),
+        pytest.param("from typeguard import typeguard_ignore", "@typeguard_ignore"),
+        pytest.param("import typing", "@typing.no_type_check"),
+        pytest.param("import typeguard", "@typeguard.typeguard_ignore"),
+    ],
+)
+def test_no_type_check_decorator(import_line: str, decorator: str) -> None:
     node = parse(
         dedent(
-            """
-            from typing import Any
+            f"""
+            {import_line}
 
-            def foo(x, y: Any) -> Any:
+            {decorator}
+            def foo(x: int) -> int:
+                return x
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            f"""
+            {import_line}
+
+            {decorator}
+            def foo(x: int) -> int:
+                return x
+        """
+        ).strip()
+    )
+
+
+@pytest.mark.parametrize(
+    "import_line, annotation",
+    [
+        pytest.param("from typing import Any", "Any"),
+        pytest.param("from typing import Any as AlterAny", "AlterAny"),
+        pytest.param("from typing_extensions import Any", "Any"),
+        pytest.param("from typing_extensions import Any as AlterAny", "AlterAny"),
+        pytest.param("import typing", "typing.Any"),
+        pytest.param("import typing as typing_alter", "typing_alter.Any"),
+        pytest.param("import typing_extensions as typing_alter", "typing_alter.Any"),
+    ],
+)
+def test_any_only(import_line: str, annotation: str) -> None:
+    node = parse(
+        dedent(
+            f"""
+            {import_line}
+
+            def foo(x, y: {annotation}) -> {annotation}:
                 return 1
             """
         )
@@ -156,12 +204,12 @@ def test_no_instrumentation() -> None:
     assert (
         unparse(node)
         == dedent(
-            """
-        from typing import Any
+            f"""
+            {import_line}
 
-        def foo(x, y: Any) -> Any:
-            return 1
-        """
+            def foo(x, y: {annotation}) -> {annotation}:
+                return 1
+            """
         ).strip()
     )
 
