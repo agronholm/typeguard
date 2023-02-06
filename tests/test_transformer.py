@@ -26,7 +26,7 @@ def test_arguments_only() -> None:
         unparse(node)
         == dedent(
             """
-        from typeguard import CallMemo, check_argument_types
+        from typeguard._functions import CallMemo, check_argument_types
 
         def foo(x: int) -> None:
             call_memo = CallMemo(foo, locals())
@@ -50,7 +50,7 @@ def test_return_only() -> None:
         unparse(node)
         == dedent(
             """
-        from typeguard import CallMemo, check_return_type
+        from typeguard._functions import CallMemo, check_return_type
 
         def foo(x) -> int:
             call_memo = CallMemo(foo, locals())
@@ -77,8 +77,8 @@ def test_yield() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard import CallMemo, check_return_type, check_send_type, \
-check_yield_type
+            from typeguard._functions import CallMemo, check_return_type, \
+check_send_type, check_yield_type
             from collections.abc import Generator
 
             def foo(x) -> Generator[int, Any, None]:
@@ -108,7 +108,7 @@ def test_async_yield() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard import CallMemo, check_send_type, check_yield_type
+            from typeguard._functions import CallMemo, check_send_type, check_yield_type
             from collections.abc import AsyncGenerator
 
             async def foo(x) -> AsyncGenerator[int, Any]:
@@ -183,8 +183,8 @@ def test_avoid_global_names() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard import CallMemo as CallMemo_, check_argument_types as \
-check_argument_types_, check_return_type as check_return_type_
+            from typeguard._functions import CallMemo as CallMemo_, \
+check_argument_types as check_argument_types_, check_return_type as check_return_type_
             call_memo = CallMemo = check_argument_types = check_return_type = None
 
             def foo(x: int) -> int:
@@ -213,8 +213,8 @@ def test_avoid_local_names() -> None:
         == dedent(
             """
             def foo(x: int) -> int:
-                from typeguard import CallMemo as CallMemo_, check_argument_types as \
-check_argument_types_, check_return_type as check_return_type_
+                from typeguard._functions import CallMemo as CallMemo_, \
+check_argument_types as check_argument_types_, check_return_type as check_return_type_
                 call_memo_ = CallMemo_(foo, locals())
                 check_argument_types_(call_memo_)
                 call_memo = CallMemo = check_argument_types = check_return_type = None
@@ -242,7 +242,7 @@ def test_method() -> None:
             class Foo:
 
                 def foo(self, x: int) -> int:
-                    from typeguard import CallMemo, check_argument_types, \
+                    from typeguard._functions import CallMemo, check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals(), self.__class__)
                     check_argument_types(call_memo)
@@ -272,7 +272,7 @@ def test_classmethod() -> None:
 
                 @classmethod
                 def foo(cls, x: int) -> int:
-                    from typeguard import CallMemo, check_argument_types, \
+                    from typeguard._functions import CallMemo, check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals(), cls)
                     check_argument_types(call_memo)
@@ -302,7 +302,7 @@ def test_staticmethod() -> None:
 
                 @staticmethod
                 def foo(x: int) -> int:
-                    from typeguard import CallMemo, check_argument_types, \
+                    from typeguard._functions import CallMemo, check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals())
                     check_argument_types(call_memo)
@@ -335,7 +335,7 @@ def test_local_function() -> None:
             def wrapper():
 
                 def foo(x: int) -> int:
-                    from typeguard import CallMemo, check_argument_types, \
+                    from typeguard._functions import CallMemo, check_argument_types, \
 check_return_type
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
@@ -379,8 +379,8 @@ def test_function_local_class_method() -> None:
                     class Bar:
 
                         def method(self, x: int) -> int:
-                            from typeguard import CallMemo, check_argument_types, \
-check_return_type
+                            from typeguard._functions import CallMemo, \
+check_argument_types, check_return_type
                             call_memo = CallMemo(method, locals(), self.__class__)
                             check_argument_types(call_memo)
                             return check_return_type(x, call_memo)

@@ -113,7 +113,7 @@ class TransformMemo:
                     alias(orig_name, new_name.id if orig_name != new_name.id else None)
                     for orig_name, new_name in sorted(self.load_names.items())
                 ]
-                node.body.insert(i, ImportFrom("typeguard", aliases, 0))
+                node.body.insert(i, ImportFrom("typeguard._functions", aliases, 0))
                 break
 
     def is_any(self, annotation: Expr | None) -> bool:
