@@ -41,6 +41,7 @@ test = [
     "pytest",
     "lark >= 1.1.5",
     'mypy >= 0.991; python_implementation != "PyPy"',
+    "astunparse; python_version < '3.9'",
 ]
 doc = [
     "packaging",

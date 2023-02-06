@@ -11,7 +11,6 @@ from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
-from ._utils import find_function
 
 if sys.version_info >= (3, 11):
     from typing import Never
@@ -103,7 +102,7 @@ def check_type(
     return value
 
 
-def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
+def check_argument_types(memo: CallMemo) -> Literal[True]:
     """
     Check that the argument values match the annotated types.
 
@@ -117,19 +116,6 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     """
     if type_checks_suppressed:
         return True
-
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return True
-
-        memo = CallMemo(func, frame.f_locals)
 
     for argname, expected_type in memo.type_hints.items():
         if argname != "return" and argname in memo.arguments:
@@ -155,7 +141,7 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     return True
 
 
-def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
+def check_return_type(retval: T, memo: CallMemo) -> T:
     """
     Check that the return value is compatible with the return value annotation in the
     function.
@@ -174,19 +160,6 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     """
     if type_checks_suppressed:
         return retval
-
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return retval
-
-        memo = CallMemo(func, frame.f_locals)
 
     if "return" in memo.type_hints:
         annotation = memo.type_hints["return"]
@@ -244,7 +217,7 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
     return sendval
 
 
-def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
+def check_yield_type(yieldval: T, memo: CallMemo) -> T:
     """
     Check that the yielded value is compatible with the generator return value
     annotation in the function.
@@ -263,19 +236,6 @@ def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
     """
     if type_checks_suppressed:
         return yieldval
-
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return yieldval
-
-        memo = CallMemo(func, frame.f_locals)
 
     if "yield" in memo.type_hints:
         annotation = memo.type_hints["yield"]
