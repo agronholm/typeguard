@@ -1,24 +1,42 @@
 from __future__ import annotations
 
+import sys
+from _ast import Dict
 from ast import (
+    Add,
+    AnnAssign,
     Assign,
     AsyncFunctionDef,
     Attribute,
+    AugAssign,
+    BitAnd,
+    BitOr,
+    BitXor,
     Call,
     ClassDef,
     Constant,
+    Div,
     Expr,
+    FloorDiv,
     FunctionDef,
     Import,
     ImportFrom,
     Load,
+    LShift,
+    MatMult,
+    Mod,
     Module,
+    Mult,
     Name,
     NodeTransformer,
     Pass,
+    Pow,
     Return,
+    RShift,
     Store,
     Str,
+    Sub,
+    Tuple,
     Yield,
     alias,
     copy_location,
@@ -29,6 +47,9 @@ from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
+
+if sys.version_info >= (3, 8):
+    from ast import NamedExpr
 
 generator_names = (
     "typing.Generator",
@@ -52,6 +73,21 @@ ignore_decorators = (
     "typing.no_type_check",
     "typeguard.typeguard_ignore",
 )
+aug_assign_functions = {
+    Add: "__iadd__",
+    Sub: "__isub__",
+    Mult: "__imul__",
+    MatMult: "__imatmul__",
+    Div: "__itruediv__",
+    FloorDiv: "__ifloordiv__",
+    Mod: "__imod__",
+    Pow: "__ipow__",
+    LShift: "__ilshift__",
+    RShift: "__irshift__",
+    BitAnd: "__iand__",
+    BitXor: "__ixor__",
+    BitOr: "__ior__",
+}
 
 
 @dataclass
@@ -69,6 +105,7 @@ class TransformMemo:
     has_return_expressions: bool = field(init=False, default=False)
     call_memo_name: Name | None = field(init=False, default=None)
     should_instrument: bool = field(init=False, default=True)
+    variable_annotations: dict[str, expr] = field(init=False, default_factory=dict)
 
     def get_unused_name(self, name: str) -> str:
         while True:
@@ -232,153 +269,159 @@ class TypeguardTransformer(NodeTransformer):
                     return node
 
         with self._use_memo(node):
-            self.generic_visit(node)
-
             if self._target_path is None or self._memo.path == self._target_path:
-                has_annotated_args = any(
-                    arg.annotation
-                    and not self._memo.name_matches(arg.annotation, *anytype_names)
+                arg_annotations = {
+                    arg.arg: arg.annotation
                     for arg in node.args.args
-                )
+                    if arg.annotation is not None
+                    and not self._memo.name_matches(arg.annotation, *anytype_names)
+                }
+                if arg_annotations:
+                    self._memo.variable_annotations.update(arg_annotations)
+
                 has_annotated_return = bool(
                     node.returns
                 ) and not self._memo.name_matches(node.returns, *anytype_names)
+            else:
+                arg_annotations = None
+                has_annotated_return = False
 
-                if has_annotated_args:
-                    func_name = self._get_typeguard_import("check_argument_types")
-                    node.body.insert(
-                        0,
-                        Expr(
-                            Call(
-                                func_name,
-                                [self._memo.get_call_memo_name()],
-                                [],
-                            )
-                        ),
-                    )
+            self.generic_visit(node)
 
-                # Add a checked "return None" to the end if there's no explicit return
-                # Skip if the return annotation is None or Any
-                if not self._memo.is_async or not self._memo.has_yield_expressions:
-                    if has_annotated_return and not isinstance(node.body[-1], Return):
-                        if (
-                            not isinstance(self._memo.return_annotation, Constant)
-                            or self._memo.return_annotation.value is not None
-                        ):
-                            func_name = self._get_typeguard_import("check_return_type")
-                            return_node = Return(
-                                Call(
-                                    func_name,
-                                    [
-                                        Constant(None),
-                                        self._memo.get_call_memo_name(),
-                                    ],
-                                    [],
-                                )
-                            )
-
-                            # Replace a placeholder "pass" at the end
-                            if isinstance(node.body[-1], Pass):
-                                copy_location(return_node, node.body[-1])
-                                del node.body[-1]
-
-                            node.body.append(return_node)
-
-                # Insert code to create the call memo, if it was ever needed for this
-                # function
-                if self._memo.call_memo_name:
-                    extra_args: list[expr] = []
-                    if self._memo.parent and isinstance(
-                        self._memo.parent.node, ClassDef
-                    ):
-                        for decorator in node.decorator_list:
-                            if (
-                                isinstance(decorator, Name)
-                                and decorator.id == "staticmethod"
-                            ):
-                                break
-                            elif (
-                                isinstance(decorator, Name)
-                                and decorator.id == "classmethod"
-                            ):
-                                extra_args.append(
-                                    Name(id=node.args.args[0].arg, ctx=Load())
-                                )
-                                break
-                        else:
-                            if node.args.args:
-                                extra_args.append(
-                                    Attribute(
-                                        Name(id=node.args.args[0].arg, ctx=Load()),
-                                        "__class__",
-                                        ctx=Load(),
-                                    )
-                                )
-
-                    # Construct the function reference
-                    # Nested functions get special treatment: the function name is added
-                    # to free variables (and the closure of the resulting function)
-                    func_reference: expr = Name(id=node.name, ctx=Load())
-                    previous_attribute: Attribute | None = None
-                    parent_memo = self._memo.parent
-                    while parent_memo:
-                        if isinstance(
-                            parent_memo.node, (FunctionDef, AsyncFunctionDef)
-                        ):
-                            # This is a nested function. Use the function name as-is.
-                            func_reference = Name(id=node.name, ctx=Load())
-                            break
-                        elif not isinstance(parent_memo.node, ClassDef):
-                            break
-
-                        attrname = (
-                            previous_attribute.value.id
-                            if previous_attribute
-                            else func_reference.id
+            if arg_annotations:
+                func_name = self._get_typeguard_import("check_argument_types")
+                node.body.insert(
+                    0,
+                    Expr(
+                        Call(
+                            func_name,
+                            [self._memo.get_call_memo_name()],
+                            [],
                         )
-                        attribute = Attribute(
-                            Name(id=parent_memo.node.name, ctx=Load()),
-                            attrname,
-                            ctx=Load(),
-                        )
-                        if previous_attribute is None:
-                            func_reference = attribute
-                        else:
-                            previous_attribute.value = attribute
+                    ),
+                )
 
-                        previous_attribute = attribute
-                        parent_memo = parent_memo.parent
-
-                    self._memo.call_memo_name.id = self._memo.get_unused_name(
-                        "call_memo"
-                    )
-                    call_memo_store_name = Name(
-                        id=self._memo.call_memo_name.id, ctx=Store()
-                    )
-                    locals_call = Call(Name(id="locals", ctx=Load()), [], [])
-                    memo_expr = Call(
-                        self._get_typeguard_import("CallMemo"),
-                        [func_reference, locals_call, *extra_args],
+            # Add a checked "return None" to the end if there's no explicit return
+            # Skip if the return annotation is None or Any
+            if (
+                has_annotated_return
+                and (not self._memo.is_async or not self._memo.has_yield_expressions)
+                and not isinstance(node.body[-1], Return)
+                and (
+                    not isinstance(self._memo.return_annotation, Constant)
+                    or self._memo.return_annotation.value is not None
+                )
+            ):
+                func_name = self._get_typeguard_import("check_return_type")
+                return_node = Return(
+                    Call(
+                        func_name,
+                        [
+                            Constant(None),
+                            self._memo.get_call_memo_name(),
+                        ],
                         [],
                     )
-                    node.body.insert(
-                        0,
-                        Assign([call_memo_store_name], memo_expr),
+                )
+
+                # Replace a placeholder "pass" at the end
+                if isinstance(node.body[-1], Pass):
+                    copy_location(return_node, node.body[-1])
+                    del node.body[-1]
+
+                node.body.append(return_node)
+
+            # Insert code to create the call memo, if it was ever needed for this
+            # function
+            if self._memo.call_memo_name:
+                extra_args: list[expr] = []
+                if self._memo.parent and isinstance(self._memo.parent.node, ClassDef):
+                    for decorator in node.decorator_list:
+                        if (
+                            isinstance(decorator, Name)
+                            and decorator.id == "staticmethod"
+                        ):
+                            break
+                        elif (
+                            isinstance(decorator, Name)
+                            and decorator.id == "classmethod"
+                        ):
+                            extra_args.append(
+                                Name(id=node.args.args[0].arg, ctx=Load())
+                            )
+                            break
+                    else:
+                        if node.args.args:
+                            extra_args.append(
+                                Attribute(
+                                    Name(id=node.args.args[0].arg, ctx=Load()),
+                                    "__class__",
+                                    ctx=Load(),
+                                )
+                            )
+
+                # Construct the function reference
+                # Nested functions get special treatment: the function name is added
+                # to free variables (and the closure of the resulting function)
+                func_reference: expr = Name(id=node.name, ctx=Load())
+                previous_attribute: Attribute | None = None
+                parent_memo = self._memo.parent
+                while parent_memo:
+                    if isinstance(parent_memo.node, (FunctionDef, AsyncFunctionDef)):
+                        # This is a nested function. Use the function name as-is.
+                        func_reference = Name(id=node.name, ctx=Load())
+                        break
+                    elif not isinstance(parent_memo.node, ClassDef):
+                        break
+
+                    attrname = (
+                        previous_attribute.value.id
+                        if previous_attribute
+                        else func_reference.id
                     )
+                    attribute = Attribute(
+                        Name(id=parent_memo.node.name, ctx=Load()),
+                        attrname,
+                        ctx=Load(),
+                    )
+                    if previous_attribute is None:
+                        func_reference = attribute
+                    else:
+                        previous_attribute.value = attribute
 
-                    self._memo.insert_typeguard_imports(node)
+                    previous_attribute = attribute
+                    parent_memo = parent_memo.parent
 
-                    # Rmove any placeholder "pass" at the end
-                    if isinstance(node.body[-1], Pass):
-                        del node.body[-1]
+                self._memo.call_memo_name.id = self._memo.get_unused_name("call_memo")
+                call_memo_store_name = Name(
+                    id=self._memo.call_memo_name.id, ctx=Store()
+                )
+                locals_call = Call(Name(id="locals", ctx=Load()), [], [])
+                memo_expr = Call(
+                    self._get_typeguard_import("CallMemo"),
+                    [func_reference, locals_call, *extra_args],
+                    [],
+                )
+                node.body.insert(
+                    0,
+                    Assign([call_memo_store_name], memo_expr),
+                )
+
+                self._memo.insert_typeguard_imports(node)
+
+                # Rmove any placeholder "pass" at the end
+                if isinstance(node.body[-1], Pass):
+                    del node.body[-1]
 
         return node
 
-    def visit_AsyncFunctionDef(self, node: AsyncFunctionDef):
+    def visit_AsyncFunctionDef(
+        self, node: AsyncFunctionDef
+    ) -> FunctionDef | AsyncFunctionDef | None:
         self.visit_FunctionDef(node)
         return node
 
-    def visit_Return(self, node: Return):
+    def visit_Return(self, node: Return) -> Return:
         self.generic_visit(node)
         if (
             self._memo.should_instrument
@@ -401,7 +444,7 @@ class TypeguardTransformer(NodeTransformer):
 
         return node
 
-    def visit_Yield(self, node: Yield):
+    def visit_Yield(self, node: Yield) -> Yield:
         self._memo.has_yield_expressions = True
         self.generic_visit(node)
         if (
@@ -427,5 +470,107 @@ class TypeguardTransformer(NodeTransformer):
                 [],
             )
             copy_location(node, old_node)
+
+        return node
+
+    def visit_AnnAssign(self, node: AnnAssign) -> Any:
+        self.generic_visit(node)
+
+        if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
+            if isinstance(node.target, Name):
+                self._memo.variable_annotations[node.target.id] = node.annotation
+
+            if node.value:
+                func_name = self._get_typeguard_import("check_variable_assignment")
+                expected_types = Dict(
+                    keys=[Constant(node.target.id)], values=[node.annotation]
+                )
+                node.value = Call(
+                    func_name,
+                    [node.value, expected_types, self._memo.get_call_memo_name()],
+                    [],
+                )
+
+        return node
+
+    def visit_Assign(self, node: Assign) -> Any:
+        self.generic_visit(node)
+
+        # Only instrument function-local assignments
+        if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
+            annotations_: dict[str, Any] = {}
+            for target in node.targets:
+                names: list[Name]
+                if isinstance(target, Name):
+                    names = [target]
+                elif isinstance(target, Tuple):
+                    names = target.elts
+                else:
+                    continue
+
+                for name in names:
+                    annotation = self._memo.variable_annotations.get(name.id)
+                    if annotation is not None:
+                        annotations_[name.id] = annotation
+
+            if annotations_:
+                func_name = self._get_typeguard_import("check_variable_assignment")
+                keys = [Constant(argname) for argname in annotations_.keys()]
+                values = list(annotations_.values())
+                expected_types = Dict(keys=keys, values=values)
+                node.value = Call(
+                    func_name,
+                    [node.value, expected_types, self._memo.get_call_memo_name()],
+                    [],
+                )
+
+        return node
+
+    def visit_NamedExpr(self, node: NamedExpr) -> Any:
+        # Only instrument function-local assignments
+        if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)) and isinstance(
+            node.target, Name
+        ):
+            # Bail out if no matching annotation is found
+            annotation = self._memo.variable_annotations.get(node.target.id)
+            if annotation is None:
+                return node
+
+            func_name = self._get_typeguard_import("check_variable_assignment")
+            expected_types = Dict(keys=[Constant(node.target.id)], values=[annotation])
+            node.value = Call(
+                func_name,
+                [node.value, expected_types, self._memo.get_call_memo_name()],
+                [],
+            )
+
+        return node
+
+    def visit_AugAssign(self, node: AugAssign) -> Any:
+        # Only instrument function-local assignments
+        if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)) and isinstance(
+            node.target, Name
+        ):
+            # Bail out if no matching annotation is found
+            annotation = self._memo.variable_annotations.get(node.target.id)
+            if annotation is None:
+                return node
+
+            # Bail out if the operator is not found (newer Python version?)
+            try:
+                operator_func = aug_assign_functions[node.op.__class__]
+            except KeyError:
+                return node
+
+            operator_call = Call(
+                Attribute(node.target, operator_func, ctx=Load()), [node.value], []
+            )
+            expected_types = Dict(keys=[Constant(node.target.id)], values=[annotation])
+            check_call = Call(
+                self._get_typeguard_import("check_variable_assignment"),
+                [operator_call, expected_types, self._memo.get_call_memo_name()],
+                [],
+            )
+            node = Assign(targets=[node.target], value=check_call)
 
         return node

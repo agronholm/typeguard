@@ -260,6 +260,25 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
     return yieldval
 
 
+def check_variable_assignment(
+    value: object, expected_annotations: dict[str, Any], memo: CallMemo
+) -> Any:
+    if type_checks_suppressed:
+        return
+
+    for argname, expected_type in expected_annotations.items():
+        try:
+            check_type_internal(value, expected_type, memo)
+        except TypeCheckError as exc:
+            exc.append_path_element(argname)
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
+            else:
+                raise
+
+    return value
+
+
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
     """
     Emit a warning on a type mismatch.

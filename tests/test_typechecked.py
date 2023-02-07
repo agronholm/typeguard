@@ -14,7 +14,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, typechecked
+from typeguard import TypeCheckError, suppress_type_checks, typechecked
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -386,3 +386,12 @@ def test_decorator_before_staticmethod():
     pytest.raises(TypeCheckError, Foo().method, "bar").match(
         'argument "x" is not an instance of int'
     )
+
+
+def test_suppressed_checking():
+    @typechecked
+    def foo(x: str) -> None:
+        pass
+
+    with suppress_type_checks():
+        foo(1)

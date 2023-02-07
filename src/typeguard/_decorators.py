@@ -33,9 +33,7 @@ def make_cell():
 
 
 def instrument(f: T_CallableOrType) -> Callable | str:
-    if not getattr(f, "__annotations__", None):
-        return "no type annotations present"
-    elif not getattr(f, "__code__", None):
+    if not getattr(f, "__code__", None):
         return "no code associated"
     elif not getattr(f, "__module__", None):
         return "__module__ attribute is not set"
