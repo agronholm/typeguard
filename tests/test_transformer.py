@@ -607,18 +607,19 @@ call_memo)
             )
         )
         TypeguardTransformer().visit(node)
+        target = "x, y, z" if sys.version_info >= (3, 11) else "(x, y, z)"
         assert (
             unparse(node)
             == dedent(
-                """
+                f"""
                 from typeguard._functions import CallMemo, check_variable_assignment
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
                     z: bytes
-                    (x, y, z) = check_variable_assignment(otherfunc(), \
-{'x': int, 'z': bytes}, call_memo)
+                    {target} = check_variable_assignment(otherfunc(), \
+{{'x': int, 'z': bytes}}, call_memo)
                 """
             ).strip()
         )
