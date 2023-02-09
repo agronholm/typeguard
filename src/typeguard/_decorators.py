@@ -37,6 +37,8 @@ def instrument(f: T_CallableOrType) -> Callable | str:
         return "no code associated"
     elif not getattr(f, "__module__", None):
         return "__module__ attribute is not set"
+    elif f.__code__.co_filename == "<stdin>":
+        return "cannot instrument functions defined in a REPL"
 
     target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
     module = sys.modules[f.__module__]
@@ -46,7 +48,7 @@ def instrument(f: T_CallableOrType) -> Callable | str:
     instrumentor.visit(module_ast)
     module_code = compile(module_ast, module.__file__, "exec", dont_inherit=True)
     new_code = module_code
-    for level, name in enumerate(target_path):
+    for name in target_path:
         for const in new_code.co_consts:
             if isinstance(const, CodeType):
                 if const.co_name == name:
