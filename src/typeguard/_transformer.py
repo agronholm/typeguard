@@ -261,6 +261,14 @@ class TypeguardTransformer(NodeTransformer):
         ):
             return None
 
+        for decorator in node.decorator_list.copy():
+            if self._memo.name_matches(decorator, "typing.overload"):
+                # Remove overloads entirely
+                return None
+            elif self._memo.name_matches(decorator, "typeguard.typechecked"):
+                # Remove @typechecked decorators to prevent duplicate instrumentation
+                node.decorator_list.remove(decorator)
+
         # Skip instrumentation if we're instrumenting the whole module and the function
         # contains either @no_type_check or @typeguard_ignore
         if self._target_path is None:
@@ -418,8 +426,7 @@ class TypeguardTransformer(NodeTransformer):
     def visit_AsyncFunctionDef(
         self, node: AsyncFunctionDef
     ) -> FunctionDef | AsyncFunctionDef | None:
-        self.visit_FunctionDef(node)
-        return node
+        return self.visit_FunctionDef(node)
 
     def visit_Return(self, node: Return) -> Return:
         self.generic_visit(node)

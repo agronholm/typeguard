@@ -17,7 +17,7 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-from typeguard import typeguard_ignore
+from typeguard import typechecked, typeguard_ignore
 
 
 @no_type_check_decorator
@@ -25,6 +25,7 @@ def dummy_decorator(func):
     return func
 
 
+@typechecked
 def type_checked_func(x: int, y: int) -> int:
     return x * y
 
@@ -47,6 +48,7 @@ def non_typeguard_checked_func(x: int, y: str) -> 6:
 
 
 def dynamic_type_checking_func(arg, argtype, return_annotation):
+    @typechecked
     def inner(x: argtype) -> return_annotation:
         return str(x)
 
@@ -57,6 +59,7 @@ class Metaclass(type):
     pass
 
 
+@typechecked
 class DummyClass(metaclass=Metaclass):
     def type_checked_method(self, x: int, y: int) -> int:
         return x * y
@@ -83,6 +86,7 @@ class DummyClass(metaclass=Metaclass):
 
 
 def outer():
+    @typechecked
     class Inner:
         def get_self(self) -> "Inner":
             return self
@@ -93,6 +97,7 @@ def outer():
     return create_inner
 
 
+@typechecked
 class Outer:
     class Inner:
         pass
@@ -110,6 +115,7 @@ class Outer:
 
 
 @contextmanager
+@typechecked
 def dummy_context_manager() -> Generator[int, None, None]:
     yield 1
 
@@ -124,15 +130,18 @@ def overloaded_func(a: str) -> str:
     ...
 
 
+@typechecked
 def overloaded_func(a: Union[str, int]) -> Union[str, int]:
     return a
 
 
+@typechecked
 def missing_return() -> int:
     pass
 
 
 def get_inner_class() -> type:
+    @typechecked
     class InnerClass:
         def get_self(self) -> "InnerClass":
             return self
@@ -140,24 +149,29 @@ def get_inner_class() -> type:
     return InnerClass
 
 
+@typechecked
 async def async_func(a: int) -> str:
     return str(a)
 
 
+@typechecked
 def generator_func(yield_value: Any, return_value: Any) -> Generator[int, Any, str]:
     yield yield_value
     return return_value
 
 
+@typechecked
 async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
     yield yield_value
 
 
+@typechecked
 def pep_604_union_args(
     x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]",
 ) -> None:
     pass
 
 
+@typechecked
 def pep_604_union_retval(x: Any) -> "str | int":
     return x
