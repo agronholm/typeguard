@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from _ast import Dict
 from ast import (
     Add,
     AnnAssign,
@@ -15,6 +14,7 @@ from ast import (
     Call,
     ClassDef,
     Constant,
+    Dict,
     Div,
     Expr,
     FloorDiv,
