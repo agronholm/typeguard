@@ -21,6 +21,7 @@ The following type checks are not yet supported in Typeguard:
 * Types of values assigned to global or nonlocal variables
 * Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
   if instrumented)
+* ``yield_from`` statements in generator functions
 
 Support for PEP 604 unions on Pythons older than 3.10
 -----------------------------------------------------
