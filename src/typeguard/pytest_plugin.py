@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import sys
-from importlib import import_module
-from typing import Any
 
 from pytest import Config, Parser
 
 from typeguard import CollectionCheckStrategy, ForwardRefPolicy, install_import_hook
 from typeguard._config import global_config
-from typeguard._utils import qualified_name
+from typeguard._utils import qualified_name, resolve_reference
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -48,18 +46,6 @@ def pytest_addoption(parser: Parser) -> None:
         choices=list(CollectionCheckStrategy.__members__),
         help="determines how thoroughly to check collections (list, dict, etc)",
     )
-
-
-def resolve_reference(reference: str) -> Any:
-    modulename, varname = reference.partition(":")[::2]
-    if not modulename or not varname:
-        raise ValueError(f"{reference!r} is not a module:varname reference")
-
-    obj = import_module(modulename)
-    for attr in varname.split("."):
-        obj = getattr(obj, attr)
-
-    return obj
 
 
 def pytest_configure(config: Config) -> None:
