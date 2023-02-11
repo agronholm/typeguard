@@ -69,7 +69,7 @@ class TypeCheckConfiguration:
 
          Callable that is called when type checking fails.
 
-         Default: ``None`` (the :exc:`~.TypeCheckError`) is raised directly
+         Default: ``None`` (the :exc:`~.TypeCheckError` is raised directly)
 
     .. attribute:: forward_ref_policy
        :type: ForwardRefPolicy
