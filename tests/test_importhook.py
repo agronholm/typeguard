@@ -5,7 +5,6 @@ from importlib.util import cache_from_source
 from pathlib import Path
 
 import pytest
-from pytest import FixtureRequest
 
 from typeguard import TypeCheckError, TypeguardFinder, install_import_hook
 
@@ -17,15 +16,13 @@ cached_module_path = Path(
 )
 
 
-@pytest.fixture(scope="module")
-def dummymodule(request: FixtureRequest):
-    packages = getattr(request, "param", ["dummymodule"])
+def import_dummymodule():
     if cached_module_path.exists():
         cached_module_path.unlink()
 
     sys.path.insert(0, str(this_dir))
     try:
-        with install_import_hook(packages):
+        with install_import_hook(["dummymodule"]):
             with warnings.catch_warnings():
                 warnings.filterwarnings("error", module="typeguard")
                 module = import_module("dummymodule")
@@ -34,8 +31,8 @@ def dummymodule(request: FixtureRequest):
         sys.path.remove(str(this_dir))
 
 
-@pytest.mark.parametrize("dummymodule", [None], indirect=True)
-def test_blanket_import(dummymodule):
+def test_blanket_import():
+    dummymodule = import_dummymodule()
     try:
         pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
             'argument "y" is not an instance of int'
@@ -59,3 +56,12 @@ def test_package_name_matching():
     assert not finder.should_instrument("spam")
     assert not finder.should_instrument("ha")
     assert not finder.should_instrument("spam_eggs")
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="Requires ast.unparse()")
+def test_debug_instrumentation(monkeypatch, capsys):
+    monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
+    import_dummymodule()
+    out, err = capsys.readouterr()
+    assert f"Source code of '{dummy_module_path}' after instrumentation:" in err
+    assert "class DummyClass" in err

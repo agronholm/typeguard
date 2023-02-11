@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from textwrap import dedent
 from typing import (
     Any,
     AsyncGenerator,
@@ -395,3 +396,27 @@ def test_suppressed_checking():
 
     with suppress_type_checks():
         foo(1)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="Requires ast.unparse()")
+def test_debug_instrumentation(monkeypatch, capsys):
+    monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
+
+    @typechecked
+    def foo(a: str) -> int:
+        return 6
+
+    out, err = capsys.readouterr()
+    assert err == dedent(
+        """\
+        Source code of test_debug_instrumentation.<locals>.foo() after instrumentation:
+        ----------------------------------------------
+        def foo(a: str) -> int:
+            from typeguard._functions import CallMemo, check_argument_types, \
+check_return_type
+            call_memo = CallMemo(foo, locals())
+            check_argument_types(call_memo)
+            return check_return_type(6, call_memo)
+        ----------------------------------------------
+        """
+    )

@@ -167,3 +167,14 @@ when the containing module is instrumented by the import hook::
 
 .. warning:: The :func:`@no_type_check_decorator <typing.no_type_check_decorator>`
     decorator is not currently recognized by Typeguard.
+
+Debugging instrumented code
+---------------------------
+
+If you find that your code behaves in an unexpected fashion with the Typeguard
+instrumentation in place, you should set the ``typeguard.config.debug_instrumentation``
+flag to ``True``. This will print all the instrumented code after the modifications,
+which you can check to find the reason for the unexpected behavior.
+
+If you're using the pytest plugin, you can also pass the
+``--typeguard-debug-instrumentation`` and ``-s`` flags together for the same effect.

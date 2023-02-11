@@ -9,7 +9,7 @@ from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
 from warnings import warn
 
-from ._config import TypeCheckConfiguration
+from ._config import TypeCheckConfiguration, global_config
 from ._exceptions import InstrumentationWarning
 from ._transformer import TypeguardTransformer
 from ._utils import function_name
@@ -46,6 +46,27 @@ def instrument(f: T_CallableOrType) -> Callable | str:
     module_ast = ast.parse(module_source)
     instrumentor = TypeguardTransformer(target_path)
     instrumentor.visit(module_ast)
+
+    if global_config.debug_instrumentation and sys.version_info >= (3, 9):
+        # Find the matching AST node, then unparse it to source and print to stdout
+        level = 0
+        for node in ast.walk(module_ast):
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                if node.name == target_path[level]:
+                    if level == len(target_path) - 1:
+                        print(
+                            f"Source code of {f.__qualname__}() after instrumentation:"
+                            "\n----------------------------------------------",
+                            file=sys.stderr,
+                        )
+                        print(ast.unparse(node), file=sys.stderr)
+                        print(
+                            "----------------------------------------------",
+                            file=sys.stderr,
+                        )
+                    else:
+                        level += 1
+
     module_code = compile(module_ast, module.__file__, "exec", dont_inherit=True)
     new_code = module_code
     for name in target_path:
