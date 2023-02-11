@@ -87,7 +87,7 @@ Using the import hook is as straightforward as installing it before you import a
 modules you wish to be type checked. Give it the name of your top level package (or a
 list of package names)::
 
-    from typeguard.importhook import install_import_hook
+    from typeguard import install_import_hook
 
     install_import_hook('myapp')
     from myapp import some_module  # import only AFTER installing the hook, or it won't take effect
@@ -105,7 +105,7 @@ or using the context manager approach::
 
 You can also customize the logic used to select which modules to instrument::
 
-    from typeguard.importhook import TypeguardFinder, install_import_hook
+    from typeguard import TypeguardFinder, install_import_hook
 
     class CustomFinder(TypeguardFinder):
         def should_instrument(self, module_name: str):
@@ -164,3 +164,6 @@ when the containing module is instrumented by the import hook::
     @typeguard_ignore
     def f(x: int) -> int:
         return str(x)
+
+.. warning:: The :func:`@no_type_check_decorator <typing.no_type_check_decorator>`
+    decorator is not currently recognized by Typeguard.

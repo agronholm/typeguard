@@ -1,26 +1,36 @@
 API reference
 =============
 
-:mod:`typeguard`
-----------------
-
 .. module:: typeguard
+
+Type checking
+-------------
 
 .. autofunction:: check_type
 
 .. autodecorator:: typechecked
 
-.. autodecorator:: typeguard_ignore
+Import hook
+-----------
 
-.. autofunction:: suppress_type_checks
+.. autofunction:: install_import_hook
 
-.. autoclass:: TypeCheckConfiguration
-   :members:
+.. autoclass:: TypeguardFinder
+    :members:
+
+.. autoclass:: ImportHookManager
+    :members:
+
+Configuration
+-------------
 
 .. data:: config
    :type: TypeCheckConfiguration
 
    The global configuration object.
+
+.. autoclass:: TypeCheckConfiguration
+   :members:
 
 .. autoclass:: CollectionCheckStrategy
 
@@ -28,7 +38,17 @@ API reference
 
 .. autofunction:: warn_on_error
 
+Custom checkers
+---------------
+
 .. autofunction:: check_type_internal
+
+.. autofunction:: load_plugins
+
+.. data:: checker_lookup_functions
+   :type: list[Callable[[Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]]]]
+
+   A list of callables that are used to look up a checker callable for an annotation.
 
 .. autoclass:: TypeCheckMemo
     :members:
@@ -37,26 +57,18 @@ API reference
     :show-inheritance:
     :members:
 
-.. data:: checker_lookup_functions
-   :type: list[Callable[[Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[Callable[[Any, Any, Tuple[Any, ...], TypeCheckMemo], Any]]]]
+Type check suppression
+----------------------
 
-   A list of callables that are used to look up a checker callable for an annotation.
+.. autodecorator:: typeguard_ignore
+
+.. autofunction:: suppress_type_checks
+
+Exceptions and warnings
+-----------------------
 
 .. autoexception:: TypeCheckError
 
 .. autoexception:: TypeCheckWarning
 
 .. autoexception:: TypeHintWarning
-
-:mod:`typeguard.importhook`
----------------------------
-
-.. module:: typeguard.importhook
-
-.. autoclass:: TypeguardFinder
-    :members:
-
-.. autoclass:: ImportHookManager
-    :members:
-
-.. autofunction:: install_import_hook

@@ -127,6 +127,7 @@ def install_import_hook(
 
     :param packages: an iterable of package names to instrument, or ``None`` to
         instrument all packages
+    :param cls: a custom meta path finder class
     :return: a context manager that uninstalls the hook on exit (or when you call
         ``.uninstall()``)
 
