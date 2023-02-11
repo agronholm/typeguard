@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import sys
 from importlib import import_module
 from typing import Any
+
+from pytest import Config, Parser
 
 from typeguard import CollectionCheckStrategy, ForwardRefPolicy, install_import_hook
 from typeguard._config import global_config
 from typeguard._utils import qualified_name
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("typeguard")
     group.addoption(
         "--typeguard-packages",
@@ -58,7 +62,7 @@ def resolve_reference(reference: str) -> Any:
     return obj
 
 
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     packages_option = config.getoption("typeguard_packages")
     if packages_option:
         if packages_option == ":all:":

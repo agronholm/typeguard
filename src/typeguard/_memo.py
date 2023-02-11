@@ -28,9 +28,7 @@ if sys.version_info >= (3, 9):
 else:
     from typing_extensions import get_type_hints
 
-_type_hints_map: WeakKeyDictionary[
-    FunctionType, tuple[dict[str, Any], Any, Any]
-] = WeakKeyDictionary()
+_type_hints_map: WeakKeyDictionary[FunctionType, dict[str, Any]] = WeakKeyDictionary()
 
 
 class TypeCheckMemo:
