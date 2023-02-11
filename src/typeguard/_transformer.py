@@ -108,14 +108,13 @@ class TransformMemo:
     variable_annotations: dict[str, expr] = field(init=False, default_factory=dict)
 
     def get_unused_name(self, name: str) -> str:
-        while True:
-            if self.parent:
-                name = self.parent.get_unused_name(name)
-
-            if name not in self.local_names:
-                break
-
-            name += "_"
+        memo = self
+        while memo is not None:
+            if name in memo.local_names:
+                memo = self
+                name += "_"
+            else:
+                memo = memo.parent
 
         self.local_names.add(name)
         return name

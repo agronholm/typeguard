@@ -350,8 +350,11 @@ def test_avoid_global_names() -> None:
             """
             call_memo = CallMemo = check_argument_types = check_return_type = None
 
-            def foo(x: int) -> int:
+            def func1(x: int) -> int:
                 dummy = (call_memo,)
+                return x
+
+            def func2(x: int) -> int:
                 return x
             """
         )
@@ -365,10 +368,15 @@ def test_avoid_global_names() -> None:
 check_argument_types as check_argument_types_, check_return_type as check_return_type_
             call_memo = CallMemo = check_argument_types = check_return_type = None
 
-            def foo(x: int) -> int:
-                call_memo_ = CallMemo_(foo, locals())
+            def func1(x: int) -> int:
+                call_memo_ = CallMemo_(func1, locals())
                 check_argument_types_(call_memo_)
                 dummy = (call_memo,)
+                return check_return_type_(x, call_memo_)
+
+            def func2(x: int) -> int:
+                call_memo_ = CallMemo_(func2, locals())
+                check_argument_types_(call_memo_)
                 return check_return_type_(x, call_memo_)
         """
         ).strip()
@@ -397,6 +405,40 @@ check_argument_types as check_argument_types_, check_return_type as check_return
                 check_argument_types_(call_memo_)
                 call_memo = CallMemo = check_argument_types = check_return_type = None
                 return check_return_type_(x, call_memo_)
+            """
+        ).strip()
+    )
+
+
+def test_avoid_nonlocal_names() -> None:
+    node = parse(
+        dedent(
+            """
+            def outer():
+                call_memo = CallMemo = check_argument_types = check_return_type = None
+
+                def foo(x: int) -> int:
+                    return x
+
+                return foo
+            """
+        )
+    )
+    TypeguardTransformer(["outer", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            def outer():
+                call_memo = CallMemo = check_argument_types = check_return_type = None
+
+                def foo(x: int) -> int:
+                    from typeguard._functions import CallMemo as CallMemo_, \
+check_argument_types as check_argument_types_, check_return_type as check_return_type_
+                    call_memo_ = CallMemo_(foo, locals())
+                    check_argument_types_(call_memo_)
+                    return check_return_type_(x, call_memo_)
+                return foo
             """
         ).strip()
     )
