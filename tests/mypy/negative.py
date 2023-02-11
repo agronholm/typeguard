@@ -1,9 +1,4 @@
-from typeguard import (
-    check_argument_types,
-    check_return_type,
-    typechecked,
-    typeguard_ignore,
-)
+from typeguard import typechecked, typeguard_ignore
 
 
 @typechecked
@@ -21,16 +16,19 @@ def non_typeguard_checked_func(x: int) -> int:
     return str(x)  # noqa: E501 # error: Incompatible return value type (got "str", expected "int")  [return-value]
 
 
+@typechecked
 def returns_str() -> str:
     return bar(0)  # noqa: E501 # error: Incompatible return value type (got "int", expected "str")  [return-value]
 
 
+@typechecked
 def arg_type(x: int) -> str:
-    return check_argument_types()  # noqa: E501 # error: Incompatible return value type (got "Literal[True]", expected "str")  [return-value]
+    return True  # noqa: E501 # error: Incompatible return value type (got "bool", expected "str")  [return-value]
 
 
+@typechecked
 def ret_type() -> str:
-    return check_return_type(False)  # noqa: E501 # error: Incompatible return value type (got "bool", expected "str")  [return-value]
+    return True  # noqa: E501 # error: Incompatible return value type (got "bool", expected "str")  [return-value]
 
 
 _ = arg_type(foo)  # noqa: E501 # error: Argument 1 to "arg_type" has incompatible type "Callable[[int], int]"; expected "int"  [arg-type]

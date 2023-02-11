@@ -11,7 +11,6 @@ from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
-from ._utils import find_function
 
 if sys.version_info >= (3, 11):
     from typing import Never
@@ -103,7 +102,7 @@ def check_type(
     return value
 
 
-def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
+def check_argument_types(memo: CallMemo) -> Literal[True]:
     """
     Check that the argument values match the annotated types.
 
@@ -117,19 +116,6 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     """
     if type_checks_suppressed:
         return True
-
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return True
-
-        memo = CallMemo(func, frame.f_locals)
 
     for argname, expected_type in memo.type_hints.items():
         if argname != "return" and argname in memo.arguments:
@@ -155,7 +141,7 @@ def check_argument_types(memo: CallMemo | None = None) -> Literal[True]:
     return True
 
 
-def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
+def check_return_type(retval: T, memo: CallMemo) -> T:
     """
     Check that the return value is compatible with the return value annotation in the
     function.
@@ -174,19 +160,6 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     """
     if type_checks_suppressed:
         return retval
-
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return retval
-
-        memo = CallMemo(func, frame.f_locals)
 
     if "return" in memo.type_hints:
         annotation = memo.type_hints["return"]
@@ -218,7 +191,33 @@ def check_return_type(retval: T, memo: CallMemo | None = None) -> T:
     return retval
 
 
-def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
+def check_send_type(sendval: T, memo: CallMemo) -> T:
+    if type_checks_suppressed:
+        return sendval
+
+    annotation = memo.type_hints[":send"]
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(
+            f"{memo.func_name}() was declared never to be sent a value to but it was"
+        )
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
+
+    try:
+        check_type_internal(sendval, annotation, memo)
+    except TypeCheckError as exc:
+        exc.append_path_element("the value sent to generator")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
+
+    return sendval
+
+
+def check_yield_type(yieldval: T, memo: CallMemo) -> T:
     """
     Check that the yielded value is compatible with the generator return value
     annotation in the function.
@@ -238,19 +237,6 @@ def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
     if type_checks_suppressed:
         return yieldval
 
-    if memo is None:
-        # faster than inspect.currentframe(), but not officially
-        # supported in all python implementations
-        frame = sys._getframe(1)
-
-        try:
-            func = find_function(frame)
-        except LookupError:
-            # This can happen with the Pydev/PyCharm debugger extension installed
-            return yieldval
-
-        memo = CallMemo(func, frame.f_locals)
-
     if "yield" in memo.type_hints:
         annotation = memo.type_hints["yield"]
         if annotation is NoReturn or annotation is Never:
@@ -265,13 +251,6 @@ def check_yield_type(yieldval: T, memo: CallMemo | None = None) -> T:
         try:
             check_type_internal(yieldval, annotation, memo)
         except TypeCheckError as exc:
-            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if yieldval is NotImplemented and annotation is bool:
-                # This does (and cannot) not check if it's actually a method
-                func_name = memo.func_name.rsplit(".", 1)[-1]
-                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
-                    return yieldval
-
             exc.append_path_element("the yielded value")
             if memo.config.typecheck_fail_callback:
                 memo.config.typecheck_fail_callback(exc, memo)
@@ -297,10 +276,9 @@ def suppress_type_checks() -> Generator[None, None, None]:
     """
     A context manager that can be used to temporarily suppress type checks.
 
-    While this context manager is active, :func:`check_argument_types`,
-    :func:`check_return_type`, :func:`@typechecked <typechecked>` and :func:`check_type`
-    all skip the actual type checking. These context managers can be nested. Type
-    checking will resume once the last context manager block is exited.
+    While this context manager is active, :func:`check_type` and any automatically
+    instrumented functions skip the actual type checking. These context managers can be
+    nested. Type checking will resume once the last context manager block is exited.
 
     This context manager is thread-safe.
 

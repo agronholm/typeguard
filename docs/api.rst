@@ -8,12 +8,6 @@ API reference
 
 .. autofunction:: check_type
 
-.. autofunction:: check_argument_types
-
-.. autofunction:: check_return_type
-
-.. autofunction:: check_yield_type
-
 .. autodecorator:: typechecked
 
 .. autodecorator:: typeguard_ignore

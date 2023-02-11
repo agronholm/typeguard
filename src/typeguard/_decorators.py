@@ -1,21 +1,17 @@
 from __future__ import annotations
 
+import ast
 import inspect
 import sys
-from functools import partial, wraps
-from inspect import isasyncgen, isclass
+from functools import partial, update_wrapper
+from inspect import isclass
+from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
 from warnings import warn
 
-from . import TypeCheckConfiguration
-from ._functions import check_argument_types, check_return_type
-from ._generators import (
-    TypeCheckedAsyncGenerator,
-    TypeCheckedGenerator,
-    asyncgen_origin_types,
-    generator_origin_types,
-)
-from ._memo import CallMemo
+from ._config import TypeCheckConfiguration
+from ._exceptions import InstrumentationWarning
+from ._transformer import TypeguardTransformer
 from ._utils import function_name
 
 if TYPE_CHECKING:
@@ -29,6 +25,60 @@ else:
     from typing import no_type_check as typeguard_ignore  # noqa: F401
 
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
+
+
+def make_cell():
+    value = None
+    return (lambda: value).__closure__[0]
+
+
+def instrument(f: T_CallableOrType) -> Callable | str:
+    if not getattr(f, "__annotations__", None):
+        return "no type annotations present"
+    elif not getattr(f, "__code__", None):
+        return "no code associated"
+    elif not getattr(f, "__module__", None):
+        return "__module__ attribute is not set"
+
+    target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
+    module = sys.modules[f.__module__]
+    module_source = inspect.getsource(sys.modules[f.__module__])
+    module_ast = ast.parse(module_source)
+    instrumentor = TypeguardTransformer(target_path)
+    instrumentor.visit(module_ast)
+    module_code = compile(module_ast, module.__file__, "exec", dont_inherit=True)
+    new_code = module_code
+    for level, name in enumerate(target_path):
+        for const in new_code.co_consts:
+            if isinstance(const, CodeType):
+                if const.co_name == name:
+                    new_code = const
+                    break
+        else:
+            return "cannot find the target function in the AST"
+
+    cell = None
+    if new_code.co_freevars == f.__code__.co_freevars:
+        # The existing closure works fine
+        closure = f.__closure__
+    elif f.__closure__ is not None:
+        # Existing closure needs modifications
+        cell = make_cell()
+        assert new_code.co_freevars[0] == f.__name__
+        closure = (cell,) + f.__closure__
+    else:
+        # Make a brand new closure
+        # assert new_code.co_freevars == (f.__name__,)
+        cell = make_cell()
+        closure = (cell,)
+
+    new_function = FunctionType(new_code, f.__globals__, f.__name__, closure=closure)
+    if cell is not None:
+        cell.cell_contents = new_function
+
+    update_wrapper(new_function, f)
+    new_function.__globals__[f.__name__] = new_function
+    return new_function
 
 
 @overload
@@ -48,8 +98,9 @@ def typechecked(
 def typechecked(
     func: T_CallableOrType | None = None,
     *,
-    config: TypeCheckConfiguration | None = None,
-    _localns: dict[str, Any] | None = None,
+    check_arguments: bool = True,
+    check_return: bool = True,
+    check_yield: bool = True,
 ):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped
@@ -62,112 +113,68 @@ def typechecked(
     decorated methods, in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
-    :param config: configuration that will be used instead of the global config
+    :param check_arguments: if ``True``, perform type checks against annotated arguments
+    :param check_return: if ``True``, perform type checks against any returned values
+    :param check_yield: if ``True``, perform type checks against any yielded values
+        (only applicable to generator functions)
+
+    .. note:: ``yield from`` is currently not type checked.
 
     """
     if func is None:
-        return partial(typechecked, config=config, _localns=_localns)
-
-    if isinstance(func, (classmethod, staticmethod)):
-        if isinstance(func, classmethod):
-            return classmethod(typechecked(func.__func__))
-        else:
-            return staticmethod(typechecked(func.__func__))
+        return partial(
+            typechecked,
+            check_arguments=check_arguments,
+            check_return=check_return,
+            check_yield=check_yield,
+        )
 
     if isclass(func):
-        prefix = func.__qualname__ + "."
         for key, attr in func.__dict__.items():
             if (
                 inspect.isfunction(attr)
                 or inspect.ismethod(attr)
                 or inspect.isclass(attr)
             ):
-                if attr.__qualname__.startswith(prefix) and getattr(
-                    attr, "__annotations__", None
-                ):
-                    setattr(
-                        func,
-                        key,
-                        typechecked(attr, config=config, _localns=func.__dict__),
-                    )
+                retval = instrument(attr)
+                if callable(retval):
+                    setattr(func, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
-                if getattr(attr.__func__, "__annotations__", None):
-                    wrapped = typechecked(
-                        attr.__func__, config=config, _localns=func.__dict__
-                    )
-                    setattr(func, key, type(attr)(wrapped))
+                retval = instrument(attr)
+                if callable(retval):
+                    setattr(func, key, retval)
             elif isinstance(attr, property):
                 kwargs = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
-                    if property_func is not None and getattr(
-                        property_func, "__annotations__", ()
-                    ):
-                        kwargs[name] = typechecked(
-                            property_func, config=config, _localns=func.__dict__
-                        )
+                    retval = instrument(property_func)
+                    if callable(retval):
+                        kwargs[name] = retval
 
                 setattr(func, key, attr.__class__(**kwargs))
 
         return func
 
-    if not getattr(func, "__annotations__", None):
-        warn(f"no type annotations present -- not typechecking {function_name(func)}")
-        return func
-
-    # Find the frame in which the function was declared, for resolving forward
-    # references later
-    if _localns is None:
-        _localns = sys._getframe(1).f_locals
-
     # Find either the first Python wrapper or the actual function
-    python_func = inspect.unwrap(func, stop=inspect.isfunction)
-
-    if not getattr(python_func, "__code__", None):
-        warn(f"no code associated -- not typechecking {function_name(func)}")
+    wrapper = None
+    if isinstance(func, (classmethod, staticmethod)):
+        wrapper = func.__class__
+        func = func.__func__
+    elif hasattr(func, "__wrapped__"):
+        warn(
+            f"Cannot instrument {function_name(func)} -- @typechecked only supports "
+            f"instrumenting functions wrapped with @classmethod, @staticmethod or "
+            f"@property",
+            InstrumentationWarning,
+        )
         return func
 
-    def wrapper(*args, **kwargs):
-        if hasattr(wrapper, "__no_type_check__"):
-            return func(*args, **kwargs)
+    retval = instrument(func)
+    if isinstance(retval, str):
+        warn(
+            f"{retval} -- not typechecking {function_name(func)}",
+            InstrumentationWarning,
+        )
+        return func
 
-        memo = CallMemo(python_func, _localns, args=args, kwargs=kwargs)
-        check_argument_types(memo)
-        retval = func(*args, **kwargs)
-        try:
-            check_return_type(retval, memo)
-        except TypeError as exc:
-            raise TypeError(*exc.args) from None
-
-        # If a generator is returned, wrap it if its yield/send/return types can be
-        # checked
-        if inspect.isgenerator(retval) or isasyncgen(retval):
-            return_type = memo.type_hints.get("return")
-            if return_type:
-                origin = getattr(return_type, "__origin__", None)
-                if origin in generator_origin_types:
-                    return TypeCheckedGenerator(retval, memo)
-                elif origin is not None and origin in asyncgen_origin_types:
-                    return TypeCheckedAsyncGenerator(retval, memo)
-
-        return retval
-
-    async def async_wrapper(*args, **kwargs):
-        if hasattr(async_wrapper, "__no_type_check__"):
-            return func(*args, **kwargs)
-
-        memo = CallMemo(python_func, _localns, args=args, kwargs=kwargs)
-        check_argument_types(memo)
-        retval = await func(*args, **kwargs)
-        check_return_type(retval, memo)
-        return retval
-
-    if inspect.iscoroutinefunction(func):
-        if python_func.__code__ is not async_wrapper.__code__:
-            return wraps(func)(async_wrapper)
-    else:
-        if python_func.__code__ is not wrapper.__code__:
-            return wraps(func)(wrapper)
-
-    # the target callable was already wrapped
-    return func
+    return retval if wrapper is None else wrapper(retval)

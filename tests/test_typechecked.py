@@ -62,20 +62,8 @@ class TestGenerator:
     @pytest.mark.parametrize(
         "annotation",
         [
-            Generator[int, str, List[str]],
-            Generator,
-            Iterable[int],
-            Iterable,
-            Iterator[int],
-            Iterator,
-        ],
-        ids=[
-            "generator",
-            "bare_generator",
-            "iterable",
-            "bare_iterable",
-            "iterator",
-            "bare_iterator",
+            pytest.param(Generator[int, str, List[str]], id="generator"),
+            pytest.param(Generator, id="bare_generator"),
         ],
     )
     def test_generator(self, annotation):
@@ -97,6 +85,25 @@ class TestGenerator:
 
     @pytest.mark.parametrize(
         "annotation",
+        [
+            pytest.param(Iterable[int], id="iterable"),
+            pytest.param(Iterable, id="bare_iterable"),
+            pytest.param(Iterator[int], id="iterator"),
+            pytest.param(Iterator, id="bare_iterator"),
+        ],
+    )
+    def test_generator_iter_only(self, annotation):
+        @typechecked
+        def genfunc() -> annotation:
+            yield 2
+            yield 3
+            yield 4
+
+        values = list(genfunc())
+        assert values == [2, 3, 4]
+
+    @pytest.mark.parametrize(
+        "annotation",
         [Generator[int, str, None], Iterable[int], Iterator[int]],
         ids=["generator", "iterable", "iterator"],
     )
@@ -109,7 +116,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen)
 
-        exc.match("value yielded from generator is not an instance of int")
+        exc.match("the yielded value is not an instance of int")
 
     def test_generator_bad_send(self):
         @typechecked
@@ -117,6 +124,7 @@ class TestGenerator:
             yield 1
             yield 2
 
+        pass
         gen = genfunc()
         next(gen)
         with pytest.raises(TypeCheckError) as exc:
@@ -152,19 +160,20 @@ class TestGenerator:
 class TestAsyncGenerator:
     @pytest.mark.parametrize(
         "annotation",
-        [AsyncGenerator[int, str], AsyncIterable[int], AsyncIterator[int]],
-        ids=["generator", "iterable", "iterator"],
+        [
+            pytest.param(AsyncGenerator[int, str], id="generator"),
+            pytest.param(AsyncGenerator, id="bare_generator"),
+        ],
     )
     def test_async_generator(self, annotation):
+        @typechecked
+        async def genfunc() -> annotation:
+            values.append((yield 2))
+            values.append((yield 3))
+            values.append((yield 4))
+
         async def run_generator():
-            @typechecked
-            async def genfunc() -> annotation:
-                values.append((yield 2))
-                values.append((yield 3))
-                values.append((yield 4))
-
             gen = genfunc()
-
             value = await gen.asend(None)
             with pytest.raises(StopAsyncIteration):
                 while True:
@@ -172,14 +181,29 @@ class TestAsyncGenerator:
                     assert isinstance(value, int)
 
         values = []
-        coro = run_generator()
-        try:
-            for elem in coro.__await__():
-                print(elem)
-        except StopAsyncIteration as exc:
-            values = exc.value
-
+        asyncio.run(run_generator())
         assert values == ["2", "3", "4"]
+
+    @pytest.mark.parametrize(
+        "annotation",
+        [
+            pytest.param(AsyncIterable[int], id="iterable"),
+            pytest.param(AsyncIterable, id="bare_iterable"),
+            pytest.param(AsyncIterable[int], id="iterator"),
+            pytest.param(AsyncIterable, id="bare_iterator"),
+        ],
+    )
+    def test_generator_iter_only(self, annotation):
+        @typechecked
+        async def genfunc() -> annotation:
+            yield 2
+            yield 3
+            yield 4
+
+        async def run_generator():
+            return [value async for value in genfunc()]
+
+        assert asyncio.run(run_generator()) == [2, 3, 4]
 
     @pytest.mark.parametrize(
         "annotation",
@@ -195,7 +219,7 @@ class TestAsyncGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen.__anext__().__await__())
 
-        exc.match("value yielded from generator is not an instance of int")
+        exc.match("the yielded value is not an instance of int")
 
     def test_async_generator_bad_send(self):
         @typechecked

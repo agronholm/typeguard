@@ -10,11 +10,8 @@ __all__ = (
     "TypeCheckWarning",
     "TypeCheckError",
     "TypeCheckMemo",
-    "check_argument_types",
-    "check_return_type",
     "check_type",
     "check_type_internal",
-    "check_yield_type",
     "checker_lookup_functions",
     "config",
     "load_plugins",
@@ -40,10 +37,7 @@ from ._decorators import typechecked, typeguard_ignore
 from ._exceptions import TypeCheckError, TypeCheckWarning, TypeHintWarning
 from ._functions import (
     TypeCheckFailCallback,
-    check_argument_types,
-    check_return_type,
     check_type,
-    check_yield_type,
     suppress_type_checks,
     warn_on_error,
 )

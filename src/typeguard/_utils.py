@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import gc
 import inspect
 import sys
-from types import CodeType, FrameType, FunctionType
+from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef
 from weakref import WeakValueDictionary
 
@@ -32,8 +31,8 @@ else:
         except NameError:
             if sys.version_info < (3, 9):
                 # Try again, with the type substitutions (list -> List etc.) in place
-                new_globals = type_substitutions.copy()
-                new_globals.update(memo.globals)
+                new_globals = memo.globals.copy()
+                new_globals.update(type_substitutions)
                 return forwardref._evaluate(
                     new_globals, memo.locals or new_globals, *evaluate_extra_args
                 )
@@ -70,43 +69,6 @@ def get_type_name(type_) -> str:
         name = module + "." + name
 
     return name
-
-
-def find_function(frame: FrameType) -> Callable:
-    """
-    Return a function object from the garbage collector that matches the frame's code
-    object.
-
-    This process is unreliable as several function objects could use the same code
-    object. Fortunately the likelihood of this happening with the combination of the
-    function objects having different type annotations is a very rare occurrence.
-
-    :param frame: a frame object
-    :return: a function object
-    :raises LookupError: if not exactly one matching function object was found
-
-    """
-    func = _functions_map.get(frame.f_code)
-    if func is None:
-        for obj in gc.get_referrers(frame.f_code):
-            if inspect.isfunction(obj):
-                if func is None:
-                    # The first match was found
-                    func = obj
-                else:
-                    # A second match was found
-                    raise LookupError(
-                        f"two functions matched: {qualified_name(func)} and "
-                        f"{qualified_name(obj)}"
-                    )
-
-        # Cache the result for future lookups
-        if func is not None:
-            _functions_map[frame.f_code] = func
-        else:
-            raise LookupError("target function not found")
-
-    return func
 
 
 def qualified_name(obj: Any) -> str:

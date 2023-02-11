@@ -16,6 +16,13 @@ class TypeCheckWarning(UserWarning):
         super().__init__(message)
 
 
+class InstrumentationWarning(UserWarning):
+    """Emitted when there's a problem with instrumenting a function for type checks."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 class TypeCheckError(Exception):
     """
     Raised by typeguard's type checkers when a type mismatch is detected.
