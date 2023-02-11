@@ -89,8 +89,8 @@ class TypeCheckConfiguration:
     .. attribute:: debug_instrumentation
        :type: bool
 
-         If set the ``True``, the code of modules or functions instrumented by typeguard
-            is printed to ``sys.stderr`` after the instrumentation is done
+         If set to ``True``, the code of modules or functions instrumented by typeguard
+         is printed to ``sys.stderr`` after the instrumentation is done
 
          Requires Python 3.9 or newer.
 
