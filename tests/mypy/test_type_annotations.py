@@ -107,7 +107,7 @@ def test_negative() -> None:
         for idx in expected_errors
         if expected_errors[idx] != got_errors[idx]
     ]
-    for (idx, expected, got) in mismatches:
+    for idx, expected, got in mismatches:
         print(f"Line {idx}", f"Expected: {expected}", f"Got:      {got}", sep="\n\t")
     if mismatches:
         raise RuntimeError("Error messages changed")
