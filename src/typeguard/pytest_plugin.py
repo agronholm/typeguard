@@ -1,6 +1,6 @@
 import sys
 
-from typeguard.importhook import install_import_hook
+from typeguard import install_import_hook
 
 
 def pytest_addoption(parser):

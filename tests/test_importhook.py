@@ -7,8 +7,7 @@ from pathlib import Path
 import pytest
 from pytest import FixtureRequest
 
-from typeguard import TypeCheckError
-from typeguard.importhook import TypeguardFinder, install_import_hook
+from typeguard import TypeCheckError, TypeguardFinder, install_import_hook
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
