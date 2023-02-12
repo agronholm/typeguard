@@ -386,3 +386,15 @@ def test_decorator_before_staticmethod():
     pytest.raises(TypeCheckError, Foo().method, "bar").match(
         'argument "x" is not an instance of int'
     )
+
+
+def test_retain_dunder_attributes():
+    @typechecked
+    def foo(x: int, y: str = "foo") -> None:
+        """This is a docstring."""
+
+    assert foo.__module__ == __name__
+    assert foo.__name__ == "foo"
+    assert foo.__qualname__ == "test_retain_dunder_attributes.<locals>.foo"
+    assert foo.__doc__ == "This is a docstring."
+    assert foo.__defaults__ == ("foo",)
