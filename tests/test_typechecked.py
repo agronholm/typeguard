@@ -412,8 +412,8 @@ def test_debug_instrumentation(monkeypatch, capsys):
         Source code of test_debug_instrumentation.<locals>.foo() after instrumentation:
         ----------------------------------------------
         def foo(a: str) -> int:
-            from typeguard._functions import CallMemo, check_argument_types, \
-check_return_type
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types, check_return_type
             call_memo = CallMemo(foo, locals())
             check_argument_types(call_memo)
             return check_return_type(6, call_memo)

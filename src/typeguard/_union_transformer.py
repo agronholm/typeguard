@@ -21,11 +21,14 @@ type_substitutions = {
 
 
 class UnionTransformer(NodeTransformer):
+    def __init__(self, union_name: Name | None = None):
+        self.union_name = union_name or Name(id="Union", ctx=Load())
+
     def visit_BinOp(self, node: BinOp) -> Any:
         self.generic_visit(node)
         if isinstance(node.op, BitOr):
             return Subscript(
-                value=Name(id="Union", ctx=Load()),
+                value=self.union_name,
                 slice=Index(
                     ASTTuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
                 ),
