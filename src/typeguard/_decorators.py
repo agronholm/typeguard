@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import inspect
 import sys
-from functools import partial, update_wrapper
+from functools import partial
 from inspect import isclass
 from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
@@ -97,7 +97,12 @@ def instrument(f: T_CallableOrType) -> Callable | str:
     if cell is not None:
         cell.cell_contents = new_function
 
-    update_wrapper(new_function, f)
+    new_function.__module__ = f.__module__
+    new_function.__name__ = f.__name__
+    new_function.__qualname__ = f.__qualname__
+    new_function.__annotations__ = f.__annotations__
+    new_function.__doc__ = f.__doc__
+    new_function.__defaults__ = f.__defaults__
     new_function.__globals__[f.__name__] = new_function
     return new_function
 
