@@ -260,6 +260,12 @@ class TypeguardTransformer(NodeTransformer):
     def visit_FunctionDef(
         self, node: FunctionDef | AsyncFunctionDef
     ) -> FunctionDef | AsyncFunctionDef | None:
+        """
+        Injects type checks for function arguments, and for a return of None if the
+        function is annotated to return something else than Any or None, and the body
+        ends without an explicit "return".
+
+        """
         self._memo.local_names.add(node.name)
 
         # Eliminate top level functions not belonging to the target path
@@ -442,6 +448,7 @@ class TypeguardTransformer(NodeTransformer):
         return self.visit_FunctionDef(node)
 
     def visit_Return(self, node: Return) -> Return:
+        """This injects type checks into "return" statements."""
         self.generic_visit(node)
         if (
             self._memo.should_instrument
@@ -465,6 +472,11 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_Yield(self, node: Yield) -> Yield:
+        """
+        This injects type checks into "yield" expressions, checking both the yielded
+        value and the value sent back to the generator, when appropriate.
+
+        """
         self._memo.has_yield_expressions = True
         self.generic_visit(node)
         if (
@@ -494,6 +506,11 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_AnnAssign(self, node: AnnAssign) -> Any:
+        """
+        This injects a type check into a local variable annotation-assignment within a
+        function body.
+
+        """
         self.generic_visit(node)
 
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
@@ -526,6 +543,11 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_Assign(self, node: Assign) -> Any:
+        """
+        This injects a type check into a local variable assignment within a function
+        body. The variable must have been annotated earlier in the function body.
+
+        """
         self.generic_visit(node)
 
         # Only instrument function-local assignments
@@ -561,6 +583,9 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_NamedExpr(self, node: NamedExpr) -> Any:
+        """This injects a type check into an assignment expression (a := foo())."""
+        self.generic_visit(node)
+
         # Only instrument function-local assignments
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)) and isinstance(
             node.target, Name
@@ -583,6 +608,12 @@ class TypeguardTransformer(NodeTransformer):
         return node
 
     def visit_AugAssign(self, node: AugAssign) -> Any:
+        """
+        This injects a type check into an augmented assignment expression (a += 1).
+
+        """
+        self.generic_visit(node)
+
         # Only instrument function-local assignments
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)) and isinstance(
             node.target, Name
