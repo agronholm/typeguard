@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from _ast import BinOp
 from ast import (
     Add,
     AnnAssign,
@@ -9,6 +8,7 @@ from ast import (
     AsyncFunctionDef,
     Attribute,
     AugAssign,
+    BinOp,
     BitAnd,
     BitOr,
     BitXor,
