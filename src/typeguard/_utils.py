@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+from importlib import import_module
 from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef
 from weakref import WeakValueDictionary
@@ -98,3 +99,15 @@ def function_name(func: Callable) -> str:
     module = getattr(func, "__module__", "")
     qualname = (module + ".") if module not in ("builtins", "") else ""
     return qualname + getattr(func, "__qualname__", repr(func))
+
+
+def resolve_reference(reference: str) -> Any:
+    modulename, varname = reference.partition(":")[::2]
+    if not modulename or not varname:
+        raise ValueError(f"{reference!r} is not a module:varname reference")
+
+    obj = import_module(modulename)
+    for attr in varname.split("."):
+        obj = getattr(obj, attr)
+
+    return obj

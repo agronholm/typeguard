@@ -69,7 +69,7 @@ class TypeCheckConfiguration:
 
          Callable that is called when type checking fails.
 
-         Default: ``None`` (the :exc:`~.TypeCheckError`) is raised directly
+         Default: ``None`` (the :exc:`~.TypeCheckError` is raised directly)
 
     .. attribute:: forward_ref_policy
        :type: ForwardRefPolicy
@@ -85,6 +85,16 @@ class TypeCheckConfiguration:
          type checked.
 
          Default: ``FIRST_ITEM``
+
+    .. attribute:: debug_instrumentation
+       :type: bool
+
+         If set to ``True``, the code of modules or functions instrumented by typeguard
+         is printed to ``sys.stderr`` after the instrumentation is done
+
+         Requires Python 3.9 or newer.
+
+         Default: ``False``
     """
 
     forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
@@ -92,6 +102,7 @@ class TypeCheckConfiguration:
     collection_check_strategy: CollectionCheckStrategy = (
         CollectionCheckStrategy.FIRST_ITEM
     )
+    debug_instrumentation: bool = False
 
 
 global_config = TypeCheckConfiguration()

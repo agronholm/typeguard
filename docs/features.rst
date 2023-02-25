@@ -1,6 +1,28 @@
 Features
 =========
 
+What does Typeguard check?
+--------------------------
+
+The following type checks are implemented in Typeguard:
+
+* Types of arguments passed to instrumented functions
+* Types of values returned from instrumented functions
+* Types of values yielded from instrumented generator functions
+* Types of values sent to instrumented generator functions
+* Types of values assigned to local variables within instrumented functions
+
+What does Typeguard NOT check?
+------------------------------
+
+The following type checks are not yet supported in Typeguard:
+
+* Types of values assigned to class or instance variables
+* Types of values assigned to global or nonlocal variables
+* Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
+  if instrumented)
+* ``yield_from`` statements in generator functions
+
 Support for PEP 604 unions on Pythons older than 3.10
 -----------------------------------------------------
 

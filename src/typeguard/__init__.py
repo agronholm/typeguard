@@ -2,6 +2,7 @@ __all__ = (
     "CallMemo",
     "CollectionCheckStrategy",
     "ForwardRefPolicy",
+    "ImportHookManager",
     "TypeCheckerCallable",
     "TypeCheckFailCallback",
     "TypeCheckLookupCallback",
@@ -10,10 +11,12 @@ __all__ = (
     "TypeCheckWarning",
     "TypeCheckError",
     "TypeCheckMemo",
+    "TypeguardFinder",
     "check_type",
     "check_type_internal",
     "checker_lookup_functions",
     "config",
+    "install_import_hook",
     "load_plugins",
     "suppress_type_checks",
     "typechecked",
@@ -41,6 +44,7 @@ from ._functions import (
     suppress_type_checks,
     warn_on_error,
 )
+from ._importhook import ImportHookManager, TypeguardFinder, install_import_hook
 from ._memo import CallMemo, TypeCheckMemo
 
 # Re-export imports so they look like they live directly in this package

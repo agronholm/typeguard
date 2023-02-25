@@ -9,6 +9,7 @@ from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from unittest.mock import patch
 
+from ._config import global_config
 from ._transformer import TypeguardTransformer
 
 
@@ -36,6 +37,16 @@ class TypeguardLoader(SourceFileLoader):
         )
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
+
+        if global_config.debug_instrumentation and sys.version_info >= (3, 9):
+            print(
+                f"Source code of {path!r} after instrumentation:\n"
+                "----------------------------------------------",
+                file=sys.stderr,
+            )
+            print(ast.unparse(tree), file=sys.stderr)
+            print("----------------------------------------------", file=sys.stderr)
+
         return _call_with_frames_removed(
             compile, tree, path, "exec", dont_inherit=True, optimize=_optimize
         )
@@ -127,6 +138,7 @@ def install_import_hook(
 
     :param packages: an iterable of package names to instrument, or ``None`` to
         instrument all packages
+    :param cls: a custom meta path finder class
     :return: a context manager that uninstalls the hook on exit (or when you call
         ``.uninstall()``)
 

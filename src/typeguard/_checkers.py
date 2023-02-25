@@ -734,7 +734,10 @@ def load_plugins() -> None:
     Load all type checker lookup functions from entry points.
 
     All entry points from the ``typeguard.checker_lookup`` group are loaded, and the
-    returned lookup functions are added to ``
+    returned lookup functions are added to :data:`typeguard.checker_lookup_functions`.
+
+    .. note:: This function is called implicitly on import, unless the
+        ``TYPEGUARD_DISABLE_PLUGIN_AUTOLOAD`` environment variable is present.
     """
 
     for ep in entry_points(group="typeguard.checker_lookup"):

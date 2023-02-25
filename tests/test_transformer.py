@@ -28,7 +28,8 @@ def test_arguments_only() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard._functions import CallMemo, check_argument_types
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types
 
             def foo(x: int) -> None:
                 call_memo = CallMemo(foo, locals())
@@ -52,7 +53,8 @@ def test_return_only() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard._functions import CallMemo, check_return_type
+            from typeguard import CallMemo
+            from typeguard._functions import check_return_type
 
             def foo(x) -> int:
                 call_memo = CallMemo(foo, locals())
@@ -81,8 +83,9 @@ class TestGenerator:
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_return_type, \
-check_send_type, check_yield_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_return_type, check_send_type, \
+check_yield_type
                 from collections.abc import Generator
 
                 def foo(x) -> Generator[int, Any, str]:
@@ -112,8 +115,8 @@ check_send_type, check_yield_type
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_send_type, \
-check_yield_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_send_type, check_yield_type
                 from collections.abc import Generator
 
                 def foo(x) -> Generator[int, None, None]:
@@ -143,7 +146,8 @@ check_yield_type
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_yield_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_yield_type
                 from typing import Any
                 from collections.abc import Generator
 
@@ -174,8 +178,8 @@ class TestAsyncGenerator:
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_send_type, \
-check_yield_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_send_type, check_yield_type
                 from collections.abc import AsyncGenerator
 
                 async def foo(x) -> AsyncGenerator[int, None]:
@@ -205,7 +209,8 @@ check_yield_type
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_send_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_send_type
                 from typing import Any
                 from collections.abc import AsyncGenerator
 
@@ -236,8 +241,8 @@ check_yield_type
             unparse(node)
             == dedent(
                 """
-                from typeguard._functions import CallMemo, check_send_type, \
-check_yield_type
+                from typeguard import CallMemo
+                from typeguard._functions import check_send_type, check_yield_type
                 from typing import Any
                 from collections.abc import AsyncGenerator
 
@@ -350,8 +355,11 @@ def test_avoid_global_names() -> None:
             """
             call_memo = CallMemo = check_argument_types = check_return_type = None
 
-            def foo(x: int) -> int:
+            def func1(x: int) -> int:
                 dummy = (call_memo,)
+                return x
+
+            def func2(x: int) -> int:
                 return x
             """
         )
@@ -361,14 +369,20 @@ def test_avoid_global_names() -> None:
         unparse(node)
         == dedent(
             """
-            from typeguard._functions import CallMemo as CallMemo_, \
+            from typeguard import CallMemo as CallMemo_
+            from typeguard._functions import \
 check_argument_types as check_argument_types_, check_return_type as check_return_type_
             call_memo = CallMemo = check_argument_types = check_return_type = None
 
-            def foo(x: int) -> int:
-                call_memo_ = CallMemo_(foo, locals())
+            def func1(x: int) -> int:
+                call_memo_ = CallMemo_(func1, locals())
                 check_argument_types_(call_memo_)
                 dummy = (call_memo,)
+                return check_return_type_(x, call_memo_)
+
+            def func2(x: int) -> int:
+                call_memo_ = CallMemo_(func2, locals())
+                check_argument_types_(call_memo_)
                 return check_return_type_(x, call_memo_)
         """
         ).strip()
@@ -391,12 +405,48 @@ def test_avoid_local_names() -> None:
         == dedent(
             """
             def foo(x: int) -> int:
-                from typeguard._functions import CallMemo as CallMemo_, \
+                from typeguard import CallMemo as CallMemo_
+                from typeguard._functions import \
 check_argument_types as check_argument_types_, check_return_type as check_return_type_
                 call_memo_ = CallMemo_(foo, locals())
                 check_argument_types_(call_memo_)
                 call_memo = CallMemo = check_argument_types = check_return_type = None
                 return check_return_type_(x, call_memo_)
+            """
+        ).strip()
+    )
+
+
+def test_avoid_nonlocal_names() -> None:
+    node = parse(
+        dedent(
+            """
+            def outer():
+                call_memo = CallMemo = check_argument_types = check_return_type = None
+
+                def foo(x: int) -> int:
+                    return x
+
+                return foo
+            """
+        )
+    )
+    TypeguardTransformer(["outer", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            def outer():
+                call_memo = CallMemo = check_argument_types = check_return_type = None
+
+                def foo(x: int) -> int:
+                    from typeguard import CallMemo as CallMemo_
+                    from typeguard._functions import \
+check_argument_types as check_argument_types_, check_return_type as check_return_type_
+                    call_memo_ = CallMemo_(foo, locals())
+                    check_argument_types_(call_memo_)
+                    return check_return_type_(x, call_memo_)
+                return foo
             """
         ).strip()
     )
@@ -420,7 +470,8 @@ def test_method() -> None:
             class Foo:
 
                 def foo(self, x: int) -> int:
-                    from typeguard._functions import CallMemo, check_argument_types, \
+                    from typeguard import CallMemo
+                    from typeguard._functions import check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals(), self.__class__)
                     check_argument_types(call_memo)
@@ -450,7 +501,8 @@ def test_classmethod() -> None:
 
                 @classmethod
                 def foo(cls, x: int) -> int:
-                    from typeguard._functions import CallMemo, check_argument_types, \
+                    from typeguard import CallMemo
+                    from typeguard._functions import check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals(), cls)
                     check_argument_types(call_memo)
@@ -480,7 +532,8 @@ def test_staticmethod() -> None:
 
                 @staticmethod
                 def foo(x: int) -> int:
-                    from typeguard._functions import CallMemo, check_argument_types, \
+                    from typeguard import CallMemo
+                    from typeguard._functions import check_argument_types, \
 check_return_type
                     call_memo = CallMemo(Foo.foo, locals())
                     check_argument_types(call_memo)
@@ -513,7 +566,8 @@ def test_local_function() -> None:
             def wrapper():
 
                 def foo(x: int) -> int:
-                    from typeguard._functions import CallMemo, check_argument_types, \
+                    from typeguard import CallMemo
+                    from typeguard._functions import check_argument_types, \
 check_return_type
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
@@ -557,8 +611,9 @@ def test_function_local_class_method() -> None:
                     class Bar:
 
                         def method(self, x: int) -> int:
-                            from typeguard._functions import CallMemo, \
-check_argument_types, check_return_type
+                            from typeguard import CallMemo
+                            from typeguard._functions import check_argument_types, \
+check_return_type
                             call_memo = CallMemo(method, locals(), self.__class__)
                             check_argument_types(call_memo)
                             return check_return_type(x, call_memo)
@@ -568,3 +623,266 @@ check_argument_types, check_return_type
             """
         ).strip()
     )
+
+
+class TestAssign:
+    def test_annotated_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo() -> None:
+                    x: int = otherfunc()
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_variable_assignment
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: int = check_variable_assignment(otherfunc(), {'x': int}, \
+call_memo)
+                """
+            ).strip()
+        )
+
+    @pytest.mark.skipif(sys.version_info >= (3, 10), reason="Requires Python < 3.10")
+    def test_pep604_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                Union = None
+
+                def foo() -> None:
+                    x: int | str = otherfunc()
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_variable_assignment
+                from typing import Union as Union_
+                Union = None
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: Union_[int, str] = check_variable_assignment(otherfunc(), \
+{'x': Union_[int, str]}, call_memo)
+                """
+            ).strip()
+        )
+
+    def test_multi_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo() -> None:
+                    x: int
+                    z: bytes
+                    x, y, z = otherfunc()
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        target = "x, y, z" if sys.version_info >= (3, 11) else "(x, y, z)"
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import CallMemo
+                from typeguard._functions import check_variable_assignment
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: int
+                    z: bytes
+                    {target} = check_variable_assignment(otherfunc(), \
+{{'x': int, 'z': bytes}}, call_memo)
+                """
+            ).strip()
+        )
+
+    def test_assignment_annotated_argument(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo(x: int) -> None:
+                    x = 6
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_argument_types, \
+check_variable_assignment
+
+                def foo(x: int) -> None:
+                    call_memo = CallMemo(foo, locals())
+                    check_argument_types(call_memo)
+                    x = check_variable_assignment(6, {'x': int}, call_memo)
+                """
+            ).strip()
+        )
+
+    def test_assignment_expr(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo() -> None:
+                    x: int
+                    if x := otherfunc():
+                        pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_variable_assignment
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: int
+                    if (x := check_variable_assignment(otherfunc(), {'x': int}, \
+call_memo)):
+                        pass
+                """
+            ).strip()
+        )
+
+    def test_assignment_expr_annotated_argument(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo(x: int) -> None:
+                    if x := otherfunc():
+                        pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_argument_types, \
+check_variable_assignment
+
+                def foo(x: int) -> None:
+                    call_memo = CallMemo(foo, locals())
+                    check_argument_types(call_memo)
+                    if (x := check_variable_assignment(otherfunc(), {'x': int}, \
+call_memo)):
+                        pass
+                """
+            ).strip()
+        )
+
+    @pytest.mark.parametrize(
+        "operator, function",
+        [
+            pytest.param("+=", "__iadd__", id="add"),
+            pytest.param("-=", "__isub__", id="subtract"),
+            pytest.param("*=", "__imul__", id="multiply"),
+            pytest.param("@=", "__imatmul__", id="matrix_multiply"),
+            pytest.param("/=", "__itruediv__", id="div"),
+            pytest.param("//=", "__ifloordiv__", id="floordiv"),
+            pytest.param("**=", "__ipow__", id="power"),
+            pytest.param("<<=", "__ilshift__", id="left_bitshift"),
+            pytest.param(">>=", "__irshift__", id="right_bitshift"),
+            pytest.param("&=", "__iand__", id="and"),
+            pytest.param("^=", "__ixor__", id="xor"),
+            pytest.param("|=", "__ior__", id="or"),
+        ],
+    )
+    def test_augmented_assignment(self, operator: str, function: str) -> None:
+        node = parse(
+            dedent(
+                f"""
+                def foo() -> None:
+                    x: int
+                    x {operator} 6
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import CallMemo
+                from typeguard._functions import check_variable_assignment
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: int
+                    x = check_variable_assignment(x.{function}(6), {{'x': int}}, \
+call_memo)
+                """
+            ).strip()
+        )
+
+    def test_augmented_assignment_non_annotated(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo() -> None:
+                    x = 1
+                    x += 6
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                def foo() -> None:
+                    x = 1
+                    x += 6
+                """
+            ).strip()
+        )
+
+    def test_augmented_assignment_annotated_argument(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo(x: int) -> None:
+                    x += 6
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import CallMemo
+                from typeguard._functions import check_argument_types, \
+check_variable_assignment
+
+                def foo(x: int) -> None:
+                    call_memo = CallMemo(foo, locals())
+                    check_argument_types(call_memo)
+                    x = check_variable_assignment(x.__iadd__(6), {'x': int}, call_memo)
+                """
+            ).strip()
+        )

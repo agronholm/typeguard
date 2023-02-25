@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from textwrap import dedent
 from typing import (
     Any,
     AsyncGenerator,
@@ -14,7 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, typechecked
+from typeguard import TypeCheckError, suppress_type_checks, typechecked
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -398,3 +399,36 @@ def test_retain_dunder_attributes():
     assert foo.__qualname__ == "test_retain_dunder_attributes.<locals>.foo"
     assert foo.__doc__ == "This is a docstring."
     assert foo.__defaults__ == ("foo",)
+
+
+def test_suppressed_checking():
+    @typechecked
+    def foo(x: str) -> None:
+        pass
+
+    with suppress_type_checks():
+        foo(1)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="Requires ast.unparse()")
+def test_debug_instrumentation(monkeypatch, capsys):
+    monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
+
+    @typechecked
+    def foo(a: str) -> int:
+        return 6
+
+    out, err = capsys.readouterr()
+    assert err == dedent(
+        """\
+        Source code of test_debug_instrumentation.<locals>.foo() after instrumentation:
+        ----------------------------------------------
+        def foo(a: str) -> int:
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types, check_return_type
+            call_memo = CallMemo(foo, locals())
+            check_argument_types(call_memo)
+            return check_return_type(6, call_memo)
+        ----------------------------------------------
+        """
+    )

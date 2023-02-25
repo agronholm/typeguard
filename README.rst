@@ -14,17 +14,26 @@ annotations, and any arbitrary objects. It can be used together with static type
 checkers as an additional layer of type safety, to catch type violations that could only
 be detected at run time.
 
-Three principal ways to do type checking are provided, each with its pros and cons:
+Two principal ways to do type checking are provided:
 
 #. The ``check_type`` function:
 
    * like ``isinstance()``, but supports arbitrary type annotations (within limits)
    * can be used as a ``cast()`` replacement, but with actual checking of the value
-#. the ``@typechecked`` decorator:
+#. Code instrumentation:
 
-   * instruments the decorated function to perform type checking
-   * automatically checks arguments and return values
+   * entire modules, or individual functions (via ``@typechecked``) are recompiled, with
+     type checking code injected into them
+   * automatically checks function arguments, return values and assignments to annotated
+     local variables
    * for generator functions (regular and async), checks yield and send values
+   * requires the original source code of the instrumented module(s) to be accessible
+
+Two options are provided for code instrumentation:
+
+#. the ``@typechecked`` function:
+
+   * can be applied to functions individually
 #. the import hook (``typeguard.importhook.install_import_hook()``):
 
    * automatically instruments targeted modules on import
