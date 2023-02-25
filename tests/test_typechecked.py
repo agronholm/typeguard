@@ -103,14 +103,31 @@ class TestGenerator:
         values = list(genfunc())
         assert values == [2, 3, 4]
 
-    @pytest.mark.parametrize(
-        "annotation",
-        [Generator[int, str, None], Iterable[int], Iterator[int]],
-        ids=["generator", "iterable", "iterator"],
-    )
-    def test_generator_bad_yield(self, annotation):
+    def test_bad_yield_as_generator(self):
         @typechecked
-        def genfunc() -> annotation:
+        def genfunc() -> Generator[int, str, None]:
+            yield "foo"
+
+        gen = genfunc()
+        with pytest.raises(TypeCheckError) as exc:
+            next(gen)
+
+        exc.match("the yielded value is not an instance of int")
+
+    def test_bad_yield_as_iterable(self):
+        @typechecked
+        def genfunc() -> Iterable[int]:
+            yield "foo"
+
+        gen = genfunc()
+        with pytest.raises(TypeCheckError) as exc:
+            next(gen)
+
+        exc.match("the yielded value is not an instance of int")
+
+    def test_bad_yield_as_iterator(self):
+        @typechecked
+        def genfunc() -> Iterator[int]:
             yield "foo"
 
         gen = genfunc()
@@ -206,14 +223,31 @@ class TestAsyncGenerator:
 
         assert asyncio.run(run_generator()) == [2, 3, 4]
 
-    @pytest.mark.parametrize(
-        "annotation",
-        [AsyncGenerator[int, str], AsyncIterable[int], AsyncIterator[int]],
-        ids=["generator", "iterable", "iterator"],
-    )
-    def test_async_generator_bad_yield(self, annotation):
+    def test_async_bad_yield_as_generator(self):
         @typechecked
-        async def genfunc() -> annotation:
+        async def genfunc() -> AsyncGenerator[int, str]:
+            yield "foo"
+
+        gen = genfunc()
+        with pytest.raises(TypeCheckError) as exc:
+            next(gen.__anext__().__await__())
+
+        exc.match("the yielded value is not an instance of int")
+
+    def test_async_bad_yield_as_iterable(self):
+        @typechecked
+        async def genfunc() -> AsyncIterable[int]:
+            yield "foo"
+
+        gen = genfunc()
+        with pytest.raises(TypeCheckError) as exc:
+            next(gen.__anext__().__await__())
+
+        exc.match("the yielded value is not an instance of int")
+
+    def test_async_bad_yield_as_iterator(self):
+        @typechecked
+        async def genfunc() -> AsyncIterator[int]:
             yield "foo"
 
         gen = genfunc()

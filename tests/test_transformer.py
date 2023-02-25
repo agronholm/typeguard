@@ -11,8 +11,6 @@ if sys.version_info >= (3, 9):
 else:
     pytest.skip("Requires Python 3.9 or newer", allow_module_level=True)
 
-todo = pytest.mark.xfail(reason="To be improved in the future")
-
 
 def test_arguments_only() -> None:
     node = parse(
@@ -97,7 +95,6 @@ check_yield_type
             ).strip()
         )
 
-    @todo
     def test_no_return_type_check(self) -> None:
         node = parse(
             dedent(
@@ -127,7 +124,6 @@ check_yield_type
             ).strip()
         )
 
-    @todo
     def test_no_send_type_check(self) -> None:
         node = parse(
             dedent(
@@ -190,7 +186,6 @@ class TestAsyncGenerator:
             ).strip()
         )
 
-    @todo
     def test_no_yield_type_check(self) -> None:
         node = parse(
             dedent(
@@ -216,13 +211,12 @@ class TestAsyncGenerator:
 
                 async def foo() -> AsyncGenerator[Any, None]:
                     call_memo = CallMemo(foo, locals())
-                    check_send_type(yield 2, call_memo)
-                    check_send_type(yield 6, call_memo)
+                    check_send_type((yield 2), call_memo)
+                    check_send_type((yield 6), call_memo)
                 """
             ).strip()
         )
 
-    @todo
     def test_no_send_type_check(self) -> None:
         node = parse(
             dedent(
@@ -242,7 +236,7 @@ class TestAsyncGenerator:
             == dedent(
                 """
                 from typeguard import CallMemo
-                from typeguard._functions import check_send_type, check_yield_type
+                from typeguard._functions import check_yield_type
                 from typing import Any
                 from collections.abc import AsyncGenerator
 
@@ -623,6 +617,84 @@ check_return_type
             """
         ).strip()
     )
+
+
+class TestTypecheckingImport:
+    """
+    Test that annotations imported conditionally on typing.TYPE_CHECKING are not used in
+    run-time checks.
+    """
+
+    def test_sync_function(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    import typing
+                    from typing import Hashable, Sequence
+
+                def foo(x: Hashable, y: typing.Collection) -> Sequence:
+                    bar: typing.Collection
+                    baz: Hashable = 1
+                    return (1, 2)
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    import typing
+                    from typing import Hashable, Sequence
+
+                def foo(x, y) -> Sequence:
+                    baz = 1
+                    return (1, 2)
+                """
+            ).strip()
+        )
+
+    def test_generator_function(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import Any, TYPE_CHECKING
+                from collections.abc import Generator
+                if TYPE_CHECKING:
+                    import typing
+                    from typing import Hashable, Sequence
+
+                def foo(x: Hashable, y: typing.Collection) -> Generator[Hashable, Any, \
+Sequence]:
+                    bar: typing.Collection
+                    baz: Hashable = 1
+                    yield 'foo'
+                    return (1, 2)
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typing import Any, TYPE_CHECKING
+                from collections.abc import Generator
+                if TYPE_CHECKING:
+                    import typing
+                    from typing import Hashable, Sequence
+
+                def foo(x, y) -> Generator[Hashable, Any, Sequence]:
+                    baz = 1
+                    yield 'foo'
+                    return (1, 2)
+                """
+            ).strip()
+        )
 
 
 class TestAssign:

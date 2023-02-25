@@ -20,8 +20,10 @@ from ast import (
     Expr,
     FloorDiv,
     FunctionDef,
+    If,
     Import,
     ImportFrom,
+    Index,
     Load,
     LShift,
     MatMult,
@@ -30,6 +32,7 @@ from ast import (
     Mult,
     Name,
     NodeTransformer,
+    NodeVisitor,
     Pass,
     Pow,
     Return,
@@ -37,8 +40,10 @@ from ast import (
     Store,
     Str,
     Sub,
+    Subscript,
     Tuple,
     Yield,
+    YieldFrom,
     alias,
     copy_location,
     expr,
@@ -104,9 +109,12 @@ class TransformMemo:
     parent: TransformMemo | None
     path: tuple[str, ...]
     return_annotation: Expr | None = None
+    yield_annotation: Expr | None = None
+    send_annotation: Expr | None = None
     is_async: bool = False
     local_names: set[str] = field(init=False, default_factory=set)
     imported_names: dict[str, str] = field(init=False, default_factory=dict)
+    ignored_names: set[str] = field(init=False, default_factory=set)
     load_names: dict[str, defaultdict[str, Name]] = field(
         init=False, default_factory=lambda: defaultdict(dict)
     )
@@ -127,6 +135,23 @@ class TransformMemo:
 
         self.local_names.add(name)
         return name
+
+    def is_ignored_name(self, expression: expr | None) -> bool:
+        if isinstance(expression, Attribute) and isinstance(expression.value, Name):
+            name = expression.value.id
+        elif isinstance(expression, Name):
+            name = expression.id
+        else:
+            return False
+
+        memo = self
+        while memo is not None:
+            if name in memo.ignored_names:
+                return True
+
+            memo = memo.parent
+
+        return False
 
     def get_call_memo_name(self) -> Name:
         if not self.call_memo_name:
@@ -170,6 +195,10 @@ class TransformMemo:
 
         path: list[str] = []
         top_expression = expression
+
+        if isinstance(top_expression, Subscript):
+            top_expression = top_expression.value
+
         while isinstance(top_expression, Attribute):
             path.insert(0, top_expression.attr)
             top_expression = top_expression.value
@@ -188,6 +217,59 @@ class TransformMemo:
             return False
 
 
+class NameCollector(NodeVisitor):
+    def __init__(self):
+        self.names: set[str] = set()
+
+    def visit_Import(self, node: Import) -> None:
+        for name in node.names:
+            self.names.add(name.asname or name.name)
+
+    def visit_ImportFrom(self, node: ImportFrom) -> None:
+        for name in node.names:
+            self.names.add(name.asname or name.name)
+
+    def visit_Assign(self, node: Assign) -> None:
+        for target in node.targets:
+            if isinstance(target, Name):
+                self.names.add(target.id)
+
+    def visit_NamedExpr(self, node: NamedExpr) -> Any:
+        if isinstance(node.target, Name):
+            self.names.add(node.target.id)
+
+    def visit_FunctionDef(self, node: FunctionDef) -> None:
+        pass
+
+    def visit_ClassDef(self, node: FunctionDef) -> None:
+        pass
+
+
+class GeneratorDetector(NodeVisitor):
+    """Detects if a function node is a generator function."""
+
+    contains_yields: bool = False
+    in_root_function: bool = False
+
+    def visit_Yield(self, node: Yield) -> Any:
+        self.contains_yields = True
+
+    def visit_YieldFrom(self, node: YieldFrom) -> Any:
+        self.contains_yields = True
+
+    def visit_ClassDef(self, node: ClassDef) -> Any:
+        pass
+
+    def visit_FunctionDef(self, node: FunctionDef | AsyncFunctionDef) -> Any:
+        if not self.in_root_function:
+            self.in_root_function = True
+            self.generic_visit(node)
+            self.in_root_function = False
+
+    def visit_AsyncFunctionDef(self, node: AsyncFunctionDef) -> Any:
+        self.visit_FunctionDef(node)
+
+
 class TypeguardTransformer(NodeTransformer):
     def __init__(self, target_path: Sequence[str] | None = None) -> None:
         self._target_path = tuple(target_path) if target_path else None
@@ -199,10 +281,41 @@ class TypeguardTransformer(NodeTransformer):
     ) -> Generator[None, Any, None]:
         new_memo = TransformMemo(node, self._memo, self._memo.path + (node.name,))
         if isinstance(node, (FunctionDef, AsyncFunctionDef)):
-            new_memo.return_annotation = node.returns
             new_memo.should_instrument = (
                 self._target_path is None or new_memo.path == self._target_path
             )
+            if new_memo.should_instrument:
+                # Check if the function is a generator function
+                detector = GeneratorDetector()
+                detector.visit(node)
+
+                # Extract yield, send and return types where possible from a subscripted
+                # annotation like Generator[int, str, bool]
+                if detector.contains_yields and new_memo.name_matches(
+                    node.returns, *generator_names
+                ):
+                    if isinstance(node.returns, Subscript):
+                        annotation_slice = node.returns.slice
+
+                        # Python < 3.9
+                        if isinstance(annotation_slice, Index):
+                            annotation_slice = annotation_slice.value
+
+                        if isinstance(annotation_slice, Tuple):
+                            items = annotation_slice.elts
+                        else:
+                            items = [annotation_slice]
+
+                        if len(items) > 0:
+                            new_memo.yield_annotation = items[0]
+
+                        if len(items) > 1:
+                            new_memo.send_annotation = items[1]
+
+                        if len(items) > 2:
+                            new_memo.return_annotation = items[2]
+                else:
+                    new_memo.return_annotation = node.returns
 
         if isinstance(node, AsyncFunctionDef):
             new_memo.is_async = True
@@ -292,6 +405,11 @@ class TypeguardTransformer(NodeTransformer):
                 if self._memo.name_matches(decorator, *ignore_decorators):
                     return node
 
+        # Eliminate annotations that were imported inside an "if TYPE_CHECKED:" block
+        for argument in node.args.args:
+            if self._memo.is_ignored_name(argument.annotation):
+                argument.annotation = None
+
         with self._use_memo(node):
             if self._target_path is None or self._memo.path == self._target_path:
                 arg_annotations = {
@@ -304,8 +422,10 @@ class TypeguardTransformer(NodeTransformer):
                     self._memo.variable_annotations.update(arg_annotations)
 
                 has_annotated_return = bool(
-                    node.returns
-                ) and not self._memo.name_matches(node.returns, *anytype_names)
+                    self._memo.return_annotation
+                ) and not self._memo.name_matches(
+                    self._memo.return_annotation, *anytype_names
+                )
             else:
                 arg_annotations = None
                 has_annotated_return = False
@@ -457,6 +577,7 @@ class TypeguardTransformer(NodeTransformer):
             and not self._memo.name_matches(
                 self._memo.return_annotation, *anytype_names
             )
+            and not self._memo.is_ignored_name(self._memo.return_annotation)
         ):
             func_name = self._get_import("typeguard._functions", "check_return_type")
             old_node = node
@@ -480,12 +601,12 @@ class TypeguardTransformer(NodeTransformer):
         """
         self._memo.has_yield_expressions = True
         self.generic_visit(node)
+
         if (
             self._memo.should_instrument
-            and self._memo.return_annotation
-            and not self._memo.name_matches(
-                self._memo.return_annotation, *anytype_names
-            )
+            and self._memo.yield_annotation
+            and not self._memo.name_matches(self._memo.yield_annotation, *anytype_names)
+            and not self._memo.is_ignored_name(self._memo.yield_annotation)
         ):
             func_name = self._get_import("typeguard._functions", "check_yield_type")
             yieldval = node.value or Constant(None)
@@ -495,6 +616,12 @@ class TypeguardTransformer(NodeTransformer):
                 [],
             )
 
+        if (
+            self._memo.should_instrument
+            and self._memo.send_annotation
+            and not self._memo.name_matches(self._memo.send_annotation, *anytype_names)
+            and not self._memo.is_ignored_name(self._memo.send_annotation)
+        ):
             func_name = self._get_import("typeguard._functions", "check_send_type")
             old_node = node
             node = Call(
@@ -515,6 +642,14 @@ class TypeguardTransformer(NodeTransformer):
         self.generic_visit(node)
 
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
+            if self._memo.is_ignored_name(node.annotation):
+                # Remove the node if there is no actual value assigned.
+                # Otherwise, turn it into a regular assignment.
+                if node.value:
+                    return Assign((node.target,), node.value)
+                else:
+                    return None
+
             if isinstance(node.target, Name):
                 self._memo.variable_annotations[node.target.id] = node.annotation
 
@@ -640,5 +775,23 @@ class TypeguardTransformer(NodeTransformer):
                 [],
             )
             node = Assign(targets=[node.target], value=check_call)
+
+        return node
+
+    def visit_If(self, node: If) -> Any:
+        """
+        This blocks names from being collected from a module-level
+        "if typing.TYPE_CHECKING:" block, so that they won't be type checked.
+
+        """
+        self.generic_visit(node)
+        if (
+            self._memo is self._module_memo
+            and isinstance(node.test, Name)
+            and self._memo.name_matches(node.test, "typing.TYPE_CHECKING")
+        ):
+            collector = NameCollector()
+            collector.visit(node)
+            self._memo.ignored_names.update(collector.names)
 
         return node

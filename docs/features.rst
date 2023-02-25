@@ -1,6 +1,8 @@
 Features
 =========
 
+.. py:currentmodule:: typeguard
+
 What does Typeguard check?
 --------------------------
 
@@ -22,6 +24,59 @@ The following type checks are not yet supported in Typeguard:
 * Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
   if instrumented)
 * ``yield_from`` statements in generator functions
+
+Special considerations for ``if TYPE_CHECKING:``
+------------------------------------------------
+
+Both the import hook and :func:`@typechecked <typechecked>` avoid checking against
+anything imported in a module-level ``if TYPE_CHECKING:`` (or
+``if typing.TYPE_CHECKING:``) block, since those types will not be available at run
+time. Therefore, no errors or warnings are emitted for such annotations, even when they
+would normally not be found.
+
+Support for generator functions
+-------------------------------
+
+For generator functions, the checks applied depend on the function's return annotation.
+For example, the following function gets its yield, send and return values type
+checked::
+
+    from collections.abc import Generator
+
+    def my_generator() -> Generator[int, str, bool]:
+        a = yield 6
+        return True
+
+In contrast, the following generator function only gets its yield value checked::
+
+    from collections.abc import Iterator
+
+    def my_generator() -> Iterator[int]:
+        a = yield 6
+        return True
+
+Asynchronous generators work just the same way, except they don't support returning
+values other than ``None``, so the annotation only has two items::
+
+    from collections.abc import AsyncGenerator
+
+    async def my_generator() -> AsyncGenerator[int, str]:
+        a = yield 6
+
+Overall, the following type annotations will work for generator function type checking:
+
+* :class:`typing.Generator`
+* :class:`collections.abc.Generator`
+* :class:`typing.Iterator`
+* :class:`collections.abc.Iterator`
+* :class:`typing.Iterable`
+* :class:`collections.abc.Iterable`
+* :class:`typing.AsyncIterator`
+* :class:`collections.abc.AsyncIterator`
+* :class:`typing.AsyncIterable`
+* :class:`collections.abc.AsyncIterable`
+* :class:`typing.AsyncGenerator`
+* :class:`collections.abc.AsyncGenerator`
 
 Support for PEP 604 unions on Pythons older than 3.10
 -----------------------------------------------------
