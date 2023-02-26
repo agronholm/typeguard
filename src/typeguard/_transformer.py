@@ -521,34 +521,22 @@ class TypeguardTransformer(NodeTransformer):
                 # Construct the function reference
                 # Nested functions get special treatment: the function name is added
                 # to free variables (and the closure of the resulting function)
-                func_reference: expr = Name(id=node.name, ctx=Load())
-                previous_attribute: Attribute | None = None
-                parent_memo = self._memo.parent
-                while parent_memo:
-                    if isinstance(parent_memo.node, (FunctionDef, AsyncFunctionDef)):
+                names: list[str] = [node.name]
+                memo = self._memo.parent
+                while memo:
+                    if isinstance(memo.node, (FunctionDef, AsyncFunctionDef)):
                         # This is a nested function. Use the function name as-is.
-                        func_reference = Name(id=node.name, ctx=Load())
+                        del names[:-1]
                         break
-                    elif not isinstance(parent_memo.node, ClassDef):
+                    elif not isinstance(memo.node, ClassDef):
                         break
 
-                    attrname = (
-                        previous_attribute.value.id
-                        if previous_attribute
-                        else func_reference.id
-                    )
-                    attribute = Attribute(
-                        Name(id=parent_memo.node.name, ctx=Load()),
-                        attrname,
-                        ctx=Load(),
-                    )
-                    if previous_attribute is None:
-                        func_reference = attribute
-                    else:
-                        previous_attribute.value = attribute
+                    names.insert(0, memo.node.name)
+                    memo = memo.parent
 
-                    previous_attribute = attribute
-                    parent_memo = parent_memo.parent
+                func_reference: Name | Attribute = Name(id=names[0], ctx=Load())
+                for name in names[1:]:
+                    func_reference = Attribute(func_reference, name, ctx=Load())
 
                 self._memo.call_memo_name.id = self._memo.get_unused_name("call_memo")
                 call_memo_store_name = Name(
@@ -663,29 +651,29 @@ class TypeguardTransformer(NodeTransformer):
 
             if isinstance(node.target, Name):
                 self._memo.variable_annotations[node.target.id] = node.annotation
+                if node.value:
+                    # On Python < 3.10, if the annotation contains a binary "|", use the
+                    # PEP 604 union transformer to turn such operations into
+                    # typing.Unions
+                    if UnionTransformer is not None and any(
+                        isinstance(n, BinOp) for n in walk(node.annotation)
+                    ):
+                        union_name = self._get_import("typing", "Union")
+                        node.annotation = UnionTransformer(union_name).visit(
+                            node.annotation
+                        )
 
-            if node.value:
-                # On Python < 3.10, if the annotation contains a binary "|", use the
-                # PEP 604 union transformer to turn such operations into typing.Unions
-                if UnionTransformer is not None and any(
-                    isinstance(n, BinOp) for n in walk(node.annotation)
-                ):
-                    union_name = self._get_import("typing", "Union")
-                    node.annotation = UnionTransformer(union_name).visit(
-                        node.annotation
+                    func_name = self._get_import(
+                        "typeguard._functions", "check_variable_assignment"
                     )
-
-                func_name = self._get_import(
-                    "typeguard._functions", "check_variable_assignment"
-                )
-                expected_types = Dict(
-                    keys=[Constant(node.target.id)], values=[node.annotation]
-                )
-                node.value = Call(
-                    func_name,
-                    [node.value, expected_types, self._memo.get_call_memo_name()],
-                    [],
-                )
+                    expected_types = Dict(
+                        keys=[Constant(node.target.id)], values=[node.annotation]
+                    )
+                    node.value = Call(
+                        func_name,
+                        [node.value, expected_types, self._memo.get_call_memo_name()],
+                        [],
+                    )
 
         return node
 

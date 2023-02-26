@@ -111,11 +111,11 @@ def typechecked() -> Callable[[T_CallableOrType], T_CallableOrType]:
 
 
 @overload
-def typechecked(func: T_CallableOrType) -> T_CallableOrType:
+def typechecked(target: T_CallableOrType) -> T_CallableOrType:
     ...
 
 
-def typechecked(func: T_CallableOrType | None = None):
+def typechecked(target: T_CallableOrType | None = None):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped
     function.
@@ -126,16 +126,16 @@ def typechecked(func: T_CallableOrType | None = None):
     methods, including ``@classmethod``, ``@staticmethod``,  and ``@property``
     decorated methods, in the class with the ``@typechecked`` decorator.
 
-    :param func: the function or class to enable type checking for
+    :param target: the function or class to enable type checking for
 
     .. note:: ``yield from`` is currently not type checked.
 
     """
-    if func is None:
+    if target is None:
         return typechecked
 
-    if isclass(func):
-        for key, attr in func.__dict__.items():
+    if isclass(target):
+        for key, attr in target.__dict__.items():
             if (
                 inspect.isfunction(attr)
                 or inspect.ismethod(attr)
@@ -143,38 +143,44 @@ def typechecked(func: T_CallableOrType | None = None):
             ):
                 retval = instrument(attr)
                 if callable(retval):
-                    setattr(func, key, retval)
+                    setattr(target, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
                 if isfunction(attr.__func__):
                     retval = instrument(attr.__func__)
                     if callable(retval):
                         wrapper = attr.__class__(retval)
-                        setattr(func, key, wrapper)
+                        setattr(target, key, wrapper)
             elif isinstance(attr, property):
-                kwargs = dict(doc=attr.__doc__)
+                kwargs: dict[str, Any] = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
                     retval = instrument(property_func)
                     if callable(retval):
                         kwargs[name] = retval
 
-                setattr(func, key, attr.__class__(**kwargs))
+                setattr(target, key, attr.__class__(**kwargs))
 
-        return func
+        return target
 
     # Find either the first Python wrapper or the actual function
-    wrapper = None
-    if isinstance(func, (classmethod, staticmethod)):
-        wrapper = func.__class__
-        func = func.__func__
-    elif hasattr(func, "__wrapped__"):
+    func: FunctionType
+    wrapper_class: type[classmethod] | type[staticmethod] | None = None
+    if isinstance(target, (classmethod, staticmethod)):
+        wrapper_class = target.__class__
+        target = target.__func__
+
+    if hasattr(target, "__wrapped__"):
         warn(
-            f"Cannot instrument {function_name(func)} -- @typechecked only supports "
+            f"Cannot instrument {function_name(target)} -- @typechecked only supports "
             f"instrumenting functions wrapped with @classmethod, @staticmethod or "
             f"@property",
             InstrumentationWarning,
         )
-        return func
+        return target
+    elif isfunction(target):
+        func = target
+    else:
+        raise TypeError("target is not a function or a supported wrapper")
 
     retval = instrument(func)
     if isinstance(retval, str):
@@ -182,9 +188,9 @@ def typechecked(func: T_CallableOrType | None = None):
             f"{retval} -- not typechecking {function_name(func)}",
             InstrumentationWarning,
         )
-        return func
+        return target
 
-    if wrapper is None:
+    if wrapper_class is None:
         return retval
     else:
-        return wrapper(retval)
+        return wrapper_class(retval)

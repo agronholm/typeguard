@@ -132,13 +132,11 @@ class CallMemo(TypeCheckMemo):
 
                 param = signature.parameters[key]
                 if param.kind is inspect.Parameter.VAR_POSITIONAL:
-                    self.type_hints[key] = Tuple[
-                        annotation, ...
-                    ]  # type: ignore[valid-type]
+                    self.type_hints[key] = Tuple[annotation, ...]
                 elif param.kind is inspect.Parameter.VAR_KEYWORD:
                     self.type_hints[key] = Dict[
-                        str, annotation
-                    ]  # type: ignore[valid-type]
+                        str, annotation  # type: ignore[valid-type]
+                    ]
 
     @property
     def func_name(self) -> str:
