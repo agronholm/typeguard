@@ -72,7 +72,7 @@ def get_type_name(type_) -> str:
     return name
 
 
-def qualified_name(obj: Any) -> str:
+def qualified_name(obj: Any, *, add_class_prefix: bool = False) -> str:
     """
     Return the qualified name (e.g. package.module.Type) for the given object.
 
@@ -80,10 +80,17 @@ def qualified_name(obj: Any) -> str:
     the module name stripped from the generated name.
 
     """
-    type_ = obj if inspect.isclass(obj) else type(obj)
+    if inspect.isclass(obj):
+        prefix = "class " if add_class_prefix else ""
+        type_ = obj
+    else:
+        prefix = ""
+        type_ = type(obj)
+
     module = type_.__module__
     qualname = type_.__qualname__
-    return qualname if module in ("typing", "builtins") else f"{module}.{qualname}"
+    name = qualname if module in ("typing", "builtins") else f"{module}.{qualname}"
+    return prefix + name
 
 
 def function_name(func: Callable) -> str:

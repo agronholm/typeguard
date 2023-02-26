@@ -11,6 +11,7 @@ from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
+from ._utils import qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import Never
@@ -93,7 +94,7 @@ def check_type(
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
-        exc.append_path_element(argname)
+        exc.append_path_element(qualified_name(value, add_class_prefix=True))
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
         else:
@@ -132,7 +133,8 @@ def check_argument_types(memo: CallMemo) -> Literal[True]:
             try:
                 check_type_internal(value, expected_type, memo=memo)
             except TypeCheckError as exc:
-                exc.append_path_element(f'argument "{argname}"')
+                qualname = qualified_name(value, add_class_prefix=True)
+                exc.append_path_element(f'argument "{argname}" ({qualname})')
                 if memo.config.typecheck_fail_callback:
                     memo.config.typecheck_fail_callback(exc, memo)
                 else:
@@ -182,7 +184,8 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
                 if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
                     return retval
 
-            exc.append_path_element("the return value")
+            qualname = qualified_name(retval, add_class_prefix=True)
+            exc.append_path_element(f"the return value ({qualname})")
             if memo.config.typecheck_fail_callback:
                 memo.config.typecheck_fail_callback(exc, memo)
             else:
@@ -208,7 +211,8 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
     try:
         check_type_internal(sendval, annotation, memo)
     except TypeCheckError as exc:
-        exc.append_path_element("the value sent to generator")
+        qualname = qualified_name(sendval, add_class_prefix=True)
+        exc.append_path_element(f"the value sent to generator ({qualname})")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
         else:
@@ -251,7 +255,8 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
         try:
             check_type_internal(yieldval, annotation, memo)
         except TypeCheckError as exc:
-            exc.append_path_element("the yielded value")
+            qualname = qualified_name(yieldval, add_class_prefix=True)
+            exc.append_path_element(f"the yielded value ({qualname})")
             if memo.config.typecheck_fail_callback:
                 memo.config.typecheck_fail_callback(exc, memo)
             else:

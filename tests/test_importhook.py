@@ -35,7 +35,7 @@ def test_blanket_import():
     dummymodule = import_dummymodule()
     try:
         pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
-            'argument "y" is not an instance of int'
+            r'argument "y" \(str\) is not an instance of int'
         )
     finally:
         del sys.modules["dummymodule"]

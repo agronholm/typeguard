@@ -6,12 +6,16 @@ from . import Child
 
 
 @pytest.mark.parametrize(
-    "inputval, expected",
-    [(qualified_name, "function"), (Child(), "tests.Child"), (int, "int")],
-    ids=["func", "instance", "builtintype"],
+    "inputval, add_class_prefix, expected",
+    [
+        pytest.param(qualified_name, False, "function", id="func"),
+        pytest.param(Child(), False, "tests.Child", id="instance"),
+        pytest.param(int, False, "int", id="builtintype"),
+        pytest.param(int, True, "class int", id="builtintype_classprefix"),
+    ],
 )
-def test_qualified_name(inputval, expected):
-    assert qualified_name(inputval) == expected
+def test_qualified_name(inputval, add_class_prefix, expected):
+    assert qualified_name(inputval, add_class_prefix=add_class_prefix) == expected
 
 
 def test_function_name():

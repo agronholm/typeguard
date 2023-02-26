@@ -37,7 +37,7 @@ class TestCoroutineFunction:
             return "test"
 
         with pytest.raises(
-            TypeCheckError, match='argument "a" is not an instance of int'
+            TypeCheckError, match=r'argument "a" \(str\) is not an instance of int'
         ):
             asyncio.run(foo("foo"))
 
@@ -47,7 +47,7 @@ class TestCoroutineFunction:
             return 1
 
         with pytest.raises(
-            TypeCheckError, match="return value is not an instance of str"
+            TypeCheckError, match=r"return value \(int\) is not an instance of str"
         ):
             asyncio.run(foo(1))
 
@@ -112,7 +112,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen)
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_bad_yield_as_iterable(self):
         @typechecked
@@ -123,7 +123,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen)
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_bad_yield_as_iterator(self):
         @typechecked
@@ -134,7 +134,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen)
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_generator_bad_send(self):
         @typechecked
@@ -148,7 +148,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             gen.send(2)
 
-        exc.match("value sent to generator is not an instance of str")
+        exc.match(r"value sent to generator \(int\) is not an instance of str")
 
     def test_generator_bad_return(self):
         @typechecked
@@ -161,7 +161,7 @@ class TestGenerator:
         with pytest.raises(TypeCheckError) as exc:
             gen.send("foo")
 
-        exc.match("return value is not an instance of str")
+        exc.match(r"return value \(int\) is not an instance of str")
 
     def test_return_generator(self):
         @typechecked
@@ -232,7 +232,7 @@ class TestAsyncGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen.__anext__().__await__())
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_async_bad_yield_as_iterable(self):
         @typechecked
@@ -243,7 +243,7 @@ class TestAsyncGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen.__anext__().__await__())
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_async_bad_yield_as_iterator(self):
         @typechecked
@@ -254,7 +254,7 @@ class TestAsyncGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen.__anext__().__await__())
 
-        exc.match("the yielded value is not an instance of int")
+        exc.match(r"the yielded value \(str\) is not an instance of int")
 
     def test_async_generator_bad_send(self):
         @typechecked
@@ -267,7 +267,7 @@ class TestAsyncGenerator:
         with pytest.raises(TypeCheckError) as exc:
             next(gen.asend(2).__await__())
 
-        exc.match("value sent to generator is not an instance of str")
+        exc.match(r"the value sent to generator \(int\) is not an instance of str")
 
     def test_return_async_generator(self):
         @typechecked
@@ -308,7 +308,7 @@ class TestSelf:
 
         foo = Foo()
         pytest.raises(TypeCheckError, foo.method).match(
-            rf"the return value is not an instance of the self type "
+            rf"the return value \(int\) is not an instance of the self type "
             rf"\({__name__}\.{self.__class__.__name__}\.test_return_invalid\."
             rf"<locals>\.Foo\)"
         )
@@ -330,7 +330,7 @@ class TestSelf:
                 return 1
 
         pytest.raises(TypeCheckError, Foo.method).match(
-            rf"the return value is not an instance of the self type "
+            rf"the return value \(int\) is not an instance of the self type "
             rf"\({__name__}\.{self.__class__.__name__}\."
             rf"test_classmethod_return_invalid\.<locals>\.Foo\)"
         )
@@ -353,7 +353,7 @@ class TestSelf:
 
         foo = Foo()
         pytest.raises(TypeCheckError, foo.method, 1).match(
-            rf'argument "another" is not an instance of the self type '
+            rf'argument "another" \(int\) is not an instance of the self type '
             rf"\({__name__}\.{self.__class__.__name__}\.test_arg_invalid\."
             rf"<locals>\.Foo\)"
         )
@@ -377,7 +377,7 @@ class TestSelf:
 
         foo = Foo()
         pytest.raises(TypeCheckError, foo.method, 1).match(
-            rf'argument "another" is not an instance of the self type '
+            rf'argument "another" \(int\) is not an instance of the self type '
             rf"\({__name__}\.{self.__class__.__name__}\."
             rf"test_classmethod_arg_invalid\.<locals>\.Foo\)"
         )
@@ -407,7 +407,7 @@ def test_decorator_before_classmethod():
             pass
 
     pytest.raises(TypeCheckError, Foo().method, "bar").match(
-        'argument "x" is not an instance of int'
+        r'argument "x" \(str\) is not an instance of int'
     )
 
 
@@ -419,7 +419,7 @@ def test_decorator_before_staticmethod():
             pass
 
     pytest.raises(TypeCheckError, Foo().method, "bar").match(
-        'argument "x" is not an instance of int'
+        r'argument "x" \(str\) is not an instance of int'
     )
 
 
