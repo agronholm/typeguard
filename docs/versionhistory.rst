@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**3.0.0rc1** (2023-02-27)
 
 - **BACKWARD INCOMPATIBLE** Removed the ``check_argument_types()`` and
   ``check_return_type()`` functions (use ``@typechecked`` instead)
