@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import sys
+import warnings
 
 from pytest import Config, Parser
 
-from typeguard import CollectionCheckStrategy, ForwardRefPolicy, install_import_hook
-from typeguard._config import global_config
+from typeguard._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
+from typeguard._exceptions import InstrumentationWarning
+from typeguard._importhook import install_import_hook
 from typeguard._utils import qualified_name, resolve_reference
 
 
@@ -59,11 +61,11 @@ def pytest_configure(config: Config) -> None:
                 package for package in packages if package in sys.modules
             )
             if already_imported_packages:
-                message = (
-                    "typeguard cannot check these packages because they "
-                    "are already imported: {}"
+                warnings.warn(
+                    f"typeguard cannot check these packages because they are already "
+                    f"imported: {', '.join(already_imported_packages)}",
+                    InstrumentationWarning,
                 )
-                raise RuntimeError(message.format(", ".join(already_imported_packages)))
 
         install_import_hook(packages=packages)
 

@@ -34,6 +34,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   ``typing_extensions`` v4.1.0
 - Used ``repr()`` for rendering ``Literal`` elements within unions when raising a
   ``TypeCheckError``
+- Emit ``InstrumentationWarning`` instead of raising ``RuntimeError`` from the pytest
+  plugin if modules in the target package have already been imported
 - Fixed ``TypeError`` when checking against ``TypedDict`` when the value has mixed types
   among the extra keys (PR by biolds)
 - Fixed the configured ``forward_ref_policy`` not being used in
