@@ -41,6 +41,7 @@ from typeguard import (
     check_type,
     config,
 )
+from typeguard._utils import qualified_name
 
 from . import (
     Child,
@@ -107,7 +108,7 @@ class TestBytesLike:
 
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, "test", bytes).match(
-            r"value is not bytes-like"
+            r"str is not bytes-like"
         )
 
 
@@ -120,7 +121,7 @@ class TestFloat:
 
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, "foo", float).match(
-            r"value is neither float or int"
+            r"str is neither float or int"
         )
 
 
@@ -138,7 +139,7 @@ class TestComplexNumber:
 
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, "foo", complex).match(
-            r"value is neither complex, float or int"
+            "str is neither complex, float or int"
         )
 
 
@@ -264,7 +265,7 @@ class TestLiteral:
         annotation = Union[str, Literal[1, 6, 8]]
         check_type(6, annotation)
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
-            r"value did not match any element in the union:\n"
+            r"int did not match any element in the union:\n"
             r"  str: is not an instance of str\n"
             r"  Literal\[1, 6, 8\]: is not any of \(1, 6, 8\)$"
         )
@@ -273,7 +274,7 @@ class TestLiteral:
         annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]
         check_type("z", annotation)
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
-            r"value is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
+            r"int is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
         )
 
     def test_literal_int_as_bool(self):
@@ -307,12 +308,17 @@ class TestMapping:
     def test_bad_key_type(self):
         pytest.raises(
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[int, int]
-        ).match("key 'a' of value is not an instance of int")
+        ).match(
+            f"key 'a' of {__name__}.TestMapping.DummyMapping is not an instance of int"
+        )
 
     def test_bad_value_type(self):
         pytest.raises(
             TypeCheckError, check_type, TestMapping.DummyMapping(), Mapping[str, str]
-        ).match(r"value of key 'a' of value is not an instance of str")
+        ).match(
+            f"value of key 'a' of {__name__}.TestMapping.DummyMapping is not an "
+            f"instance of str"
+        )
 
     def test_bad_key_type_full_check(self):
         override = TypeCheckConfiguration(
@@ -324,7 +330,7 @@ class TestMapping:
             {"x": 1, 3: 2},
             Mapping[str, int],
             config=override,
-        ).match("key 3 of value is not an instance of str")
+        ).match("key 3 of dict is not an instance of str")
 
     def test_bad_value_type_full_check(self):
         override = TypeCheckConfiguration(
@@ -336,7 +342,7 @@ class TestMapping:
             {"x": 1, "y": "a"},
             Mapping[str, int],
             config=override,
-        ).match("value of key 'y' of value is not an instance of int")
+        ).match("value of key 'y' of dict is not an instance of int")
 
     def test_any_value_type(self):
         check_type(TestMapping.DummyMapping(), Mapping[str, Any])
@@ -372,7 +378,10 @@ class TestMutableMapping:
             check_type,
             TestMutableMapping.DummyMutableMapping(),
             MutableMapping[int, int],
-        ).match("key 'a' of value is not an instance of int")
+        ).match(
+            f"key 'a' of {__name__}.TestMutableMapping.DummyMutableMapping is not an "
+            f"instance of int"
+        )
 
     def test_bad_value_type(self):
         pytest.raises(
@@ -380,23 +389,26 @@ class TestMutableMapping:
             check_type,
             TestMutableMapping.DummyMutableMapping(),
             MutableMapping[str, str],
-        ).match(r"value of key 'a' of value is not an instance of str")
+        ).match(
+            f"value of key 'a' of {__name__}.TestMutableMapping.DummyMutableMapping "
+            f"is not an instance of str"
+        )
 
 
 class TestDict:
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Dict[str, int]).match(
-            "value is not a dict"
+            "int is not a dict"
         )
 
     def test_bad_key_type(self):
         pytest.raises(TypeCheckError, check_type, {1: 2}, Dict[str, int]).match(
-            "key 1 of value is not an instance of str"
+            "key 1 of dict is not an instance of str"
         )
 
     def test_bad_value_type(self):
         pytest.raises(TypeCheckError, check_type, {"x": "a"}, Dict[str, int]).match(
-            "value of key 'x' of value is not an instance of int"
+            "value of key 'x' of dict is not an instance of int"
         )
 
     def test_bad_key_type_full_check(self):
@@ -405,7 +417,7 @@ class TestDict:
         )
         pytest.raises(
             TypeCheckError, check_type, {"x": 1, 3: 2}, Dict[str, int], config=override
-        ).match("key 3 of value is not an instance of str")
+        ).match("key 3 of dict is not an instance of str")
 
     def test_bad_value_type_full_check(self):
         override = TypeCheckConfiguration(
@@ -417,7 +429,7 @@ class TestDict:
             {"x": 1, "y": "a"},
             Dict[str, int],
             config=override,
-        ).match("value of key 'y' of value is not an instance of int")
+        ).match("value of key 'y' of dict is not an instance of int")
 
 
 class TestTypedDict:
@@ -428,11 +440,11 @@ class TestTypedDict:
             pytest.param(
                 {"y": "foo"},
                 True,
-                r'value is missing required key\(s\): "x"',
+                r'dict is missing required key\(s\): "x"',
                 id="missing_x",
             ),
             pytest.param(
-                {"x": 6, "y": 3}, True, "value is not an instance of str", id="wrong_y"
+                {"x": 6, "y": 3}, True, "dict is not an instance of str", id="wrong_y"
             ),
             pytest.param(
                 {"x": 6},
@@ -442,12 +454,12 @@ class TestTypedDict:
             ),
             pytest.param({"x": 6}, False, None, id="missing_y_ok"),
             pytest.param(
-                {"x": "abc"}, False, "value is not an instance of int", id="wrong_x"
+                {"x": "abc"}, False, "dict is not an instance of int", id="wrong_x"
             ),
             pytest.param(
                 {"x": 6, "foo": "abc"},
                 False,
-                r'value has unexpected extra key\(s\): "foo"',
+                r'dict has unexpected extra key\(s\): "foo"',
                 id="unknown_key",
             ),
         ],
@@ -468,13 +480,13 @@ class TestTypedDict:
 
         pytest.raises(
             TypeCheckError, check_type, {"x": 1, "y": 2, b"z": 3}, DummyDict
-        ).match(r'value has unexpected extra key\(s\): "y", "b\'z\'"')
+        ).match(r'dict has unexpected extra key\(s\): "y", "b\'z\'"')
 
 
 class TestList:
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, List[int]).match(
-            "value is not a list"
+            "int is not a list"
         )
 
     def test_first_check_success(self):
@@ -485,7 +497,7 @@ class TestList:
 
     def test_first_check_fail(self):
         pytest.raises(TypeCheckError, check_type, ["bb"], List[int]).match(
-            "value is not an instance of int"
+            "list is not an instance of int"
         )
 
     def test_full_check_fail(self):
@@ -494,13 +506,13 @@ class TestList:
         )
         pytest.raises(
             TypeCheckError, check_type, [1, 2, "bb"], List[int], config=override
-        ).match("value is not an instance of int")
+        ).match("list is not an instance of int")
 
 
 class TestSequence:
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Sequence[int]).match(
-            "value is not a sequence"
+            "int is not a sequence"
         )
 
     @pytest.mark.parametrize(
@@ -515,7 +527,7 @@ class TestSequence:
 
     def test_first_check_fail(self):
         pytest.raises(TypeCheckError, check_type, ["bb"], Sequence[int]).match(
-            "value is not an instance of int"
+            "list is not an instance of int"
         )
 
     def test_full_check_fail(self):
@@ -524,7 +536,7 @@ class TestSequence:
         )
         pytest.raises(
             TypeCheckError, check_type, [1, 2, "bb"], Sequence[int], config=override
-        ).match("value is not an instance of int")
+        ).match("list is not an instance of int")
 
 
 class TestAbstractSet:
@@ -543,13 +555,13 @@ class TestAbstractSet:
 
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, AbstractSet[int]).match(
-            "value is not a set"
+            "int is not a set"
         )
 
     def test_first_check_fail(self, sample_set):
         # Create a set which, when iterated, returns "bb" as the first item
         pytest.raises(TypeCheckError, check_type, sample_set, AbstractSet[int]).match(
-            "value is not an instance of int"
+            "set is not an instance of int"
         )
 
     def test_full_check_fail(self):
@@ -558,14 +570,12 @@ class TestAbstractSet:
         )
         pytest.raises(
             TypeCheckError, check_type, {1, 2, "bb"}, AbstractSet[int], config=override
-        ).match("value is not an instance of int")
+        ).match("set is not an instance of int")
 
 
 class TestSet:
     def test_bad_type(self):
-        pytest.raises(TypeCheckError, check_type, 5, Set[int]).match(
-            "value is not a set"
-        )
+        pytest.raises(TypeCheckError, check_type, 5, Set[int]).match("int is not a set")
 
     def test_valid(self):
         check_type({1, 2}, Set[int])
@@ -575,7 +585,7 @@ class TestSet:
 
     def test_first_check_fail(self, sample_set: set):
         pytest.raises(TypeCheckError, check_type, sample_set, Set[int]).match(
-            "value is not an instance of int"
+            "set is not an instance of int"
         )
 
     def test_full_check_fail(self):
@@ -584,7 +594,7 @@ class TestSet:
         )
         pytest.raises(
             TypeCheckError, check_type, {1, 2, "bb"}, Set[int], config=override
-        ).match("value is not an instance of int")
+        ).match("set is not an instance of int")
 
 
 @pytest.mark.parametrize(
@@ -606,7 +616,7 @@ class TestSet:
 class TestTuple:
     def test_bad_type(self, annotated_type: Any):
         pytest.raises(TypeCheckError, check_type, 5, annotated_type[int]).match(
-            "value is not a tuple"
+            "int is not a tuple"
         )
 
     def test_first_check_empty(self, annotated_type: Any):
@@ -617,28 +627,28 @@ class TestTuple:
 
     def test_unparametrized_tuple_fail(self, annotated_type: Any):
         pytest.raises(TypeCheckError, check_type, 5, annotated_type).match(
-            "value is not a tuple"
+            "int is not a tuple"
         )
 
     def test_too_many_elements(self, annotated_type: Any):
         pytest.raises(
             TypeCheckError, check_type, (1, "aa", 2), annotated_type[int, str]
-        ).match(r"value has wrong number of elements \(expected 2, got 3 instead\)")
+        ).match(r"tuple has wrong number of elements \(expected 2, got 3 instead\)")
 
     def test_too_few_elements(self, annotated_type: Any):
         pytest.raises(TypeCheckError, check_type, (1,), annotated_type[int, str]).match(
-            r"value has wrong number of elements \(expected 2, got 1 instead\)"
+            r"tuple has wrong number of elements \(expected 2, got 1 instead\)"
         )
 
     def test_bad_element(self, annotated_type: Any):
         pytest.raises(
             TypeCheckError, check_type, (1, 2), annotated_type[int, str]
-        ).match("value is not an instance of str")
+        ).match("tuple is not an instance of str")
 
     def test_ellipsis_bad_element(self, annotated_type: Any):
         pytest.raises(
             TypeCheckError, check_type, ("blah",), annotated_type[int, ...]
-        ).match("value is not an instance of int")
+        ).match("tuple is not an instance of int")
 
     def test_ellipsis_bad_element_full_check(self, annotated_type: Any):
         override = TypeCheckConfiguration(
@@ -650,14 +660,14 @@ class TestTuple:
             (1, 2, "blah"),
             annotated_type[int, ...],
             config=override,
-        ).match("value is not an instance of int")
+        ).match("tuple is not an instance of int")
 
     def test_empty_tuple(self, annotated_type: Any):
         check_type((), annotated_type[()])
 
     def test_empty_tuple_fail(self, annotated_type: Any):
         pytest.raises(TypeCheckError, check_type, (1,), annotated_type[()]).match(
-            "value is not an empty tuple"
+            "tuple is not an empty tuple"
         )
 
 
@@ -667,12 +677,12 @@ class TestNamedTuple:
 
     def test_type_mismatch(self):
         pytest.raises(TypeCheckError, check_type, ("bob", 1), Employee).match(
-            r"value is not a named tuple of type tests.Employee"
+            r"tuple is not a named tuple of type tests.Employee"
         )
 
     def test_wrong_field_type(self):
         pytest.raises(TypeCheckError, check_type, Employee(2, 1), Employee).match(
-            r"value is not an instance of str"
+            r"Employee is not an instance of str"
         )
 
 
@@ -685,7 +695,7 @@ class TestUnion:
 
     def test_typing_type_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, Union[str, Collection]).match(
-            "value did not match any element in the union:\n"
+            "int did not match any element in the union:\n"
             "  str: is not an instance of str\n"
             "  Collection: is not an instance of collections.abc.Collection"
         )
@@ -709,10 +719,11 @@ class TestUnion:
         "value", [pytest.param(6.5, id="float"), pytest.param(b"aa", id="bytes")]
     )
     def test_union_fail(self, annotation, value):
+        qualname = qualified_name(value)
         pytest.raises(TypeCheckError, check_type, value, annotation).match(
-            "value did not match any element in the union:\n"
-            "  str: is not an instance of str\n"
-            "  int: is not an instance of int"
+            f"{qualname} did not match any element in the union:\n"
+            f"  str: is not an instance of str\n"
+            f"  int: is not an instance of int"
         )
 
 
@@ -732,13 +743,13 @@ class TestTypevar:
 
     def test_collection_constraints_fail(self):
         pytest.raises(TypeCheckError, check_type, {1, 2}, TTypingConstrained).match(
-            r"value does not match any of the constraints \(List\[int\], "
+            r"set does not match any of the constraints \(List\[int\], "
             r"AbstractSet\[str\]\)"
         )
 
     def test_constraints_fail(self):
         pytest.raises(TypeCheckError, check_type, 2.5, TIntStr).match(
-            r"value does not match any of the constraints \(int, str\)"
+            r"float does not match any of the constraints \(int, str\)"
         )
 
 
@@ -748,7 +759,7 @@ class TestNewType:
 
     def test_bad_value(self):
         pytest.raises(TypeCheckError, check_type, "a", myint).match(
-            r"value is not an instance of int"
+            r"str is not an instance of int"
         )
 
 
@@ -760,7 +771,7 @@ class TestType:
     @pytest.mark.parametrize("annotation", [pytest.param(Type), pytest.param(type)])
     def test_unparametrized_fail(self, annotation: Any):
         pytest.raises(TypeCheckError, check_type, 1, annotation).match(
-            "value is not a class"
+            "int is not a class"
         )
 
     @pytest.mark.parametrize(
@@ -771,7 +782,7 @@ class TestType:
 
     def test_parametrized_fail(self):
         pytest.raises(TypeCheckError, check_type, int, Type[str]).match(
-            "value is not a subclass of str"
+            "class int is not a subclass of str"
         )
 
     @pytest.mark.parametrize(
@@ -790,7 +801,7 @@ class TestType:
         pytest.raises(
             TypeCheckError, check_type, dict, Type[Union[str, int, list]]
         ).match(
-            "value did not match any element in the union:\n"
+            "class dict did not match any element in the union:\n"
             "  str: is not a subclass of str\n"
             "  int: is not a subclass of int\n"
             "  list: is not a subclass of list"
@@ -821,7 +832,7 @@ class TestIO:
     )
     def test_binary_fail(self, annotation):
         pytest.raises(TypeCheckError, check_type, StringIO(), annotation).match(
-            "value is not a binary I/O object"
+            "_io.StringIO is not a binary I/O object"
         )
 
     def test_binary_real_file(self, tmp_path: Path):
@@ -841,7 +852,7 @@ class TestIO:
     )
     def test_text_fail(self, annotation):
         pytest.raises(TypeCheckError, check_type, BytesIO(), annotation).match(
-            "value is not a text based I/O object"
+            "_io.BytesIO is not a text based I/O object"
         )
 
     def test_text_real_file(self, tmp_path: Path):
@@ -884,11 +895,12 @@ class TestProtocol:
             def meth(self) -> None:
                 pass
 
+        clsname = f"{__name__}.TestProtocol.test_fail_non_method_members.<locals>.Foo"
         pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
-            "value is not compatible with the RuntimeProtocol protocol"
+            f"{clsname} is not compatible with the RuntimeProtocol protocol"
         )
         pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
-            "value is not compatible with the RuntimeProtocol protocol"
+            f"class {clsname} is not compatible with the RuntimeProtocol protocol"
         )
 
     def test_fail(self):
@@ -896,11 +908,13 @@ class TestProtocol:
             def meth2(self) -> None:
                 pass
 
-        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
-            "value is not compatible with the RuntimeProtocol protocol"
+        pattern = (
+            f"{__name__}.TestProtocol.test_fail.<locals>.Foo is not compatible with "
+            f"the RuntimeProtocol protocol"
         )
+        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(pattern)
         pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
-            "value is not compatible with the RuntimeProtocol protocol"
+            pattern
         )
 
 
@@ -912,7 +926,7 @@ class TestRecursiveType:
         with pytest.raises(
             TypeCheckError,
             match=(
-                "value did not match any element in the union:\n"
+                "dict did not match any element in the union:\n"
                 "  str: is not an instance of str\n"
                 "  float: is neither float or int\n"
                 "  bool: is not an instance of bool\n"
@@ -937,7 +951,7 @@ class TestAnnotated:
 
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, Annotated[str, "blah"]).match(
-            "value is not an instance of str"
+            "int is not an instance of str"
         )
 
 
@@ -947,7 +961,7 @@ class TestLiteralString:
 
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, LiteralString).match(
-            "value is not an instance of str"
+            "int is not an instance of str"
         )
 
 
@@ -957,7 +971,7 @@ class TestTypeGuard:
 
     def test_fail(self):
         pytest.raises(TypeCheckError, check_type, 1, TypeGuard).match(
-            "value is not an instance of bool"
+            "int is not an instance of bool"
         )
 
 

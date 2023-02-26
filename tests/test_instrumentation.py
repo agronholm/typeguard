@@ -48,7 +48,7 @@ def test_type_checked_func(dummymodule):
 
 def test_type_checked_func_error(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
-        'argument "y" is not an instance of int'
+        r'argument "y" \(str\) is not an instance of int'
     )
 
 
@@ -67,28 +67,28 @@ def test_typeguard_ignored_func(dummymodule):
 def test_type_checked_method(dummymodule):
     instance = dummymodule.DummyClass()
     pytest.raises(TypeCheckError, instance.type_checked_method, "bah", 9).match(
-        'argument "x" is not an instance of int'
+        r'argument "x" \(str\) is not an instance of int'
     )
 
 
 def test_type_checked_classmethod(dummymodule):
     pytest.raises(
         TypeCheckError, dummymodule.DummyClass.type_checked_classmethod, "bah", 9
-    ).match('argument "x" is not an instance of int')
+    ).match(r'argument "x" \(str\) is not an instance of int')
 
 
 def test_type_checked_staticmethod(dummymodule):
     pytest.raises(
         TypeCheckError, dummymodule.DummyClass.type_checked_staticmethod, "bah", 9
-    ).match('argument "x" is not an instance of int')
+    ).match(r'argument "x" \(str\) is not an instance of int')
 
 
 @pytest.mark.parametrize(
     "argtype, returntype, error",
     [
         (int, str, None),
-        (str, str, 'argument "x" is not an instance of str'),
-        (int, int, "the return value is not an instance of int"),
+        (str, str, r'argument "x" \(int\) is not an instance of str'),
+        (int, int, r"the return value \(str\) is not an instance of int"),
     ],
     ids=["correct", "bad_argtype", "bad_returntype"],
 )
@@ -150,7 +150,7 @@ def test_generator_valid(dummymodule):
 def test_generator_bad_yield_type(dummymodule):
     gen = dummymodule.generator_func("foo", "foo")
     pytest.raises(TypeCheckError, gen.send, None).match(
-        "yielded value is not an instance of int"
+        r"yielded value \(str\) is not an instance of int"
     )
     gen.close()
 
@@ -159,7 +159,7 @@ def test_generator_bad_return_type(dummymodule):
     gen = dummymodule.generator_func(6, 6)
     assert gen.send(None) == 6
     pytest.raises(TypeCheckError, gen.send, None).match(
-        "return value is not an instance of str"
+        r"return value \(int\) is not an instance of str"
     )
     gen.close()
 
@@ -172,26 +172,27 @@ def test_asyncgen_valid(dummymodule):
 def test_asyncgen_bad_yield_type(dummymodule):
     gen = dummymodule.asyncgen_func("foo")
     pytest.raises(TypeCheckError, asyncio.run, gen.asend(None)).match(
-        "yielded value is not an instance of int"
+        r"yielded value \(str\) is not an instance of int"
     )
 
 
 def test_missing_return(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.missing_return).match(
-        "the return value is not an instance of int"
+        r"the return value \(NoneType\) is not an instance of int"
     )
 
 
 def test_pep_604_union_args(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.pep_604_union_args, 1.1).match(
-        r'argument "x" did not match any element in the union:\n  Callable\[list, '
-        r"Literal\[-1\]\]: is not callable\n  Callable\[ellipsis, Union\[int, str\]\]: "
-        "is not callable"
+        r'argument "x" \(float\) did not match any element in the union:'
+        r"\n  Callable\[list, Literal\[-1\]\]: is not callable"
+        r"\n  Callable\[ellipsis, Union\[int, str\]\]: is not callable"
     )
 
 
 def test_pep_604_union_retval(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.pep_604_union_retval, 1.1).match(
-        "the return value did not match any element in the union:\n  str: is "
-        "not an instance of str\n  int: is not an instance of int"
+        r"the return value \(float\) did not match any element in the union:"
+        r"\n  str: is not an instance of str"
+        r"\n  int: is not an instance of int"
     )
