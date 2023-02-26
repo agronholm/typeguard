@@ -12,12 +12,19 @@ from typing import (
     overload,
 )
 
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
+
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
 
 from typeguard import typechecked, typeguard_ignore
+
+P = ParamSpec("P")
 
 
 @no_type_check_decorator
@@ -175,3 +182,8 @@ def pep_604_union_args(
 @typechecked
 def pep_604_union_retval(x: Any) -> "str | int":
     return x
+
+
+@typechecked
+def paramspec_function(func: P, args: P.args, kwargs: P.kwargs) -> None:
+    pass

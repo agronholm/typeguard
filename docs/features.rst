@@ -24,6 +24,7 @@ The following type checks are not yet supported in Typeguard:
 * Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
   if instrumented)
 * ``yield_from`` statements in generator functions
+* ``ParamSpec`` is currently ignored
 
 Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------

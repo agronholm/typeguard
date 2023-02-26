@@ -196,3 +196,10 @@ def test_pep_604_union_retval(dummymodule):
         r"\n  str: is not an instance of str"
         r"\n  int: is not an instance of int"
     )
+
+
+def test_paramspec(dummymodule):
+    def foo(a: int, b: str, *, c: bytes) -> None:
+        pass
+
+    dummymodule.paramspec_function(foo, (1, "bar"), {"c": b"abc"})

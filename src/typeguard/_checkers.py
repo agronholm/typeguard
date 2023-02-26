@@ -53,10 +53,10 @@ else:
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
-    from typing import TypeAlias, TypeGuard, is_typeddict
+    from typing import ParamSpec, TypeAlias, TypeGuard, is_typeddict
 else:
     from importlib_metadata import entry_points
-    from typing_extensions import TypeAlias, TypeGuard, is_typeddict
+    from typing_extensions import ParamSpec, TypeAlias, TypeGuard, is_typeddict
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_type_hints
@@ -589,6 +589,12 @@ def check_self(
         )
 
 
+def check_paramspec(
+    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    pass  # No-op for now
+
+
 def check_instanceof(
     value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -713,6 +719,8 @@ def builtin_checker_lookup(
         return check_tuple
     elif getattr(origin_type, "_is_protocol", False):
         return check_protocol
+    elif isinstance(origin_type, ParamSpec):
+        return check_paramspec
     elif isinstance(origin_type, TypeVar):
         return check_typevar
     elif origin_type.__class__ is NewType:
