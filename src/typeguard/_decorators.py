@@ -11,7 +11,7 @@ from warnings import warn
 from ._config import global_config
 from ._exceptions import InstrumentationWarning
 from ._transformer import TypeguardTransformer
-from ._utils import function_name
+from ._utils import function_name, is_method_of
 
 if TYPE_CHECKING:
     _F = TypeVar("_F")
@@ -136,27 +136,24 @@ def typechecked(target: T_CallableOrType | None = None):
 
     if isclass(target):
         for key, attr in target.__dict__.items():
-            if (
-                inspect.isfunction(attr)
-                or inspect.ismethod(attr)
-                or inspect.isclass(attr)
-            ):
+            if is_method_of(attr, target):
                 retval = instrument(attr)
-                if callable(retval):
+                if isfunction(retval):
                     setattr(target, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
-                if isfunction(attr.__func__):
+                if is_method_of(attr.__func__, target):
                     retval = instrument(attr.__func__)
-                    if callable(retval):
+                    if isfunction(retval):
                         wrapper = attr.__class__(retval)
                         setattr(target, key, wrapper)
             elif isinstance(attr, property):
                 kwargs: dict[str, Any] = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
-                    retval = instrument(property_func)
-                    if callable(retval):
-                        kwargs[name] = retval
+                    if is_method_of(property_func, target):
+                        retval = instrument(property_func)
+                        if isfunction(retval):
+                            kwargs[name] = retval
 
                 setattr(target, key, attr.__class__(**kwargs))
 
