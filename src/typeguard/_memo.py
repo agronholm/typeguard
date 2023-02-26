@@ -58,7 +58,7 @@ class CallMemo(TypeCheckMemo):
         self_type: type | None = None,
         config: TypeCheckConfiguration | None = None,
     ):
-        super().__init__(func.__globals__, frame_locals, config)
+        super().__init__(func.__globals__, frame_locals or {}, config)
         self.func = func
         self.self_type = self_type
 
@@ -132,9 +132,13 @@ class CallMemo(TypeCheckMemo):
 
                 param = signature.parameters[key]
                 if param.kind is inspect.Parameter.VAR_POSITIONAL:
-                    self.type_hints[key] = Tuple[annotation, ...]
+                    self.type_hints[key] = Tuple[
+                        annotation, ...
+                    ]  # type: ignore[valid-type]
                 elif param.kind is inspect.Parameter.VAR_KEYWORD:
-                    self.type_hints[key] = Dict[str, annotation]
+                    self.type_hints[key] = Dict[
+                        str, annotation
+                    ]  # type: ignore[valid-type]
 
     @property
     def func_name(self) -> str:

@@ -633,7 +633,8 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
     extras: tuple[Any, ...]
     origin_type = get_origin(annotation)
     if origin_type is Annotated:
-        annotation, *extras = get_args(annotation)
+        annotation, *extras_ = get_args(annotation)
+        extras = tuple(extras_)
         origin_type = get_origin(annotation)
     else:
         extras = ()
@@ -717,7 +718,7 @@ def builtin_checker_lookup(
     elif (
         isfunction(origin_type)
         and getattr(origin_type, "__module__", None) == "typing"
-        and getattr(origin_type, "__qualname__", None).startswith("NewType.")
+        and getattr(origin_type, "__qualname__", "").startswith("NewType.")
         and hasattr(origin_type, "__supertype__")
     ):
         # typing.NewType on Python 3.9 and below

@@ -3,13 +3,12 @@ from __future__ import annotations
 import ast
 import inspect
 import sys
-from functools import partial
 from inspect import isclass
 from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
 from warnings import warn
 
-from ._config import TypeCheckConfiguration, global_config
+from ._config import global_config
 from ._exceptions import InstrumentationWarning
 from ._transformer import TypeguardTransformer
 from ._utils import function_name
@@ -41,7 +40,6 @@ def instrument(f: T_CallableOrType) -> Callable | str:
         return "cannot instrument functions defined in a REPL"
 
     target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
-    module = sys.modules[f.__module__]
     module_source = inspect.getsource(sys.modules[f.__module__])
     module_ast = ast.parse(module_source)
     instrumentor = TypeguardTransformer(target_path)
@@ -67,7 +65,7 @@ def instrument(f: T_CallableOrType) -> Callable | str:
                     else:
                         level += 1
 
-    module_code = compile(module_ast, module.__file__, "exec", dont_inherit=True)
+    module_code = compile(module_ast, f.__code__.co_filename, "exec", dont_inherit=True)
     new_code = module_code
     for name in target_path:
         for const in new_code.co_consts:
@@ -108,26 +106,16 @@ def instrument(f: T_CallableOrType) -> Callable | str:
 
 
 @overload
-def typechecked(
-    *, config: TypeCheckConfiguration | None = None
-) -> Callable[[T_CallableOrType], T_CallableOrType]:
+def typechecked() -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
 
 
 @overload
-def typechecked(
-    func: T_CallableOrType, *, config: TypeCheckConfiguration | None = None
-) -> T_CallableOrType:
+def typechecked(func: T_CallableOrType) -> T_CallableOrType:
     ...
 
 
-def typechecked(
-    func: T_CallableOrType | None = None,
-    *,
-    check_arguments: bool = True,
-    check_return: bool = True,
-    check_yield: bool = True,
-):
+def typechecked(func: T_CallableOrType | None = None):
     """
     Perform runtime type checking on the arguments that are passed to the wrapped
     function.
@@ -139,21 +127,12 @@ def typechecked(
     decorated methods, in the class with the ``@typechecked`` decorator.
 
     :param func: the function or class to enable type checking for
-    :param check_arguments: if ``True``, perform type checks against annotated arguments
-    :param check_return: if ``True``, perform type checks against any returned values
-    :param check_yield: if ``True``, perform type checks against any yielded values
-        (only applicable to generator functions)
 
     .. note:: ``yield from`` is currently not type checked.
 
     """
     if func is None:
-        return partial(
-            typechecked,
-            check_arguments=check_arguments,
-            check_return=check_return,
-            check_yield=check_yield,
-        )
+        return typechecked
 
     if isclass(func):
         for key, attr in func.__dict__.items():
@@ -203,4 +182,7 @@ def typechecked(
         )
         return func
 
-    return retval if wrapper is None else wrapper(retval)
+    if wrapper is None:
+        return retval
+    else:
+        return wrapper(retval)

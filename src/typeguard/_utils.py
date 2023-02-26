@@ -19,7 +19,7 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import get_args, get_origin
 
-    evaluate_extra_args = (frozenset(),) if sys.version_info >= (3, 9) else ()
+    evaluate_extra_args: tuple = (frozenset(),) if sys.version_info >= (3, 9) else ()
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         from ._union_transformer import compile_type_hint, type_substitutions
@@ -66,7 +66,7 @@ def get_type_name(type_) -> str:
         name += f"[{formatted_args}]"
 
     module = getattr(type_, "__module__", None)
-    if module not in (None, "typing", "typing_extensions", "builtins"):
+    if module and module not in (None, "typing", "typing_extensions", "builtins"):
         name = module + "." + name
 
     return name

@@ -105,17 +105,17 @@ aug_assign_functions = {
 
 @dataclass
 class TransformMemo:
-    node: ClassDef | FunctionDef | AsyncFunctionDef | None
+    node: Module | ClassDef | FunctionDef | AsyncFunctionDef | None
     parent: TransformMemo | None
     path: tuple[str, ...]
-    return_annotation: Expr | None = None
-    yield_annotation: Expr | None = None
-    send_annotation: Expr | None = None
+    return_annotation: expr | None = None
+    yield_annotation: expr | None = None
+    send_annotation: expr | None = None
     is_async: bool = False
     local_names: set[str] = field(init=False, default_factory=set)
     imported_names: dict[str, str] = field(init=False, default_factory=dict)
     ignored_names: set[str] = field(init=False, default_factory=set)
-    load_names: dict[str, defaultdict[str, Name]] = field(
+    load_names: defaultdict[str, dict[str, Name]] = field(
         init=False, default_factory=lambda: defaultdict(dict)
     )
     has_yield_expressions: bool = field(init=False, default=False)
@@ -125,7 +125,7 @@ class TransformMemo:
     variable_annotations: dict[str, expr] = field(init=False, default_factory=dict)
 
     def get_unused_name(self, name: str) -> str:
-        memo = self
+        memo: TransformMemo | None = self
         while memo is not None:
             if name in memo.local_names:
                 memo = self
@@ -136,15 +136,21 @@ class TransformMemo:
         self.local_names.add(name)
         return name
 
-    def is_ignored_name(self, expression: expr | None) -> bool:
-        if isinstance(expression, Attribute) and isinstance(expression.value, Name):
-            name = expression.value.id
-        elif isinstance(expression, Name):
-            name = expression.id
+    def is_ignored_name(self, expression: expr | Expr | None) -> bool:
+        top_expression = (
+            expression.value if isinstance(expression, Expr) else expression
+        )
+
+        if isinstance(top_expression, Attribute) and isinstance(
+            top_expression.value, Name
+        ):
+            name = top_expression.value.id
+        elif isinstance(top_expression, Name):
+            name = top_expression.id
         else:
             return False
 
-        memo = self
+        memo: TransformMemo | None = self
         while memo is not None:
             if name in memo.ignored_names:
                 return True
@@ -189,12 +195,14 @@ class TransformMemo:
 
             break
 
-    def name_matches(self, expression: expr | None, *names: str) -> bool:
+    def name_matches(self, expression: expr | Expr | None, *names: str) -> bool:
         if expression is None:
             return False
 
         path: list[str] = []
-        top_expression = expression
+        top_expression = (
+            expression.value if isinstance(expression, Expr) else expression
+        )
 
         if isinstance(top_expression, Subscript):
             top_expression = top_expression.value
@@ -218,7 +226,7 @@ class TransformMemo:
 
 
 class NameCollector(NodeVisitor):
-    def __init__(self):
+    def __init__(self) -> None:
         self.names: set[str] = set()
 
     def visit_Import(self, node: Import) -> None:
@@ -241,7 +249,7 @@ class NameCollector(NodeVisitor):
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         pass
 
-    def visit_ClassDef(self, node: FunctionDef) -> None:
+    def visit_ClassDef(self, node: ClassDef) -> None:
         pass
 
 
@@ -277,7 +285,7 @@ class TypeguardTransformer(NodeTransformer):
 
     @contextmanager
     def _use_memo(
-        self, node: Module | ClassDef | FunctionDef
+        self, node: ClassDef | FunctionDef | AsyncFunctionDef
     ) -> Generator[None, Any, None]:
         new_memo = TransformMemo(node, self._memo, self._memo.path + (node.name,))
         if isinstance(node, (FunctionDef, AsyncFunctionDef)):
@@ -299,7 +307,9 @@ class TypeguardTransformer(NodeTransformer):
 
                         # Python < 3.9
                         if isinstance(annotation_slice, Index):
-                            annotation_slice = annotation_slice.value
+                            annotation_slice = (
+                                annotation_slice.value  # type: ignore[attr-defined]
+                            )
 
                         if isinstance(annotation_slice, Tuple):
                             items = annotation_slice.elts
@@ -593,7 +603,7 @@ class TypeguardTransformer(NodeTransformer):
 
         return node
 
-    def visit_Yield(self, node: Yield) -> Yield:
+    def visit_Yield(self, node: Yield) -> Yield | Call:
         """
         This injects type checks into "yield" expressions, checking both the yielded
         value and the value sent back to the generator, when appropriate.
@@ -624,12 +634,13 @@ class TypeguardTransformer(NodeTransformer):
         ):
             func_name = self._get_import("typeguard._functions", "check_send_type")
             old_node = node
-            node = Call(
+            call_node = Call(
                 func_name,
                 [old_node, self._memo.get_call_memo_name()],
                 [],
             )
-            copy_location(node, old_node)
+            copy_location(call_node, old_node)
+            return call_node
 
         return node
 
@@ -656,7 +667,7 @@ class TypeguardTransformer(NodeTransformer):
             if node.value:
                 # On Python < 3.10, if the annotation contains a binary "|", use the
                 # PEP 604 union transformer to turn such operations into typing.Unions
-                if UnionTransformer and any(
+                if UnionTransformer is not None and any(
                     isinstance(n, BinOp) for n in walk(node.annotation)
                 ):
                     union_name = self._get_import("typing", "Union")
@@ -694,7 +705,7 @@ class TypeguardTransformer(NodeTransformer):
                 if isinstance(target, Name):
                     names = [target]
                 elif isinstance(target, Tuple):
-                    names = target.elts
+                    names = [exp for exp in target.elts if isinstance(exp, Name)]
                 else:
                     continue
 
@@ -774,7 +785,7 @@ class TypeguardTransformer(NodeTransformer):
                 [operator_call, expected_types, self._memo.get_call_memo_name()],
                 [],
             )
-            node = Assign(targets=[node.target], value=check_call)
+            return Assign(targets=[node.target], value=check_call)
 
         return node
 
