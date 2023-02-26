@@ -48,7 +48,7 @@ doc = [
 ]
 
 [project.entry-points]
-pytest11 = {typeguard = "typeguard.pytest_plugin"}
+pytest11 = {typeguard = "typeguard._pytest_plugin"}
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
