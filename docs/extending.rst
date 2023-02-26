@@ -38,7 +38,7 @@ There are a couple of things to take into account when writing a type checker:
    along ``memo`` to it)
 #. If you're type checking collections, your checker function should respect the
    :attr:`~.TypeCheckConfiguration.collection_check_strategy` setting, available from
-   ``memo.config.collection_check_strategy``
+   :data:`typeguard.config`
 
 The following example contains a lookup function and type checker for a custom class
 (``MySpecialType``)::

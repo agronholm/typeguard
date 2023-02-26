@@ -7,8 +7,8 @@ from contextlib import contextmanager
 from threading import Lock
 from typing import Any, Callable, NoReturn, TypeVar, overload
 
-from . import TypeCheckConfiguration
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
+from ._config import global_config
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import qualified_name
@@ -41,7 +41,6 @@ def check_type(
     expected_type: type[T],
     *,
     argname: str = "value",
-    config: TypeCheckConfiguration | None = None,
 ) -> T:
     ...
 
@@ -52,7 +51,6 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    config: TypeCheckConfiguration | None = None,
 ) -> Any:
     ...
 
@@ -62,7 +60,6 @@ def check_type(
     expected_type: Any,
     *,
     argname: str = "value",
-    config: TypeCheckConfiguration | None = None,
 ) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
@@ -80,8 +77,6 @@ def check_type(
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
     :param argname: name of the argument to check; used for error messages
-    :param config: explicit configuration to use for this check (uses the global
-        configuration if omitted)
     :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
@@ -90,13 +85,13 @@ def check_type(
         return
 
     frame = sys._getframe(1)
-    memo = TypeCheckMemo(frame.f_globals, frame.f_locals, config)
+    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
         exc.append_path_element(qualified_name(value, add_class_prefix=True))
-        if memo.config.typecheck_fail_callback:
-            memo.config.typecheck_fail_callback(exc, memo)
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
         else:
             raise
 
@@ -124,8 +119,8 @@ def check_argument_types(memo: CallMemo) -> Literal[True]:
                 exc = TypeCheckError(
                     f"{memo.func_name}() was declared never to be called but it was"
                 )
-                if memo.config.typecheck_fail_callback:
-                    memo.config.typecheck_fail_callback(exc, memo)
+                if global_config.typecheck_fail_callback:
+                    global_config.typecheck_fail_callback(exc, memo)
                 else:
                     raise exc
 
@@ -135,8 +130,8 @@ def check_argument_types(memo: CallMemo) -> Literal[True]:
             except TypeCheckError as exc:
                 qualname = qualified_name(value, add_class_prefix=True)
                 exc.append_path_element(f'argument "{argname}" ({qualname})')
-                if memo.config.typecheck_fail_callback:
-                    memo.config.typecheck_fail_callback(exc, memo)
+                if global_config.typecheck_fail_callback:
+                    global_config.typecheck_fail_callback(exc, memo)
                 else:
                     raise
 
@@ -169,8 +164,8 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
             exc = TypeCheckError(
                 f"{memo.func_name}() was declared never to return but it did"
             )
-            if memo.config.typecheck_fail_callback:
-                memo.config.typecheck_fail_callback(exc, memo)
+            if global_config.typecheck_fail_callback:
+                global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise exc
 
@@ -186,8 +181,8 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
 
             qualname = qualified_name(retval, add_class_prefix=True)
             exc.append_path_element(f"the return value ({qualname})")
-            if memo.config.typecheck_fail_callback:
-                memo.config.typecheck_fail_callback(exc, memo)
+            if global_config.typecheck_fail_callback:
+                global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise
 
@@ -203,8 +198,8 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
         exc = TypeCheckError(
             f"{memo.func_name}() was declared never to be sent a value to but it was"
         )
-        if memo.config.typecheck_fail_callback:
-            memo.config.typecheck_fail_callback(exc, memo)
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
         else:
             raise exc
 
@@ -213,8 +208,8 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
     except TypeCheckError as exc:
         qualname = qualified_name(sendval, add_class_prefix=True)
         exc.append_path_element(f"the value sent to generator ({qualname})")
-        if memo.config.typecheck_fail_callback:
-            memo.config.typecheck_fail_callback(exc, memo)
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
         else:
             raise
 
@@ -247,8 +242,8 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
             exc = TypeCheckError(
                 f"{memo.func_name}() was declared never to yield but it did"
             )
-            if memo.config.typecheck_fail_callback:
-                memo.config.typecheck_fail_callback(exc, memo)
+            if global_config.typecheck_fail_callback:
+                global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise exc
 
@@ -257,8 +252,8 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
         except TypeCheckError as exc:
             qualname = qualified_name(yieldval, add_class_prefix=True)
             exc.append_path_element(f"the yielded value ({qualname})")
-            if memo.config.typecheck_fail_callback:
-                memo.config.typecheck_fail_callback(exc, memo)
+            if global_config.typecheck_fail_callback:
+                global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise
 
@@ -276,8 +271,8 @@ def check_variable_assignment(
             check_type_internal(value, expected_type, memo)
         except TypeCheckError as exc:
             exc.append_path_element(argname)
-            if memo.config.typecheck_fail_callback:
-                memo.config.typecheck_fail_callback(exc, memo)
+            if global_config.typecheck_fail_callback:
+                global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise
 

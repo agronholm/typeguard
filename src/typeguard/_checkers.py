@@ -32,7 +32,7 @@ from typing import (
 )
 from unittest.mock import Mock
 
-from ._config import ForwardRefPolicy
+from ._config import ForwardRefPolicy, global_config
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import CallMemo, TypeCheckMemo
 from ._utils import (
@@ -208,7 +208,7 @@ def check_mapping(
     if args:
         key_type, value_type = args
         if key_type is not Any or value_type is not Any:
-            samples = memo.config.collection_check_strategy.iterate_samples(
+            samples = global_config.collection_check_strategy.iterate_samples(
                 value.items()
             )
             for k, v in samples:
@@ -262,7 +262,7 @@ def check_list(
         raise TypeCheckError("is not a list")
 
     if args and args != (Any,):
-        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        samples = global_config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
@@ -278,7 +278,7 @@ def check_sequence(
         raise TypeCheckError("is not a sequence")
 
     if args and args != (Any,):
-        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        samples = global_config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
@@ -294,7 +294,7 @@ def check_set(
         raise TypeCheckError("is not a set")
 
     if args and args != (Any,):
-        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        samples = global_config.collection_check_strategy.iterate_samples(value)
         for v in samples:
             try:
                 check_type_internal(v, args[0], memo)
@@ -338,7 +338,7 @@ def check_tuple(
 
     if use_ellipsis:
         element_type = tuple_params[0]
-        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        samples = global_config.collection_check_strategy.iterate_samples(value)
         for i, element in enumerate(samples):
             try:
                 check_type_internal(element, element_type, memo)
@@ -619,9 +619,9 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if memo.config.forward_ref_policy is ForwardRefPolicy.ERROR:
+            if global_config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif memo.config.forward_ref_policy is ForwardRefPolicy.WARN:
+            elif global_config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(
                     f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
                     TypeHintWarning,

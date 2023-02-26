@@ -15,7 +15,6 @@ from types import FunctionType
 from typing import Any, Dict, ForwardRef, Tuple
 from weakref import WeakKeyDictionary
 
-from ._config import TypeCheckConfiguration, global_config
 from ._utils import function_name
 
 if sys.version_info >= (3, 11):
@@ -32,17 +31,15 @@ _type_hints_map: WeakKeyDictionary[FunctionType, dict[str, Any]] = WeakKeyDictio
 
 
 class TypeCheckMemo:
-    __slots__ = "globals", "locals", "config"
+    __slots__ = "globals", "locals"
 
     def __init__(
         self,
         globals: dict[str, Any],
         locals: dict[str, Any],
-        config: TypeCheckConfiguration | None = None,
     ):
         self.globals = globals
         self.locals = locals
-        self.config = config or global_config
 
 
 class CallMemo(TypeCheckMemo):
@@ -56,9 +53,8 @@ class CallMemo(TypeCheckMemo):
         func: FunctionType,
         frame_locals: dict[str, Any] | None = None,
         self_type: type | None = None,
-        config: TypeCheckConfiguration | None = None,
     ):
-        super().__init__(func.__globals__, frame_locals or {}, config)
+        super().__init__(func.__globals__, frame_locals or {})
         self.func = func
         self.self_type = self_type
 
