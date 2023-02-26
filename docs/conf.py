@@ -33,7 +33,6 @@ autodoc_type_aliases = {
 todo_include_todos = False
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
 htmlhelp_basename = "typeguarddoc"
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3/", None)}
