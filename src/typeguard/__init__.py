@@ -39,6 +39,8 @@ def __getattr__(name: str) -> Any:
 
         return global_config
 
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Automatically load checker lookup functions unless explicitly disabled
 if "TYPEGUARD_DISABLE_PLUGIN_AUTOLOAD" not in os.environ:
