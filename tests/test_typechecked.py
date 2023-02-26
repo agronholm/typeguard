@@ -411,9 +411,33 @@ def test_decorator_before_classmethod():
     )
 
 
+def test_classmethod():
+    @typechecked
+    class Foo:
+        @classmethod
+        def method(cls, x: int) -> None:
+            pass
+
+    pytest.raises(TypeCheckError, Foo().method, "bar").match(
+        r'argument "x" \(str\) is not an instance of int'
+    )
+
+
 def test_decorator_before_staticmethod():
     class Foo:
         @typechecked
+        @staticmethod
+        def method(x: int) -> None:
+            pass
+
+    pytest.raises(TypeCheckError, Foo().method, "bar").match(
+        r'argument "x" \(str\) is not an instance of int'
+    )
+
+
+def test_staticmethod():
+    @typechecked
+    class Foo:
         @staticmethod
         def method(x: int) -> None:
             pass

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import inspect
 import sys
-from inspect import isclass
+from inspect import isclass, isfunction
 from types import CodeType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
 from warnings import warn
@@ -145,9 +145,11 @@ def typechecked(func: T_CallableOrType | None = None):
                 if callable(retval):
                     setattr(func, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
-                retval = instrument(attr)
-                if callable(retval):
-                    setattr(func, key, retval)
+                if isfunction(attr.__func__):
+                    retval = instrument(attr.__func__)
+                    if callable(retval):
+                        wrapper = attr.__class__(retval)
+                        setattr(func, key, wrapper)
             elif isinstance(attr, property):
                 kwargs = dict(doc=attr.__doc__)
                 for name in ("fset", "fget", "fdel"):
