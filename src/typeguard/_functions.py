@@ -36,31 +36,16 @@ type_checks_suppress_lock = Lock()
 
 
 @overload
-def check_type(
-    value: object,
-    expected_type: type[T],
-    *,
-    argname: str = "value",
-) -> T:
+def check_type(value: object, expected_type: type[T]) -> T:
     ...
 
 
 @overload
-def check_type(
-    value: object,
-    expected_type: Any,
-    *,
-    argname: str = "value",
-) -> Any:
+def check_type(value: object, expected_type: Any) -> Any:
     ...
 
 
-def check_type(
-    value: object,
-    expected_type: Any,
-    *,
-    argname: str = "value",
-) -> Any:
+def check_type(value: object, expected_type: Any) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -76,7 +61,6 @@ def check_type(
 
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
-    :param argname: name of the argument to check; used for error messages
     :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
