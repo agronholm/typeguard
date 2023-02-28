@@ -60,16 +60,9 @@ class TestCoroutineFunction:
 
 
 class TestGenerator:
-    @pytest.mark.parametrize(
-        "annotation",
-        [
-            pytest.param(Generator[int, str, List[str]], id="generator"),
-            pytest.param(Generator, id="bare_generator"),
-        ],
-    )
-    def test_generator(self, annotation):
+    def test_generator_bare(self):
         @typechecked
-        def genfunc() -> annotation:
+        def genfunc() -> Generator:
             val1 = yield 2
             val2 = yield 3
             val3 = yield 4
@@ -84,18 +77,56 @@ class TestGenerator:
 
         assert exc.value.value == ["2", "3", "4"]
 
-    @pytest.mark.parametrize(
-        "annotation",
-        [
-            pytest.param(Iterable[int], id="iterable"),
-            pytest.param(Iterable, id="bare_iterable"),
-            pytest.param(Iterator[int], id="iterator"),
-            pytest.param(Iterator, id="bare_iterator"),
-        ],
-    )
-    def test_generator_iter_only(self, annotation):
+    def test_generator_annotated(self):
         @typechecked
-        def genfunc() -> annotation:
+        def genfunc() -> Generator[int, str, List[str]]:
+            val1 = yield 2
+            val2 = yield 3
+            val3 = yield 4
+            return [val1, val2, val3]
+
+        gen = genfunc()
+        with pytest.raises(StopIteration) as exc:
+            value = next(gen)
+            while True:
+                value = gen.send(str(value))
+                assert isinstance(value, int)
+
+        assert exc.value.value == ["2", "3", "4"]
+
+    def test_generator_iterable_bare(self):
+        @typechecked
+        def genfunc() -> Iterable:
+            yield 2
+            yield 3
+            yield 4
+
+        values = list(genfunc())
+        assert values == [2, 3, 4]
+
+    def test_generator_iterable_annotated(self):
+        @typechecked
+        def genfunc() -> Iterable[int]:
+            yield 2
+            yield 3
+            yield 4
+
+        values = list(genfunc())
+        assert values == [2, 3, 4]
+
+    def test_generator_iterator_bare(self):
+        @typechecked
+        def genfunc() -> Iterator:
+            yield 2
+            yield 3
+            yield 4
+
+        values = list(genfunc())
+        assert values == [2, 3, 4]
+
+    def test_generator_iterator_annotated(self):
+        @typechecked
+        def genfunc() -> Iterator[int]:
             yield 2
             yield 3
             yield 4

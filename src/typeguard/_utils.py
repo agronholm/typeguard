@@ -19,7 +19,9 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import get_args, get_origin
 
-    evaluate_extra_args: tuple = (frozenset(),) if sys.version_info >= (3, 9) else ()
+    evaluate_extra_args: tuple[frozenset[Any], ...] = (
+        (frozenset(),) if sys.version_info >= (3, 9) else ()
+    )
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         from ._union_transformer import compile_type_hint, type_substitutions
@@ -44,17 +46,23 @@ else:
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
-def get_type_name(type_) -> str:
-    name = (
-        getattr(type_, "__name__", None)
-        or getattr(type_, "_name", None)
-        or getattr(type_, "__forward_arg__", None)
-    )
-    if name is None:
+def get_type_name(type_: Any) -> str:
+    name: str
+    for attrname in "__name__", "_name", "__forward_arg__":
+        candidate = getattr(type_, attrname, None)
+        if isinstance(candidate, str):
+            name = candidate
+            break
+    else:
         origin = get_origin(type_)
-        name = getattr(origin, "_name", None)
-        if name is None and not inspect.isclass(type_):
-            name = type_.__class__.__name__.strip("_")
+        candidate = getattr(origin, "_name", None)
+        if candidate is None:
+            candidate = type_.__class__.__name__.strip("_")
+
+        if isinstance(candidate, str):
+            name = candidate
+        else:
+            return "(unknown)"
 
     args = get_args(type_)
     if args:
@@ -93,7 +101,7 @@ def qualified_name(obj: Any, *, add_class_prefix: bool = False) -> str:
     return prefix + name
 
 
-def function_name(func: Callable) -> str:
+def function_name(func: Callable[..., Any]) -> str:
     """
     Return the qualified name of the given function.
 

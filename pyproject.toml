@@ -82,8 +82,7 @@ per-file-ignores = [
 
 [tool.mypy]
 python_version = "3.9"
-ignore_missing_imports = true
-#strict = true
+strict = true
 pretty = true
 
 [tool.tox]

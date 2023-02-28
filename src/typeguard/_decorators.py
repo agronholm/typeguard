@@ -14,6 +14,8 @@ from ._transformer import TypeguardTransformer
 from ._utils import function_name, is_method_of
 
 if TYPE_CHECKING:
+    from typeshed.stdlib.types import _Cell
+
     _F = TypeVar("_F")
 
     def typeguard_ignore(f: _F) -> _F:
@@ -26,12 +28,12 @@ else:
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 
-def make_cell():
+def make_cell() -> _Cell:
     value = None
-    return (lambda: value).__closure__[0]
+    return (lambda: value).__closure__[0]  # type: ignore[index]
 
 
-def instrument(f: T_CallableOrType) -> Callable | str:
+def instrument(f: T_CallableOrType) -> FunctionType | str:
     if not getattr(f, "__code__", None):
         return "no code associated"
     elif not getattr(f, "__module__", None):
@@ -116,7 +118,7 @@ def typechecked(target: T_CallableOrType) -> T_CallableOrType:
     ...
 
 
-def typechecked(target: T_CallableOrType | None = None):
+def typechecked(target: T_CallableOrType | None = None) -> Any:
     """
     Perform runtime type checking on the arguments that are passed to the wrapped
     function.
@@ -162,7 +164,7 @@ def typechecked(target: T_CallableOrType | None = None):
 
     # Find either the first Python wrapper or the actual function
     func: FunctionType
-    wrapper_class: type[classmethod] | type[staticmethod] | None = None
+    wrapper_class: type[classmethod[Any]] | type[staticmethod[Any]] | None = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
         target = target.__func__

@@ -42,4 +42,4 @@ def compile_type_hint(hint: str) -> CodeType:
     parsed = parse(hint, "<string>", "eval")
     UnionTransformer().visit(parsed)
     fix_missing_locations(parsed)
-    return compile(parsed, "<string>", "eval")
+    return compile(parsed, "<string>", "eval", flags=0)  # type: ignore[no-any-return]

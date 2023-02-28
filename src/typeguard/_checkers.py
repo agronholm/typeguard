@@ -35,21 +35,15 @@ from unittest.mock import Mock
 from ._config import ForwardRefPolicy, global_config
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import CallMemo, TypeCheckMemo
-from ._utils import (
-    evaluate_forwardref,
-    get_args,
-    get_origin,
-    get_type_name,
-    qualified_name,
-)
+from ._utils import evaluate_forwardref, get_type_name, qualified_name
 
 if sys.version_info >= (3, 11):
-    from typing import LiteralString, Self
+    from typing import LiteralString, Self, get_args, get_origin
 
     SubclassableAny = Any
 else:
     from typing_extensions import Any as SubclassableAny
-    from typing_extensions import LiteralString, Self
+    from typing_extensions import LiteralString, Self, get_args, get_origin
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
@@ -705,7 +699,7 @@ if sys.version_info >= (3, 10):
 
 
 def builtin_checker_lookup(
-    origin_type: Any, args: tuple, extras: tuple
+    origin_type: Any, args: tuple[Any, ...], extras: tuple[Any, ...]
 ) -> TypeCheckerCallable | None:
     checker = origin_type_checkers.get(origin_type)
     if checker is not None:
