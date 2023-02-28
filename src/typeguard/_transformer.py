@@ -422,9 +422,14 @@ class TypeguardTransformer(NodeTransformer):
 
         with self._use_memo(node):
             if self._target_path is None or self._memo.path == self._target_path:
+                all_args = node.args.args + node.args.kwonlyargs + node.args.posonlyargs
+                for arg in node.args.vararg, node.args.kwarg:
+                    if arg is not None:
+                        all_args.append(arg)
+
                 arg_annotations = {
                     arg.arg: arg.annotation
-                    for arg in node.args.args
+                    for arg in all_args
                     if arg.annotation is not None
                     and not self._memo.name_matches(arg.annotation, *anytype_names)
                 }

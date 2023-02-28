@@ -619,6 +619,106 @@ check_return_type
     )
 
 
+def test_keyword_only_argument() -> None:
+    node = parse(
+        dedent(
+            """
+            def foo(*, x: int) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types
+
+            def foo(*, x: int) -> None:
+                call_memo = CallMemo(foo, locals())
+                check_argument_types(call_memo)
+            """
+        ).strip()
+    )
+
+
+def test_positional_only_argument() -> None:
+    node = parse(
+        dedent(
+            """
+            def foo(x: int, /) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types
+
+            def foo(x: int, /) -> None:
+                call_memo = CallMemo(foo, locals())
+                check_argument_types(call_memo)
+            """
+        ).strip()
+    )
+
+
+def test_variable_positional_argument() -> None:
+    node = parse(
+        dedent(
+            """
+            def foo(*args: int) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types
+
+            def foo(*args: int) -> None:
+                call_memo = CallMemo(foo, locals())
+                check_argument_types(call_memo)
+            """
+        ).strip()
+    )
+
+
+def test_variable_keyword_argument() -> None:
+    node = parse(
+        dedent(
+            """
+            def foo(**kwargs: int) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import CallMemo
+            from typeguard._functions import check_argument_types
+
+            def foo(**kwargs: int) -> None:
+                call_memo = CallMemo(foo, locals())
+                check_argument_types(call_memo)
+            """
+        ).strip()
+    )
+
+
 class TestTypecheckingImport:
     """
     Test that annotations imported conditionally on typing.TYPE_CHECKING are not used in

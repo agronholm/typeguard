@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - **BACKWARD INCOMPATIBLE** Dropped the now-unused ``argname`` argument from
   ``check_type()``
+- Fixed functions containing annotations for only keyword-only, positional-only, or
+  variable positional/keyword arguments not being instrumented
 
 **3.0.0rc1** (2023-02-27)
 
