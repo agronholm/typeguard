@@ -422,7 +422,10 @@ class TypeguardTransformer(NodeTransformer):
 
         with self._use_memo(node):
             if self._target_path is None or self._memo.path == self._target_path:
-                all_args = node.args.args + node.args.kwonlyargs + node.args.posonlyargs
+                all_args = node.args.args + node.args.kwonlyargs
+                if sys.version_info >= (3, 8):
+                    all_args.extend(node.args.posonlyargs)
+
                 for arg in node.args.vararg, node.args.kwarg:
                     if arg is not None:
                         all_args.append(arg)

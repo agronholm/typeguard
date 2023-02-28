@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import sys
 from textwrap import dedent
@@ -497,7 +495,7 @@ def test_debug_instrumentation(monkeypatch, capsys):
 def test_keyword_argument_default():
     # Regression test for #305
     @typechecked
-    def foo(*args, x: int | None = None):
+    def foo(*args, x: "int | None" = None):
         pass
 
     foo()
