@@ -101,6 +101,7 @@ def instrument(f: T_CallableOrType) -> Callable | str:
     new_function.__annotations__ = f.__annotations__
     new_function.__doc__ = f.__doc__
     new_function.__defaults__ = f.__defaults__
+    new_function.__kwdefaults__ = f.__kwdefaults__
     new_function.__globals__[f.__name__] = new_function
     return new_function
 

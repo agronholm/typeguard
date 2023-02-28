@@ -9,6 +9,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   ``check_type()``
 - Fixed functions containing annotations for only keyword-only, positional-only, or
   variable positional/keyword arguments not being instrumented
+- Fixed keyword-only defaults not being copied to newly generated function by
+  ``@typechecked``
 
 **3.0.0rc1** (2023-02-27)
 
