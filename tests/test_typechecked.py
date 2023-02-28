@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 import asyncio
 import sys
-from textwrap import dedent
-from typing import (
-    Any,
+from collections.abc import (
     AsyncGenerator,
     AsyncIterable,
     AsyncIterator,
     Generator,
     Iterable,
     Iterator,
-    List,
 )
+from textwrap import dedent
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -79,7 +80,7 @@ class TestGenerator:
 
     def test_generator_annotated(self):
         @typechecked
-        def genfunc() -> Generator[int, str, List[str]]:
+        def genfunc() -> Generator[int, str, list[str]]:
             val1 = yield 2
             val2 = yield 3
             val3 = yield 4
@@ -207,16 +208,9 @@ class TestGenerator:
 
 
 class TestAsyncGenerator:
-    @pytest.mark.parametrize(
-        "annotation",
-        [
-            pytest.param(AsyncGenerator[int, str], id="generator"),
-            pytest.param(AsyncGenerator, id="bare_generator"),
-        ],
-    )
-    def test_async_generator(self, annotation):
+    def test_async_generator_bare(self):
         @typechecked
-        async def genfunc() -> annotation:
+        async def genfunc() -> AsyncGenerator:
             values.append((yield 2))
             values.append((yield 3))
             values.append((yield 4))
@@ -233,18 +227,64 @@ class TestAsyncGenerator:
         asyncio.run(run_generator())
         assert values == ["2", "3", "4"]
 
-    @pytest.mark.parametrize(
-        "annotation",
-        [
-            pytest.param(AsyncIterable[int], id="iterable"),
-            pytest.param(AsyncIterable, id="bare_iterable"),
-            pytest.param(AsyncIterable[int], id="iterator"),
-            pytest.param(AsyncIterable, id="bare_iterator"),
-        ],
-    )
-    def test_generator_iter_only(self, annotation):
+    def test_async_generator_annotated(self):
         @typechecked
-        async def genfunc() -> annotation:
+        async def genfunc() -> AsyncGenerator[int, str]:
+            values.append((yield 2))
+            values.append((yield 3))
+            values.append((yield 4))
+
+        async def run_generator():
+            gen = genfunc()
+            value = await gen.asend(None)
+            with pytest.raises(StopAsyncIteration):
+                while True:
+                    value = await gen.asend(str(value))
+                    assert isinstance(value, int)
+
+        values = []
+        asyncio.run(run_generator())
+        assert values == ["2", "3", "4"]
+
+    def test_generator_iterable_bare(self):
+        @typechecked
+        async def genfunc() -> AsyncIterable:
+            yield 2
+            yield 3
+            yield 4
+
+        async def run_generator():
+            return [value async for value in genfunc()]
+
+        assert asyncio.run(run_generator()) == [2, 3, 4]
+
+    def test_generator_iterable_annotated(self):
+        @typechecked
+        async def genfunc() -> AsyncIterable[int]:
+            yield 2
+            yield 3
+            yield 4
+
+        async def run_generator():
+            return [value async for value in genfunc()]
+
+        assert asyncio.run(run_generator()) == [2, 3, 4]
+
+    def test_generator_iterator_bare(self):
+        @typechecked
+        async def genfunc() -> AsyncIterator:
+            yield 2
+            yield 3
+            yield 4
+
+        async def run_generator():
+            return [value async for value in genfunc()]
+
+        assert asyncio.run(run_generator()) == [2, 3, 4]
+
+    def test_generator_iterator_annotated(self):
+        @typechecked
+        async def genfunc() -> AsyncIterator[int]:
             yield 2
             yield 3
             yield 4
@@ -526,7 +566,7 @@ def test_debug_instrumentation(monkeypatch, capsys):
 def test_keyword_argument_default():
     # Regression test for #305
     @typechecked
-    def foo(*args, x: "int | None" = None):
+    def foo(*args, x: int | None = None):
         pass
 
     foo()

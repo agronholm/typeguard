@@ -4,7 +4,7 @@ import inspect
 import sys
 from importlib import import_module
 from types import CodeType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, ForwardRef
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -32,10 +32,13 @@ else:
         try:
             return forwardref._evaluate(memo.globals, memo.locals, *evaluate_extra_args)
         except NameError:
-            if sys.version_info < (3, 9):
+            if sys.version_info < (3, 10):
                 # Try again, with the type substitutions (list -> List etc.) in place
                 new_globals = memo.globals.copy()
-                new_globals.update(type_substitutions)
+                new_globals.setdefault("Union", Union)
+                if sys.version_info < (3, 9):
+                    new_globals.update(type_substitutions)
+
                 return forwardref._evaluate(
                     new_globals, memo.locals or new_globals, *evaluate_extra_args
                 )

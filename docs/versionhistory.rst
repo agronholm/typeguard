@@ -11,6 +11,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   variable positional/keyword arguments not being instrumented
 - Fixed keyword-only defaults not being copied to newly generated function by
   ``@typechecked``
+- Fixed forward references containing PEP 604 unions not being resolved on Python 3.9
 
 **3.0.0rc1** (2023-02-27)
 
