@@ -54,7 +54,8 @@ class CallMemo(TypeCheckMemo):
         frame_locals: dict[str, Any] | None = None,
         self_type: type | None = None,
     ):
-        super().__init__(func.__globals__, frame_locals or {})
+        frame_globals = getattr(func, "__globals__", None) or sys._getframe(1).f_globals
+        super().__init__(frame_globals, frame_locals or {})
         self.func = func
         self.self_type = self_type
 

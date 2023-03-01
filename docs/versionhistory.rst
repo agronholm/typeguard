@@ -12,6 +12,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed keyword-only defaults not being copied to newly generated function by
   ``@typechecked``
 - Fixed forward references containing PEP 604 unions not being resolved on Python 3.9
+- Fixed ``AttributeError`` about the ``__globals__`` attribute when running an
+  instrumented function that has been replaced with a built-in (i.e. ``@numba.njit``)
 
 **3.0.0rc1** (2023-02-27)
 
