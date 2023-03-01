@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**3.0.0rc2** (2023-03-02)
 
 - **BACKWARD INCOMPATIBLE** Dropped the now-unused ``argname`` argument from
   ``check_type()``
