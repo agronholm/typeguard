@@ -1,17 +1,16 @@
-from __future__ import annotations
-
 import asyncio
 import sys
-from collections.abc import (
+from textwrap import dedent
+from typing import (
+    Any,
     AsyncGenerator,
     AsyncIterable,
     AsyncIterator,
     Generator,
     Iterable,
     Iterator,
+    List,
 )
-from textwrap import dedent
-from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -80,7 +79,7 @@ class TestGenerator:
 
     def test_generator_annotated(self):
         @typechecked
-        def genfunc() -> Generator[int, str, list[str]]:
+        def genfunc() -> Generator[int, str, List[str]]:
             val1 = yield 2
             val2 = yield 3
             val3 = yield 4
@@ -566,7 +565,7 @@ def test_debug_instrumentation(monkeypatch, capsys):
 def test_keyword_argument_default():
     # Regression test for #305
     @typechecked
-    def foo(*args, x: int | None = None):
+    def foo(*args, x: "int | None" = None):
         pass
 
     foo()
