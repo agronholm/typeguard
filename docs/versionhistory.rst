@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``ValueError: expression must have Load context but has Store instead`` when an
+  instrumented function contains an augmented assignment (``x += 1``)
+
 **3.0.0rc2** (2023-03-02)
 
 - **BACKWARD INCOMPATIBLE** Dropped the now-unused ``argname`` argument from

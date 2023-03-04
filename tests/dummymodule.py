@@ -187,3 +187,10 @@ def pep_604_union_retval(x: Any) -> "str | int":
 @typechecked
 def paramspec_function(func: P, args: P.args, kwargs: P.kwargs) -> None:
     pass
+
+
+@typechecked
+def aug_assign() -> int:
+    x: int = 1
+    x += 1
+    return x

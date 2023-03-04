@@ -203,3 +203,7 @@ def test_paramspec(dummymodule):
         pass
 
     dummymodule.paramspec_function(foo, (1, "bar"), {"c": b"abc"})
+
+
+def test_augmented_assign(dummymodule):
+    assert dummymodule.aug_assign() == 2

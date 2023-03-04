@@ -970,18 +970,18 @@ call_memo)):
     @pytest.mark.parametrize(
         "operator, function",
         [
-            pytest.param("+=", "__iadd__", id="add"),
-            pytest.param("-=", "__isub__", id="subtract"),
-            pytest.param("*=", "__imul__", id="multiply"),
-            pytest.param("@=", "__imatmul__", id="matrix_multiply"),
-            pytest.param("/=", "__itruediv__", id="div"),
-            pytest.param("//=", "__ifloordiv__", id="floordiv"),
-            pytest.param("**=", "__ipow__", id="power"),
-            pytest.param("<<=", "__ilshift__", id="left_bitshift"),
-            pytest.param(">>=", "__irshift__", id="right_bitshift"),
-            pytest.param("&=", "__iand__", id="and"),
-            pytest.param("^=", "__ixor__", id="xor"),
-            pytest.param("|=", "__ior__", id="or"),
+            pytest.param("+=", "iadd", id="add"),
+            pytest.param("-=", "isub", id="subtract"),
+            pytest.param("*=", "imul", id="multiply"),
+            pytest.param("@=", "imatmul", id="matrix_multiply"),
+            pytest.param("/=", "itruediv", id="div"),
+            pytest.param("//=", "ifloordiv", id="floordiv"),
+            pytest.param("**=", "ipow", id="power"),
+            pytest.param("<<=", "ilshift", id="left_bitshift"),
+            pytest.param(">>=", "irshift", id="right_bitshift"),
+            pytest.param("&=", "iand", id="and"),
+            pytest.param("^=", "ixor", id="xor"),
+            pytest.param("|=", "ior", id="or"),
         ],
     )
     def test_augmented_assignment(self, operator: str, function: str) -> None:
@@ -1001,11 +1001,12 @@ call_memo)):
                 f"""
                 from typeguard import CallMemo
                 from typeguard._functions import check_variable_assignment
+                from operator import {function}
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
-                    x = check_variable_assignment(x.{function}(6), {{'x': int}}, \
+                    x = check_variable_assignment({function}(x, 6), {{'x': int}}, \
 call_memo)
                 """
             ).strip()
@@ -1050,11 +1051,12 @@ call_memo)
                 from typeguard import CallMemo
                 from typeguard._functions import check_argument_types, \
 check_variable_assignment
+                from operator import iadd
 
                 def foo(x: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    x = check_variable_assignment(x.__iadd__(6), {'x': int}, call_memo)
+                    x = check_variable_assignment(iadd(x, 6), {'x': int}, call_memo)
                 """
             ).strip()
         )

@@ -87,19 +87,19 @@ ignore_decorators = (
     "typeguard.typeguard_ignore",
 )
 aug_assign_functions = {
-    Add: "__iadd__",
-    Sub: "__isub__",
-    Mult: "__imul__",
-    MatMult: "__imatmul__",
-    Div: "__itruediv__",
-    FloorDiv: "__ifloordiv__",
-    Mod: "__imod__",
-    Pow: "__ipow__",
-    LShift: "__ilshift__",
-    RShift: "__irshift__",
-    BitAnd: "__iand__",
-    BitXor: "__ixor__",
-    BitOr: "__ior__",
+    Add: "iadd",
+    Sub: "isub",
+    Mult: "imul",
+    MatMult: "imatmul",
+    Div: "itruediv",
+    FloorDiv: "ifloordiv",
+    Mod: "imod",
+    Pow: "ipow",
+    LShift: "ilshift",
+    RShift: "irshift",
+    BitAnd: "iand",
+    BitXor: "ixor",
+    BitOr: "ior",
 }
 
 
@@ -768,12 +768,13 @@ class TypeguardTransformer(NodeTransformer):
 
             # Bail out if the operator is not found (newer Python version?)
             try:
-                operator_func = aug_assign_functions[node.op.__class__]
+                operator_func_name = aug_assign_functions[node.op.__class__]
             except KeyError:
                 return node
 
+            operator_func = self._get_import("operator", operator_func_name)
             operator_call = Call(
-                Attribute(node.target, operator_func, ctx=Load()), [node.value], []
+                operator_func, [Name(node.target.id, ctx=Load()), node.value], []
             )
             expected_types = Dict(keys=[Constant(node.target.id)], values=[annotation])
             check_call = Call(
