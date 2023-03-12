@@ -13,12 +13,6 @@ repos:
         args: [ "--fix=lf" ]
       - id: trailing-whitespace
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
-    hooks:
-      - id: pyupgrade
-        args: [ "--py37-plus" ]
-
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
