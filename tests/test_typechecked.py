@@ -569,3 +569,14 @@ def test_keyword_argument_default():
         pass
 
     foo()
+
+
+def test_function_has_existing_closure():
+    variable = None
+
+    @typechecked
+    def foo() -> None:
+        return variable
+
+    assert foo() is None
+    # pytest.raises(TypeCheckError, foo, "a")
