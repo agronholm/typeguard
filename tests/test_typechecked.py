@@ -571,12 +571,12 @@ def test_keyword_argument_default():
     foo()
 
 
-def test_function_has_existing_closure():
-    variable = None
+def test_return_type_annotation_refers_to_nonlocal():
+    class Internal:
+        pass
 
     @typechecked
-    def foo() -> None:
-        return variable
+    def foo() -> Internal:
+        return Internal()
 
-    assert foo() is None
-    # pytest.raises(TypeCheckError, foo, "a")
+    assert isinstance(foo(), Internal)

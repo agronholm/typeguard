@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed ``ValueError: expression must have Load context but has Store instead`` when an
   instrumented function contains an augmented assignment (``x += 1``)
+- Fixed ``AssertionError`` when a ``@typechecked`` decorated function's return type
+  annotation refers to a nonlocal name
 
 **3.0.0rc2** (2023-03-02)
 

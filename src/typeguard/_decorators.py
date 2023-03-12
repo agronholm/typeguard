@@ -85,11 +85,10 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     elif f.__closure__ is not None:
         # Existing closure needs modifications
         cell = make_cell()
-        assert new_code.co_freevars[0] == f.__name__
-        closure = (cell,) + f.__closure__
+        index = new_code.co_freevars.index(f.__name__)
+        closure = f.__closure__[:index] + (cell,) + f.__closure__[index:]
     else:
         # Make a brand new closure
-        # assert new_code.co_freevars == (f.__name__,)
         cell = make_cell()
         closure = (cell,)
 
