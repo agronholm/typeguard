@@ -60,12 +60,10 @@ class TypeguardLoader(SourceFileLoader):
             source = decode_source(data)
 
         tree = _call_with_frames_removed(
-            compile,
+            ast.parse,
             source,
             path,
             "exec",
-            ast.PyCF_ONLY_AST,
-            dont_inherit=True,
         )
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
@@ -79,7 +77,7 @@ class TypeguardLoader(SourceFileLoader):
             print(ast.unparse(tree), file=sys.stderr)
             print("----------------------------------------------", file=sys.stderr)
 
-        return _call_with_frames_removed(  # type: ignore[no-any-return]
+        return _call_with_frames_removed(
             compile, tree, path, "exec", 0, dont_inherit=True
         )
 
