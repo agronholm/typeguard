@@ -985,7 +985,7 @@ def test_forward_reference_policy(
 ):
     monkeypatch.setattr(config, "forward_ref_policy", policy)
     with contextmanager:
-        check_type(1, ForwardRef("Foo"))
+        check_type(1, ForwardRef("Foo"))  # noqa: F821
 
 
 def test_any():

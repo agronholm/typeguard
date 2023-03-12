@@ -4,9 +4,18 @@ Python versions older than 3.10.
 """
 from __future__ import annotations
 
-from ast import BinOp, BitOr, Index, Load, Name, NodeTransformer, Subscript
+from ast import (
+    BinOp,
+    BitOr,
+    Index,
+    Load,
+    Name,
+    NodeTransformer,
+    Subscript,
+    fix_missing_locations,
+    parse,
+)
 from ast import Tuple as ASTTuple
-from ast import fix_missing_locations, parse
 from types import CodeType
 from typing import Any, Dict, FrozenSet, List, Set, Tuple, Union
 

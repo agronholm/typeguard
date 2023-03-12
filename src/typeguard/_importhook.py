@@ -193,7 +193,7 @@ def install_import_hook(
     else:
         target_packages = list(packages)
 
-    for i, finder in enumerate(sys.meta_path):
+    for finder in sys.meta_path:
         if (
             isclass(finder)
             and finder.__name__ == "PathFinder"

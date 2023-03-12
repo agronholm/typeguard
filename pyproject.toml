@@ -57,6 +57,7 @@ local_scheme = "dirty-tag"
 [tool.pytest.ini_options]
 addopts = "-rsx --tb=short"
 testpaths = "tests"
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["typeguard"]
@@ -68,17 +69,20 @@ exclude_lines = [
     "if TYPE_CHECKING:"
 ]
 
-[tool.isort]
-src_paths = ["src"]
-profile = "black"
-skip_gitignore = true
-
-[tool.flake8]
-max-line-length = 88
-ignore = ["E203", "W503"]
-per-file-ignores = [
-    "**/__init__.py:F401"
+[tool.ruff]
+line-length = 88
+select = [
+    "E", "F", "W",  # default flake-8
+    "I",            # isort
+    "PGH",          # pygrep-hooks
+    "UP",           # pyupgrade
+    "B0",           # flake8-bugbear
 ]
+ignore = [
+    "PGH001"
+]
+target-version = "py37"
+src = ["src"]
 
 [tool.mypy]
 python_version = "3.9"
