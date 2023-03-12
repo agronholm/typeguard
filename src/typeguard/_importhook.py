@@ -22,9 +22,14 @@ else:
 
 if TYPE_CHECKING:
     from array import array
-    from ctypes import _CData
     from mmap import mmap
     from pickle import PickleBuffer
+
+    # This is guarded because sphinx-autodoc-typehints tries to import these
+    try:
+        from ctypes import _CData
+    except ImportError:
+        pass
 
 P = ParamSpec("P")
 T = TypeVar("T")
