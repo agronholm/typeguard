@@ -38,30 +38,41 @@ from ._memo import CallMemo, TypeCheckMemo
 from ._utils import evaluate_forwardref, get_type_name, qualified_name
 
 if sys.version_info >= (3, 11):
-    from typing import LiteralString, Self, get_args, get_origin
+    from typing import (
+        Annotated,
+        Literal,
+        LiteralString,
+        Self,
+        TypeAlias,
+        TypeGuard,
+        get_args,
+        get_origin,
+        get_type_hints,
+        is_typeddict,
+    )
 
     SubclassableAny = Any
 else:
+    from typing_extensions import (
+        Annotated,
+        Literal,
+        LiteralString,
+        Self,
+        TypeAlias,
+        TypeGuard,
+        get_args,
+        get_origin,
+        get_type_hints,
+        is_typeddict,
+    )
     from typing_extensions import Any as SubclassableAny
-    from typing_extensions import LiteralString, Self, get_args, get_origin
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
-    from typing import ParamSpec, TypeAlias, TypeGuard, is_typeddict
+    from typing import ParamSpec
 else:
     from importlib_metadata import entry_points
-    from typing_extensions import ParamSpec, TypeAlias, TypeGuard, is_typeddict
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated, get_type_hints
-else:
-    from typing_extensions import Annotated, get_type_hints
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
+    from typing_extensions import ParamSpec
 
 TypeCheckerCallable: TypeAlias = Callable[
     [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
