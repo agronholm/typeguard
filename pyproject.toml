@@ -57,6 +57,7 @@ local_scheme = "dirty-tag"
 [tool.pytest.ini_options]
 addopts = "-rsx --tb=short"
 testpaths = "tests"
+xfail_strict = true
 filterwarnings = ["error"]
 
 [tool.coverage.run]

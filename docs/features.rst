@@ -26,6 +26,44 @@ The following type checks are not yet supported in Typeguard:
 * ``yield_from`` statements in generator functions
 * ``ParamSpec`` is currently ignored
 
+Other limitations
+-----------------
+
+Forward references pointing to non-local types (class defined inside a function, and a
+nested function within the same parent function referring to that class) cannot
+currently be resolved::
+
+    def outer():
+        class Inner:
+            pass
+
+        instance = Inner()
+
+        # Inner cannot be resolved because it is not in the __globals__ of inner() or
+        # its closure
+        def inner() -> "Inner":
+            return instance
+
+        return inner()
+
+However, if you explicitly reference the type in the nested function, that will work::
+
+        # Inner is part of the closure of inner() now so it can be resolved
+        def inner() -> "Inner":
+            return Inner()
+
+A similar corner case would be a forward reference to a nested class::
+
+    class Outer:
+        class Inner:
+            pass
+
+        # Cannot be resolved as the name is no longer available
+        def method() -> "Inner":
+            return Outer.Inner()
+
+Both these shortcomings may be resolved in a future release.
+
 Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------
 
