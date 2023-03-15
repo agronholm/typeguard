@@ -5,6 +5,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Improved the documentation
 - Fixed assignment unpacking (``a, b = ...``) being checked incorrectly
 
 **3.0.0** (2023-03-15)

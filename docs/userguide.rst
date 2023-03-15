@@ -74,6 +74,12 @@ abstract syntax tree using :func:`ast.parse`, modifying it to add type checking,
 finally compiling the modified AST into byte code. This code is then used to make a new
 function object that is used to replace the original one.
 
+.. note:: You should always place this decorator closest to the original function,
+    as it will not work when there is another decorator wrapping the function.
+    For the same reason, when you use it on a class that has wrapping decorators on
+    its methods, such methods will not be instrumented. In contrast, the import hook
+    has no such restrictions.
+
 Using the import hook
 ---------------------
 

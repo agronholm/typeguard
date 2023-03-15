@@ -29,6 +29,9 @@ The following type checks are not yet supported in Typeguard:
 Other limitations
 -----------------
 
+Non-local forward references
+++++++++++++++++++++++++++++
+
 Forward references pointing to non-local types (class defined inside a function, and a
 nested function within the same parent function referring to that class) cannot
 currently be resolved::
@@ -63,6 +66,17 @@ A similar corner case would be a forward reference to a nested class::
             return Outer.Inner()
 
 Both these shortcomings may be resolved in a future release.
+
+Using :func:`@typechecked <typechecked>` on top of other decorators
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+As :func:`@typechecked <typechecked>` works by recompiling the target function with
+instrumentation added, it needs to replace all the references to the original function
+with the new one. This could be impossible when it's placed on top of another decorator
+that wraps the original function. It has no way of telling that other decorator that the
+target function should be switched to a new one. To work around this limitation, either
+place :func:`@typechecked <typechecked>` at the bottom of the decorator stack, or use
+the import hook instead.
 
 Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------

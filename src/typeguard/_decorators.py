@@ -119,18 +119,18 @@ def typechecked(target: T_CallableOrType) -> T_CallableOrType:
 
 def typechecked(target: T_CallableOrType | None = None) -> Any:
     """
-    Perform runtime type checking on the arguments that are passed to the wrapped
-    function.
+    Instrument the target function to perform run-time type checking.
 
-    The return value is also checked against the return annotation if any.
+    This decorator recompiles the target function, injecting code to type check
+    arguments, return values, yield values (excluding ``yield from``) and assignments to
+    annotated local variables.
 
-    This can also be used as a class decorator. This will wrap all type annotated
-    methods, including ``@classmethod``, ``@staticmethod``,  and ``@property``
-    decorated methods, in the class with the ``@typechecked`` decorator.
+    This can also be used as a class decorator. This will instrument all type annotated
+    methods, including :func:`@classmethod <classmethod>`,
+    :func:`@staticmethod <staticmethod>`,  and :class:`@property <property>` decorated
+    methods in the class.
 
     :param target: the function or class to enable type checking for
-
-    .. note:: ``yield from`` is currently not type checked.
 
     """
     if target is None:
