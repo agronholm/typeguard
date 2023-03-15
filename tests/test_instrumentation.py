@@ -214,3 +214,7 @@ def test_augmented_assign(dummymodule):
 
 def test_unpacking_assign(dummymodule):
     assert dummymodule.unpacking_assign() == (1, "foo")
+
+
+def test_unpacking_assign_from_generator(dummymodule):
+    assert dummymodule.unpacking_assign_generator() == (1, "foo")

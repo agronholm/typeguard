@@ -202,3 +202,14 @@ def unpacking_assign() -> Tuple[int, str]:
     x: int
     x, y = (1, "foo")
     return x, y
+
+
+@typechecked
+def unpacking_assign_generator() -> Tuple[int, str]:
+    def genfunc():
+        yield 1
+        yield "foo"
+
+    x: int
+    x, y = genfunc()
+    return x, y
