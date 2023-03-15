@@ -11,6 +11,10 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   ``check_return_type()`` functions (use ``@typechecked`` instead)
 - **BACKWARD INCOMPATIBLE** Moved ``install_import_hook`` to be directly importable
   from the ``typeguard`` module
+- **BACKWARD INCOMPATIBLE** Changed the checking of collections (list, set, dict,
+  sequence, mapping) to only check the first item by default. To get the old behavior,
+  set ``typeguard.config.collection_check_strategy`` to
+  ``CollectionCheckStrategy.ALL_ITEMS``
 - Dropped Python 3.5 and 3.6 support
 - Dropped the deprecated profiler hook (``TypeChecker``)
 - Added a configuration system
