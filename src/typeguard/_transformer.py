@@ -707,10 +707,14 @@ class TypeguardTransformer(NodeTransformer):
 
                 for name in names:
                     annotation = self._memo.variable_annotations.get(name.id)
-                    if annotation is not None:
-                        annotations_[name.id] = annotation
+                    annotations_[name.id] = annotation
 
-            if annotations_:
+            if any(ann for ann in annotations_.values()):
+                # Replace untyped variables with Any
+                for key, ann in annotations_.items():
+                    if ann is None:
+                        annotations_[key] = self._get_import("typing", "Any")
+
                 func_name = self._get_import(
                     "typeguard._functions", "check_variable_assignment"
                 )

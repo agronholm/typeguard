@@ -200,6 +200,5 @@ def aug_assign() -> int:
 @typechecked
 def unpacking_assign() -> Tuple[int, str]:
     x: int
-    y: str
     x, y = (1, "foo")
     return x, y

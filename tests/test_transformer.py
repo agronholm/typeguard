@@ -872,13 +872,14 @@ call_memo)
                 f"""
                 from typeguard import CallMemo
                 from typeguard._functions import check_variable_assignment
+                from typing import Any
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
                     z: bytes
                     {target} = check_variable_assignment(otherfunc(), \
-{{'x': int, 'z': bytes}}, call_memo)
+{{'x': int, 'y': Any, 'z': bytes}}, call_memo)
                 """
             ).strip()
         )
