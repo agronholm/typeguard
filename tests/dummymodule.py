@@ -6,6 +6,7 @@ from typing import (
     AsyncGenerator,
     Callable,
     Generator,
+    Tuple,
     Union,
     no_type_check,
     no_type_check_decorator,
@@ -197,7 +198,7 @@ def aug_assign() -> int:
 
 
 @typechecked
-def unpacking_assign() -> "tuple[int, str]":
+def unpacking_assign() -> Tuple[int, str]:
     x: int
     y: str
     x, y = (1, "foo")
