@@ -250,7 +250,7 @@ def check_variable_assignment(
     if type_checks_suppressed:
         return
 
-    if len(expected_annotations) == 1:
+    if len(expected_annotations) > 1:
         source_values = cast("Iterable[Any]", value)
     else:
         source_values = (value,)
