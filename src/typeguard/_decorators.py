@@ -40,6 +40,11 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         return "__module__ attribute is not set"
     elif f.__code__.co_filename == "<stdin>":
         return "cannot instrument functions defined in a REPL"
+    elif hasattr(f, "__wrapped__"):
+        return (
+            "@typechecked only supports instrumenting functions wrapped with "
+            "@classmethod, @staticmethod or @property"
+        )
 
     target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
     module_source = inspect.getsource(sys.modules[f.__module__])
@@ -162,29 +167,15 @@ def typechecked(target: T_CallableOrType | None = None) -> Any:
         return target
 
     # Find either the first Python wrapper or the actual function
-    func: FunctionType
     wrapper_class: type[classmethod[Any]] | type[staticmethod[Any]] | None = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
         target = target.__func__
 
-    if hasattr(target, "__wrapped__"):
-        warn(
-            f"Cannot instrument {function_name(target)} -- @typechecked only supports "
-            f"instrumenting functions wrapped with @classmethod, @staticmethod or "
-            f"@property",
-            InstrumentationWarning,
-        )
-        return target
-    elif isfunction(target):
-        func = target
-    else:
-        raise TypeError("target is not a function or a supported wrapper")
-
-    retval = instrument(func)
+    retval = instrument(target)
     if isinstance(retval, str):
         warn(
-            f"{retval} -- not typechecking {function_name(func)}",
+            f"{retval} -- not typechecking {function_name(target)}",
             InstrumentationWarning,
         )
         return target

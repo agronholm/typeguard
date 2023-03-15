@@ -7,6 +7,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Improved the documentation
 - Fixed assignment unpacking (``a, b = ...``) being checked incorrectly
+- Fixed ``@typechecked`` attempting to instrument wrapper decorators such as
+  ``@contextmanager`` when applied to a class
 
 **3.0.0** (2023-03-15)
 

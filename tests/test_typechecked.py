@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from contextlib import contextmanager
 from textwrap import dedent
 from typing import (
     Any,
@@ -580,3 +581,14 @@ def test_return_type_annotation_refers_to_nonlocal():
         return Internal()
 
     assert isinstance(foo(), Internal)
+
+
+def test_existing_method_decorator():
+    @typechecked
+    class Foo:
+        @contextmanager
+        def method(self, x: int) -> None:
+            yield x + 1
+
+    with Foo().method(6) as value:
+        assert value == 7
