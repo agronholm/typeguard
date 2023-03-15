@@ -210,3 +210,7 @@ def test_paramspec(dummymodule):
 
 def test_augmented_assign(dummymodule):
     assert dummymodule.aug_assign() == 2
+
+
+def test_unpacking_assign(dummymodule):
+    assert dummymodule.unpacking_assign() == (1, "foo")

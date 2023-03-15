@@ -194,3 +194,11 @@ def aug_assign() -> int:
     x: int = 1
     x += 1
     return x
+
+
+@typechecked
+def unpacking_assign() -> "tuple[int, str]":
+    x: int
+    y: str
+    x, y = (1, "foo")
+    return x, y

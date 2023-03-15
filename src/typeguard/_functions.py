@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import sys
 import warnings
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any, Callable, NoReturn, TypeVar, overload
+from typing import Any, Callable, NoReturn, TypeVar, cast, overload
 
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._config import global_config
@@ -250,9 +250,18 @@ def check_variable_assignment(
     if type_checks_suppressed:
         return
 
-    for argname, expected_type in expected_annotations.items():
+    if len(expected_annotations) == 1:
+        source_values = cast("Iterable[Any]", value)
+    else:
+        source_values = (value,)
+
+    iterated_values = []
+    for obj, (argname, expected_type) in zip(
+        source_values, expected_annotations.items()
+    ):
+        iterated_values.append(obj)
         try:
-            check_type_internal(value, expected_type, memo)
+            check_type_internal(obj, expected_type, memo)
         except TypeCheckError as exc:
             exc.append_path_element(argname)
             if global_config.typecheck_fail_callback:
@@ -260,7 +269,7 @@ def check_variable_assignment(
             else:
                 raise
 
-    return value
+    return iterated_values if len(iterated_values) > 1 else iterated_values[0]
 
 
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:

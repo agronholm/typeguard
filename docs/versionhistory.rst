@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed assignment unpacking (``a, b = ...``) being checked incorrectly
+
 **3.0.0** (2023-03-15)
 
 - **BACKWARD INCOMPATIBLE** Dropped the ``argname``, ``memo``, ``globals`` and
