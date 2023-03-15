@@ -50,6 +50,9 @@ doc = [
 [project.entry-points]
 pytest11 = {typeguard = "typeguard._pytest_plugin"}
 
+[tool.setuptools.package-data]
+typeguard = ["py.typed"]
+
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "dirty-tag"
