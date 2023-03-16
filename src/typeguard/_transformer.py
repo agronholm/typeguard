@@ -426,16 +426,42 @@ class TypeguardTransformer(NodeTransformer):
                 if sys.version_info >= (3, 8):
                     all_args.extend(node.args.posonlyargs)
 
-                for arg in node.args.vararg, node.args.kwarg:
-                    if arg is not None:
-                        all_args.append(arg)
-
                 arg_annotations = {
                     arg.arg: arg.annotation
                     for arg in all_args
                     if arg.annotation is not None
                     and not self._memo.name_matches(arg.annotation, *anytype_names)
                 }
+                if node.args.vararg:
+                    if sys.version_info >= (3, 9):
+                        container = Name("tuple", ctx=Load())
+                    else:
+                        container = self._get_import("typing", "Tuple")
+
+                    annotation = Subscript(
+                        container,
+                        Tuple(
+                            [node.args.vararg.annotation, Constant(Ellipsis)],
+                            ctx=Load(),
+                        ),
+                    )
+                    arg_annotations[node.args.vararg.arg] = annotation
+
+                if node.args.kwarg:
+                    if sys.version_info >= (3, 9):
+                        container = Name("dict", ctx=Load())
+                    else:
+                        container = self._get_import("typing", "Dict")
+
+                    annotation = Subscript(
+                        container,
+                        Tuple(
+                            [Name("str", ctx=Load()), node.args.kwarg.annotation],
+                            ctx=Load(),
+                        ),
+                    )
+                    arg_annotations[node.args.kwarg.arg] = annotation
+
                 if arg_annotations:
                     self._memo.variable_annotations.update(arg_annotations)
 

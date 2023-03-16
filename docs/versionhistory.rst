@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Fixed ``warn_on_error()`` not showing where the type violation actually occurred
+- Fixed local assignment to ``*args`` or ``**kwargs`` being type checked incorrectly
 
 **3.0.1** (2023-03-16)
 

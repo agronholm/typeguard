@@ -823,6 +823,76 @@ call_memo)
             ).strip()
         )
 
+    def test_varargs_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo(*args: int) -> None:
+                    args = (5,)
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+
+        if sys.version_info < (3, 9):
+            extra_import = "from typing import Tuple\n"
+            tuple_type = "Tuple"
+        else:
+            extra_import = ""
+            tuple_type = "tuple"
+
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import CallMemo
+                from typeguard._functions import check_argument_types, \
+check_variable_assignment
+                {extra_import}
+                def foo(*args: int) -> None:
+                    call_memo = CallMemo(foo, locals())
+                    check_argument_types(call_memo)
+                    args = check_variable_assignment((5,), \
+{{'args': {tuple_type}[int, ...]}}, call_memo)
+                """
+            ).strip()
+        )
+
+    def test_kwargs_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo(**kwargs: int) -> None:
+                    kwargs = {'a': 5}
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+
+        if sys.version_info < (3, 9):
+            extra_import = "from typing import Dict\n"
+            dict_type = "Dict"
+        else:
+            extra_import = ""
+            dict_type = "dict"
+
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import CallMemo
+                from typeguard._functions import check_argument_types, \
+check_variable_assignment
+                {extra_import}
+                def foo(**kwargs: int) -> None:
+                    call_memo = CallMemo(foo, locals())
+                    check_argument_types(call_memo)
+                    kwargs = check_variable_assignment({{'a': 5}}, \
+{{'kwargs': {dict_type}[str, int]}}, call_memo)
+                """
+            ).strip()
+        )
+
     @pytest.mark.skipif(sys.version_info >= (3, 10), reason="Requires Python < 3.10")
     def test_pep604_assign(self) -> None:
         node = parse(
