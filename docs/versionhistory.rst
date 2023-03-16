@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``warn_on_error()`` not showing where the type violation actually occurred
+
 **3.0.1** (2023-03-16)
 
 - Improved the documentation
