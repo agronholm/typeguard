@@ -29,6 +29,9 @@ Configuration
 
    The global configuration object.
 
+   Used by :func:`@typechecked <.typechecked>` and :func:`.install_import_hook`, and
+   notably **not used** by :func:`.check_type`.
+
 .. autoclass:: TypeCheckConfiguration
    :members:
 

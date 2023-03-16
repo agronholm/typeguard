@@ -10,6 +10,11 @@ There are several configuration options that can be set that influence how type 
 is done. To change the options, import :data:`typeguard.config` (which is of type
 :class:`~.TypeCheckConfiguration`) and set the attributes you want to change.
 
+Note that the global :data:`typeguard.config` only affects the :func:`.typechecked <@typechecked>`
+decorator and the import hook, but does not affect calls to :func:`.check_type`. This is
+to avoid the usual caveats of globally shared state, while allowing universal,
+application-wide control for the decorator and hook.
+
 Checking types directly
 -----------------------
 
