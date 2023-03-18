@@ -26,4 +26,4 @@ def test_typechecked(monkeypatch, recwarn):
 
     assert len(warning.list) == 1
     assert warning.list[0].filename == __file__
-    assert warning.list[0].lineno == foo.__code__.co_firstlineno + 1
+    assert warning.list[0].lineno == test_typechecked.__code__.co_firstlineno + 3
