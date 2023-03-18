@@ -999,6 +999,10 @@ def test_any_subclass():
     check_type(Foo(), int)
 
 
+def test_none():
+    check_type(None, None)
+
+
 def test_return_checked_value():
     value = {"foo": 1}
     assert check_type(value, Dict[str, int]) is value

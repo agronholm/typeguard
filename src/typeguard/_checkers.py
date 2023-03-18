@@ -530,6 +530,13 @@ def check_typeguard(
     check_type_internal(value, bool, memo)
 
 
+def check_none(
+    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    if value is not None:
+        raise TypeCheckError("is not None")
+
+
 def check_number(
     value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
@@ -689,6 +696,7 @@ origin_type_checkers = {
     LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
+    None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
     Self: check_self,
