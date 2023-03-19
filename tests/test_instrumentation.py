@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pytest import FixtureRequest
 
-from typeguard import TypeCheckError, install_import_hook
+from typeguard import TypeCheckError, config, install_import_hook
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
@@ -18,13 +18,14 @@ cached_module_path = Path(
 )
 
 
-@pytest.fixture(scope="module", params=["importhook", "typechecked"])
+@pytest.fixture(scope="module", params=["typechecked", "importhook"])
 def method(request: FixtureRequest) -> str:
     return request.param
 
 
 @pytest.fixture(scope="module")
 def dummymodule(method: str):
+    config.debug_instrumentation = True
     sys.path.insert(0, str(this_dir))
     try:
         if cached_module_path.exists():
@@ -123,6 +124,13 @@ def test_inner_class_classmethod(dummymodule):
 def test_inner_class_staticmethod(dummymodule):
     retval = dummymodule.Outer.create_inner_staticmethod()
     assert retval.__class__.__qualname__ == "Outer.Inner"
+
+
+def test_local_class_instance(dummymodule):
+    instance = dummymodule.create_local_class_instance()
+    assert (
+        instance.__class__.__qualname__ == "create_local_class_instance.<locals>.Inner"
+    )
 
 
 def test_contextmanager(dummymodule):

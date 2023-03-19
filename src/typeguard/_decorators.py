@@ -4,8 +4,8 @@ import ast
 import inspect
 import sys
 from inspect import isclass, isfunction
-from types import CodeType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
+from types import CodeType, FrameType, FunctionType
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
 from warnings import warn
 
 from ._config import global_config
@@ -28,8 +28,7 @@ else:
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 
-def make_cell() -> _Cell:
-    value = None
+def make_cell(value: object) -> _Cell:
     return (lambda: value).__closure__[0]  # type: ignore[index]
 
 
@@ -83,24 +82,26 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         else:
             return "cannot find the target function in the AST"
 
-    cell = None
-    if new_code.co_freevars == f.__code__.co_freevars:
-        # The existing closure works fine
-        closure = f.__closure__
-    elif f.__closure__ is not None:
-        # Existing closure needs modifications
-        cell = make_cell()
-        index = new_code.co_freevars.index(f.__name__)
-        closure = f.__closure__[:index] + (cell,) + f.__closure__[index:]
-    else:
-        # Make a brand new closure
-        cell = make_cell()
-        closure = (cell,)
+    closure = f.__closure__
+    if new_code.co_freevars != f.__code__.co_freevars:
+        # Create a new closure and find values for the new free variables
+        frame = cast(FrameType, inspect.currentframe())
+        frame = cast(FrameType, frame.f_back)
+        frame_locals = cast(FrameType, frame.f_back).f_locals
+        cells: list[_Cell] = []
+        for key in new_code.co_freevars:
+            if key in instrumentor.names_used_in_annotations:
+                # Find the value and make a new cell from it
+                value = frame_locals.get(key) or ForwardRef(key)
+                cells.append(make_cell(value))
+            else:
+                # Reuse the cell from the existing closure
+                assert f.__closure__
+                cells.append(f.__closure__[f.__code__.co_freevars.index(key)])
+
+        closure = tuple(cells)
 
     new_function = FunctionType(new_code, f.__globals__, f.__name__, closure=closure)
-    if cell is not None:
-        cell.cell_contents = new_function
-
     new_function.__module__ = f.__module__
     new_function.__name__ = f.__name__
     new_function.__qualname__ = f.__qualname__

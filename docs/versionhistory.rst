@@ -8,6 +8,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - **BACKWARD INCOMPATIBLE** Removed ``CallMemo`` from the API
 - Changed instrumentation to statically copy the function annotations to avoid having to
   look up the function object at run time
+- Added support for type checking against nonlocal classes defined within the same
+  parent function as the instrumented function
 - Fixed ``warn_on_error()`` not showing where the type violation actually occurred
 - Fixed local assignment to ``*args`` or ``**kwargs`` being type checked incorrectly
 - Fixed ``TypeError`` on ``check_type(..., None)``

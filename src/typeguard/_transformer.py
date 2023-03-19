@@ -298,6 +298,7 @@ class TypeguardTransformer(NodeTransformer):
     def __init__(self, target_path: Sequence[str] | None = None) -> None:
         self._target_path = tuple(target_path) if target_path else None
         self._memo = self._module_memo = TransformMemo(None, None, ())
+        self.names_used_in_annotations: set[str] = set()
 
     @contextmanager
     def _use_memo(
@@ -364,6 +365,8 @@ class TypeguardTransformer(NodeTransformer):
         ...
 
     def _convert_annotation(self, annotation: expr | None) -> expr | None:
+        # Parse forward references to AST nodes, and convert PEP 604 unions to
+        # typing.Unions on Pythons older than 3.9
         if isinstance(annotation, Constant) and isinstance(annotation.value, str):
             expression = ast.parse(annotation.value, mode="eval")
 
@@ -374,7 +377,12 @@ class TypeguardTransformer(NodeTransformer):
                 union_name = self._memo.get_import("typing", "Union")
                 expression = UnionTransformer(union_name).visit(expression)
 
-            return ast.copy_location(expression.body, annotation)
+            annotation = ast.copy_location(expression.body, annotation)
+
+        # Store names used in the annotation
+        if annotation:
+            names = {node.id for node in walk(annotation) if isinstance(node, Name)}
+            self.names_used_in_annotations.update(names)
 
         return annotation
 

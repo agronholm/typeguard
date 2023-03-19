@@ -157,6 +157,18 @@ def get_inner_class() -> type:
     return InnerClass
 
 
+def create_local_class_instance() -> object:
+    class Inner:
+        pass
+
+    @typechecked
+    def get_instance() -> "Inner":
+        return instance
+
+    instance = Inner()
+    return get_instance()
+
+
 @typechecked
 async def async_func(a: int) -> str:
     return str(a)
