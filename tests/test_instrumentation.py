@@ -27,11 +27,12 @@ def method(request: FixtureRequest) -> str:
 def dummymodule(method: str):
     sys.path.insert(0, str(this_dir))
     try:
-        if method == "typechecked":
-            return import_module("dummymodule")
-
         if cached_module_path.exists():
             cached_module_path.unlink()
+            sys.modules.pop("dummymodule", None)
+
+        if method == "typechecked":
+            return import_module("dummymodule")
 
         with install_import_hook(["dummymodule"]):
             with warnings.catch_warnings():
@@ -181,7 +182,7 @@ def test_asyncgen_bad_yield_type(dummymodule):
 
 def test_missing_return(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.missing_return).match(
-        r"the return value \(NoneType\) is not an instance of int"
+        r"the return value \(None\) is not an instance of int"
     )
 
 

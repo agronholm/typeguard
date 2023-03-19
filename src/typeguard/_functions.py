@@ -2,31 +2,21 @@ from __future__ import annotations
 
 import sys
 import warnings
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any, Callable, NoReturn, TypeVar, cast, overload
+from typing import Any, Callable, Iterable, NoReturn, TypeVar, cast, overload
 
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._config import global_config
 from ._exceptions import TypeCheckError, TypeCheckWarning
-from ._memo import CallMemo, TypeCheckMemo
+from ._memo import TypeCheckMemo
 from ._utils import qualified_name
 
 if sys.version_info >= (3, 11):
-    from typing import Never
+    from typing import Literal, Never, TypeAlias
 else:
-    from typing_extensions import Never
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Never, TypeAlias
 
 T = TypeVar("T")
 TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
@@ -82,71 +72,26 @@ def check_type(value: object, expected_type: Any) -> Any:
     return value
 
 
-def check_argument_types(memo: CallMemo) -> Literal[True]:
-    """
-    Check that the argument values match the annotated types.
-
-    This should be called first thing within the body of a type annotated function.
-    If ``memo`` is not provided, the information will be retrieved from the previous
-    stack frame (ie. from the function that called this).
-
-    :return: ``True``
-    :raises TypeError: if there is an argument type mismatch
-
-    """
+def check_argument_types(
+    func_name: str,
+    arguments: dict[str, tuple[Any, Any]],
+    # vararg: tuple[str, tuple[object, ...], Any] | None,
+    # kwarg: tuple[str, dict[str, object], Any] | None,
+    memo: TypeCheckMemo,
+) -> Literal[True]:
     if type_checks_suppressed:
         return True
 
-    for argname, expected_type in memo.type_hints.items():
-        if argname != "return" and argname in memo.arguments:
-            if expected_type is NoReturn or expected_type is Never:
-                exc = TypeCheckError(
-                    f"{memo.func_name}() was declared never to be called but it was"
-                )
-                if global_config.typecheck_fail_callback:
-                    global_config.typecheck_fail_callback(exc, memo)
-                else:
-                    raise exc
+    # if vararg:
+    #     arguments[vararg[0]] = vararg[1], Tuple[vararg[2]]
+    #
+    # if kwarg:
+    #     arguments[kwarg[0]] = vararg[1], Dict[str, vararg[2]]
 
-            value = memo.arguments[argname]
-            try:
-                check_type_internal(value, expected_type, memo=memo)
-            except TypeCheckError as exc:
-                qualname = qualified_name(value, add_class_prefix=True)
-                exc.append_path_element(f'argument "{argname}" ({qualname})')
-                if global_config.typecheck_fail_callback:
-                    global_config.typecheck_fail_callback(exc, memo)
-                else:
-                    raise
-
-    return True
-
-
-def check_return_type(retval: T, memo: CallMemo) -> T:
-    """
-    Check that the return value is compatible with the return value annotation in the
-    function.
-
-    This should be used to wrap the return statement, as in::
-
-        # Before
-        return "foo"
-        # After
-        return check_return_type("foo")
-
-    :param retval: the value that should be returned from the call
-    :return: ``retval``, unmodified
-    :raises TypeCheckError: if there is a type mismatch
-
-    """
-    if type_checks_suppressed:
-        return retval
-
-    if "return" in memo.type_hints:
-        annotation = memo.type_hints["return"]
+    for argname, (value, annotation) in arguments.items():
         if annotation is NoReturn or annotation is Never:
             exc = TypeCheckError(
-                f"{memo.func_name}() was declared never to return but it did"
+                f"{func_name}() was declared never to be called but it was"
             )
             if global_config.typecheck_fail_callback:
                 global_config.typecheck_fail_callback(exc, memo)
@@ -154,33 +99,60 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
                 raise exc
 
         try:
-            check_type_internal(retval, annotation, memo)
+            check_type_internal(value, annotation, memo=memo)
         except TypeCheckError as exc:
-            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if retval is NotImplemented and annotation is bool:
-                # This does (and cannot) not check if it's actually a method
-                func_name = memo.func_name.rsplit(".", 1)[-1]
-                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
-                    return retval
-
-            qualname = qualified_name(retval, add_class_prefix=True)
-            exc.append_path_element(f"the return value ({qualname})")
+            qualname = qualified_name(value, add_class_prefix=True)
+            exc.append_path_element(f'argument "{argname}" ({qualname})')
             if global_config.typecheck_fail_callback:
                 global_config.typecheck_fail_callback(exc, memo)
             else:
                 raise
 
+    return True
+
+
+def check_return_type(
+    func_name: str, retval: T, annotation: Any, memo: TypeCheckMemo
+) -> T:
+    if type_checks_suppressed:
+        return retval
+
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(f"{func_name}() was declared never to return but it did")
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
+
+    try:
+        check_type_internal(retval, annotation, memo)
+    except TypeCheckError as exc:
+        # Allow NotImplemented if this is a binary magic method (__eq__() et al)
+        if retval is NotImplemented and annotation is bool:
+            # This does (and cannot) not check if it's actually a method
+            func_name = func_name.rsplit(".", 1)[-1]
+            if func_name in BINARY_MAGIC_METHODS:
+                return retval
+
+        qualname = qualified_name(retval, add_class_prefix=True)
+        exc.append_path_element(f"the return value ({qualname})")
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
+
     return retval
 
 
-def check_send_type(sendval: T, memo: CallMemo) -> T:
+def check_send_type(
+    func_name: str, sendval: T, annotation: Any, memo: TypeCheckMemo
+) -> T:
     if type_checks_suppressed:
         return sendval
 
-    annotation = memo.type_hints[":send"]
     if annotation is NoReturn or annotation is Never:
         exc = TypeCheckError(
-            f"{memo.func_name}() was declared never to be sent a value to but it was"
+            f"{func_name}() was declared never to be sent a value to but it was"
         )
         if global_config.typecheck_fail_callback:
             global_config.typecheck_fail_callback(exc, memo)
@@ -200,52 +172,34 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
     return sendval
 
 
-def check_yield_type(yieldval: T, memo: CallMemo) -> T:
-    """
-    Check that the yielded value is compatible with the generator return value
-    annotation in the function.
-
-    This should be used to wrap a ``yield`` statement, as in::
-
-        # Before
-        yield "foo"
-        # After
-        yield check_yield_value("foo")
-
-    :param yieldval: the value that should be yielded from the generator
-    :return: ``yieldval``, unmodified
-    :raises TypeCheckError: if there is a type mismatch
-
-    """
+def check_yield_type(
+    func_name: str, yieldval: T, annotation: Any, memo: TypeCheckMemo
+) -> T:
     if type_checks_suppressed:
         return yieldval
 
-    if "yield" in memo.type_hints:
-        annotation = memo.type_hints["yield"]
-        if annotation is NoReturn or annotation is Never:
-            exc = TypeCheckError(
-                f"{memo.func_name}() was declared never to yield but it did"
-            )
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
-            else:
-                raise exc
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(f"{func_name}() was declared never to yield but it did")
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
 
-        try:
-            check_type_internal(yieldval, annotation, memo)
-        except TypeCheckError as exc:
-            qualname = qualified_name(yieldval, add_class_prefix=True)
-            exc.append_path_element(f"the yielded value ({qualname})")
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
-            else:
-                raise
+    try:
+        check_type_internal(yieldval, annotation, memo)
+    except TypeCheckError as exc:
+        qualname = qualified_name(yieldval, add_class_prefix=True)
+        exc.append_path_element(f"the yielded value ({qualname})")
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
 
     return yieldval
 
 
 def check_variable_assignment(
-    value: object, expected_annotations: dict[str, Any], memo: CallMemo
+    value: object, expected_annotations: dict[str, Any], memo: TypeCheckMemo
 ) -> Any:
     if type_checks_suppressed:
         return

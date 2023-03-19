@@ -53,10 +53,6 @@ Custom checkers
 .. autoclass:: TypeCheckMemo
     :members:
 
-.. autoclass:: CallMemo
-    :show-inheritance:
-    :members:
-
 Type check suppression
 ----------------------
 

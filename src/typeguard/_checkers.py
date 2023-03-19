@@ -34,7 +34,7 @@ from unittest.mock import Mock
 
 from ._config import ForwardRefPolicy, global_config
 from ._exceptions import TypeCheckError, TypeHintWarning
-from ._memo import CallMemo, TypeCheckMemo
+from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_type_name, qualified_name
 
 if sys.version_info >= (3, 11):
@@ -586,7 +586,7 @@ def check_byteslike(
 def check_self(
     value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
-    if not isinstance(memo, CallMemo) or memo.self_type is None:
+    if memo.self_type is None:
         raise TypeCheckError("cannot be checked against Self outside of a method call")
 
     if isclass(value):

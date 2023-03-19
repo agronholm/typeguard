@@ -91,7 +91,9 @@ def qualified_name(obj: Any, *, add_class_prefix: bool = False) -> str:
     the module name stripped from the generated name.
 
     """
-    if inspect.isclass(obj):
+    if obj is None:
+        return "None"
+    elif inspect.isclass(obj):
         prefix = "class " if add_class_prefix else ""
         type_ = obj
     else:
