@@ -75,18 +75,10 @@ def check_type(value: object, expected_type: Any) -> Any:
 def check_argument_types(
     func_name: str,
     arguments: dict[str, tuple[Any, Any]],
-    # vararg: tuple[str, tuple[object, ...], Any] | None,
-    # kwarg: tuple[str, dict[str, object], Any] | None,
     memo: TypeCheckMemo,
 ) -> Literal[True]:
     if type_checks_suppressed:
         return True
-
-    # if vararg:
-    #     arguments[vararg[0]] = vararg[1], Tuple[vararg[2]]
-    #
-    # if kwarg:
-    #     arguments[kwarg[0]] = vararg[1], Dict[str, vararg[2]]
 
     for argname, (value, annotation) in arguments.items():
         if annotation is NoReturn or annotation is Never:
