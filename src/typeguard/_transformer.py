@@ -367,17 +367,25 @@ class TypeguardTransformer(NodeTransformer):
     def _convert_annotation(self, annotation: expr | None) -> expr | None:
         # Parse forward references to AST nodes, and convert PEP 604 unions to
         # typing.Unions on Pythons older than 3.9
-        if isinstance(annotation, Constant) and isinstance(annotation.value, str):
-            expression = ast.parse(annotation.value, mode="eval")
+        if isinstance(annotation, (Constant, Str)):
+            # An explicit forward reference is ast.Str on Python 3.7, Constant on later
+            # versions
+            if isinstance(annotation, Str):
+                value = annotation.s
+            else:
+                value = annotation.value
 
-            # Convert each PEP 604 unions (x | y) to a typing.Union
-            if UnionTransformer is not None and any(
-                isinstance(node, BinOp) for node in walk(expression)
-            ):
-                union_name = self._memo.get_import("typing", "Union")
-                expression = UnionTransformer(union_name).visit(expression)
+            if isinstance(value, str):
+                expression = ast.parse(value, mode="eval")
 
-            annotation = ast.copy_location(expression.body, annotation)
+                # Convert each PEP 604 unions (x | y) to a typing.Union
+                if UnionTransformer is not None and any(
+                    isinstance(node, BinOp) for node in walk(expression)
+                ):
+                    union_name = self._memo.get_import("typing", "Union")
+                    expression = UnionTransformer(union_name).visit(expression)
+
+                annotation = ast.copy_location(expression.body, annotation)
 
         # Store names used in the annotation
         if annotation:
