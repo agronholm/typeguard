@@ -472,7 +472,7 @@ def test_method() -> None:
                     from typeguard import TypeCheckMemo
                     from typeguard._functions import check_argument_types, \
 check_return_type
-                    memo = TypeCheckMemo(globals(), locals(), self.__class__)
+                    memo = TypeCheckMemo(globals(), locals(), self_type=self.__class__)
                     check_argument_types('Foo.foo', {'x': (x, int)}, memo)
                     return check_return_type('Foo.foo', x, int, memo)
             """
@@ -503,7 +503,7 @@ def test_classmethod() -> None:
                     from typeguard import TypeCheckMemo
                     from typeguard._functions import check_argument_types, \
 check_return_type
-                    memo = TypeCheckMemo(globals(), locals(), cls)
+                    memo = TypeCheckMemo(globals(), locals(), self_type=cls)
                     check_argument_types('Foo.foo', {'x': (x, int)}, memo)
                     return check_return_type('Foo.foo', x, int, memo)
             """
@@ -613,7 +613,8 @@ def test_function_local_class_method() -> None:
                             from typeguard import TypeCheckMemo
                             from typeguard._functions import check_argument_types, \
 check_return_type
-                            memo = TypeCheckMemo(globals(), locals(), self.__class__)
+                            memo = TypeCheckMemo(globals(), locals(), \
+self_type=self.__class__)
                             check_argument_types('wrapper.<locals>.Foo.Bar.method', \
 {'x': (x, int)}, memo)
                             return check_return_type(\

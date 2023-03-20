@@ -46,6 +46,12 @@ else:
             raise
 
 
+if sys.version_info >= (3, 8):
+    from typing import final
+else:
+    from typing_extensions import final
+
+
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
@@ -139,3 +145,14 @@ def is_method_of(obj: object, cls: type) -> bool:
         and obj.__module__ == cls.__module__
         and obj.__qualname__.startswith(cls.__qualname__ + ".")
     )
+
+
+@final
+class Unset:
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<unset>"
+
+
+unset = Unset()

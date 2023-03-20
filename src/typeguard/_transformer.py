@@ -49,6 +49,7 @@ from ast import (
     copy_location,
     expr,
     fix_missing_locations,
+    keyword,
     walk,
 )
 from collections import defaultdict
@@ -592,7 +593,7 @@ class TypeguardTransformer(NodeTransformer):
             # Insert code to create the call memo, if it was ever needed for this
             # function
             if self._memo.memo_var_name:
-                extra_args: list[expr] = []
+                memo_kwargs: dict[str, Any] = {}
                 if self._memo.parent and isinstance(self._memo.parent.node, ClassDef):
                     for decorator in node.decorator_list:
                         if (
@@ -604,18 +605,16 @@ class TypeguardTransformer(NodeTransformer):
                             isinstance(decorator, Name)
                             and decorator.id == "classmethod"
                         ):
-                            extra_args.append(
-                                Name(id=node.args.args[0].arg, ctx=Load())
+                            memo_kwargs["self_type"] = Name(
+                                id=node.args.args[0].arg, ctx=Load()
                             )
                             break
                     else:
                         if node.args.args:
-                            extra_args.append(
-                                Attribute(
-                                    Name(id=node.args.args[0].arg, ctx=Load()),
-                                    "__class__",
-                                    ctx=Load(),
-                                )
+                            memo_kwargs["self_type"] = Attribute(
+                                Name(id=node.args.args[0].arg, ctx=Load()),
+                                "__class__",
+                                ctx=Load(),
                             )
 
                 # Construct the function reference
@@ -634,14 +633,27 @@ class TypeguardTransformer(NodeTransformer):
                     names.insert(0, memo.node.name)
                     memo = memo.parent
 
+                for decorator in node.decorator_list:
+                    if isinstance(decorator, Call) and self._memo.name_matches(
+                        decorator.func, "typeguard.typechecked"
+                    ):
+                        global_config_obj = self._get_import(
+                            "typeguard._config", "global_config"
+                        )
+                        memo_kwargs["config"] = Call(
+                            Attribute(global_config_obj, "replace", ctx=Load()),
+                            [],
+                            decorator.keywords,
+                        )
+
                 self._memo.memo_var_name.id = self._memo.get_unused_name("memo")
                 memo_store_name = Name(id=self._memo.memo_var_name.id, ctx=Store())
                 globals_call = Call(Name(id="globals", ctx=Load()), [], [])
                 locals_call = Call(Name(id="locals", ctx=Load()), [], [])
                 memo_expr = Call(
                     self._get_import("typeguard", "TypeCheckMemo"),
-                    [globals_call, locals_call, *extra_args],
-                    [],
+                    [globals_call, locals_call],
+                    [keyword(key, value) for key, value in memo_kwargs.items()],
                 )
                 node.body.insert(
                     0,

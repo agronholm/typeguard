@@ -32,7 +32,7 @@ from typing import (
 )
 from unittest.mock import Mock
 
-from ._config import ForwardRefPolicy, TypeCheckConfiguration
+from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_type_name, qualified_name
@@ -75,7 +75,7 @@ else:
     from typing_extensions import ParamSpec
 
 TypeCheckerCallable: TypeAlias = Callable[
-    [Any, Any, Tuple[Any, ...], TypeCheckMemo, TypeCheckConfiguration], Any
+    [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
 ]
 TypeCheckLookupCallback: TypeAlias = Callable[
     [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
@@ -147,7 +147,6 @@ def check_callable(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not callable(value):
         raise TypeCheckError("is not callable")
@@ -207,7 +206,6 @@ def check_mapping(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if origin_type is Dict or origin_type is dict:
         if not isinstance(value, dict):
@@ -221,16 +219,18 @@ def check_mapping(
     if args:
         key_type, value_type = args
         if key_type is not Any or value_type is not Any:
-            samples = config.collection_check_strategy.iterate_samples(value.items())
+            samples = memo.config.collection_check_strategy.iterate_samples(
+                value.items()
+            )
             for k, v in samples:
                 try:
-                    check_type_internal(k, key_type, memo, config)
+                    check_type_internal(k, key_type, memo)
                 except TypeCheckError as exc:
                     exc.append_path_element(f"key {k!r}")
                     raise
 
                 try:
-                    check_type_internal(v, value_type, memo, config)
+                    check_type_internal(v, value_type, memo)
                 except TypeCheckError as exc:
                     exc.append_path_element(f"value of key {k!r}")
                     raise
@@ -241,7 +241,6 @@ def check_typed_dict(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
@@ -264,7 +263,7 @@ def check_typed_dict(
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             try:
-                check_type_internal(argvalue, argtype, memo, config)
+                check_type_internal(argvalue, argtype, memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"value of key {key!r}")
                 raise
@@ -275,16 +274,15 @@ def check_list(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, list):
         raise TypeCheckError("is not a list")
 
     if args and args != (Any,):
-        samples = config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
-                check_type_internal(v, args[0], memo, config)
+                check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
@@ -295,16 +293,15 @@ def check_sequence(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, collections.abc.Sequence):
         raise TypeCheckError("is not a sequence")
 
     if args and args != (Any,):
-        samples = config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
-                check_type_internal(v, args[0], memo, config)
+                check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
@@ -315,16 +312,15 @@ def check_set(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, AbstractSet):
         raise TypeCheckError("is not a set")
 
     if args and args != (Any,):
-        samples = config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for v in samples:
             try:
-                check_type_internal(v, args[0], memo, config)
+                check_type_internal(v, args[0], memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"[{v}]")
                 raise
@@ -335,7 +331,6 @@ def check_tuple(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     # Specialized check for NamedTuples
     field_types = getattr(origin_type, "__annotations__", None)
@@ -350,7 +345,7 @@ def check_tuple(
 
         for name, field_type in field_types.items():
             try:
-                check_type_internal(getattr(value, name), field_type, memo, config)
+                check_type_internal(getattr(value, name), field_type, memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"attribute {name!r}")
                 raise
@@ -369,10 +364,10 @@ def check_tuple(
 
     if use_ellipsis:
         element_type = tuple_params[0]
-        samples = config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, element in enumerate(samples):
             try:
-                check_type_internal(element, element_type, memo, config)
+                check_type_internal(element, element_type, memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
@@ -388,7 +383,7 @@ def check_tuple(
 
         for i, (element, element_type) in enumerate(zip(value, tuple_params)):
             try:
-                check_type_internal(element, element_type, memo, config)
+                check_type_internal(element, element_type, memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
@@ -399,12 +394,11 @@ def check_union(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
     for type_ in args:
         try:
-            check_type_internal(value, type_, memo, config)
+            check_type_internal(value, type_, memo)
             return
         except TypeCheckError as exc:
             errors[get_type_name(type_)] = exc
@@ -420,12 +414,11 @@ def check_uniontype(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
     for type_ in args:
         try:
-            check_type_internal(value, type_, memo, config)
+            check_type_internal(value, type_, memo)
             return
         except TypeCheckError as exc:
             errors[get_type_name(type_)] = exc
@@ -441,7 +434,6 @@ def check_class(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isclass(value):
         raise TypeCheckError("is not a class")
@@ -454,9 +446,9 @@ def check_class(
     if expected_class is Any:
         return
     elif getattr(expected_class, "_is_protocol", False):
-        check_protocol(value, expected_class, (), memo, config)
+        check_protocol(value, expected_class, (), memo)
     elif isinstance(expected_class, TypeVar):
-        check_typevar(value, expected_class, (), memo, config, subclass_check=True)
+        check_typevar(value, expected_class, (), memo, subclass_check=True)
     elif get_origin(expected_class) is Union:
         errors: dict[str, TypeCheckError] = {}
         for arg in get_args(expected_class):
@@ -464,7 +456,7 @@ def check_class(
                 return
 
             try:
-                check_class(value, type, (arg,), memo, config)
+                check_class(value, type, (arg,), memo)
                 return
             except TypeCheckError as exc:
                 errors[get_type_name(arg)] = exc
@@ -484,7 +476,6 @@ def check_newtype(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     supertype = origin_type.__supertype__
     if not isinstance(value, supertype):
@@ -496,7 +487,6 @@ def check_instance(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
@@ -507,7 +497,6 @@ def check_typevar(
     origin_type: TypeVar,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
     *,
     subclass_check: bool = False,
 ) -> None:
@@ -515,12 +504,12 @@ def check_typevar(
         annotation = (
             Type[origin_type.__bound__] if subclass_check else origin_type.__bound__
         )
-        check_type_internal(value, annotation, memo, config)
+        check_type_internal(value, annotation, memo)
     elif origin_type.__constraints__:
         for constraint in origin_type.__constraints__:
             annotation = Type[constraint] if subclass_check else constraint
             try:
-                check_type_internal(value, annotation, memo, config)
+                check_type_internal(value, annotation, memo)
             except TypeCheckError:
                 pass
             else:
@@ -539,7 +528,6 @@ def check_literal(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     def get_literal_args(literal_args: tuple[Any, ...]) -> tuple[Any, ...]:
         retval: list[Any] = []
@@ -574,9 +562,8 @@ def check_literal_string(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
-    check_type_internal(value, str, memo, config)
+    check_type_internal(value, str, memo)
 
 
 def check_typeguard(
@@ -584,9 +571,8 @@ def check_typeguard(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
-    check_type_internal(value, bool, memo, config)
+    check_type_internal(value, bool, memo)
 
 
 def check_none(
@@ -594,7 +580,6 @@ def check_none(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if value is not None:
         raise TypeCheckError("is not None")
@@ -605,7 +590,6 @@ def check_number(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if origin_type is complex and not isinstance(value, (complex, float, int)):
         raise TypeCheckError("is neither complex, float or int")
@@ -618,7 +602,6 @@ def check_io(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if origin_type is TextIO or (origin_type is IO and args == (str,)):
         if not isinstance(value, TextIOBase):
@@ -635,7 +618,6 @@ def check_protocol(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     # TODO: implement proper compatibility checking and support non-runtime protocols
     if getattr(origin_type, "_is_runtime_protocol", False):
@@ -656,7 +638,6 @@ def check_byteslike(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, (bytearray, bytes, memoryview)):
         raise TypeCheckError("is not bytes-like")
@@ -667,7 +648,6 @@ def check_self(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if memo.self_type is None:
         raise TypeCheckError("cannot be checked against Self outside of a method call")
@@ -689,7 +669,6 @@ def check_paramspec(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     pass  # No-op for now
 
@@ -699,7 +678,6 @@ def check_instanceof(
     origin_type: Any,
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
@@ -709,7 +687,6 @@ def check_type_internal(
     value: Any,
     annotation: Any,
     memo: TypeCheckMemo,
-    config: TypeCheckConfiguration,
 ) -> None:
     """
     Check that the given object is compatible with the given type annotation.
@@ -727,9 +704,9 @@ def check_type_internal(
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if config.forward_ref_policy is ForwardRefPolicy.ERROR:
+            if memo.config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif config.forward_ref_policy is ForwardRefPolicy.WARN:
+            elif memo.config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(
                     f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
                     TypeHintWarning,
@@ -767,7 +744,7 @@ def check_type_internal(
     for lookup_func in checker_lookup_functions:
         checker = lookup_func(origin_type, args, extras)
         if checker:
-            checker(value, origin_type, args, memo, config)
+            checker(value, origin_type, args, memo)
             return
 
     if not isinstance(value, origin_type):

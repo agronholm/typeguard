@@ -5,10 +5,14 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- **BACKWARD INCOMPATIBLE** Made ``check_type()`` independent of ``typeguard.config``, it
-  now has the same default configuration values as ``TypeCheckConfiguration`` and is
-  given the ability to accept configuration options as keyword arguments.
+- **BACKWARD INCOMPATIBLE** ``check_type()`` no longer uses the global configuration.
+  It now uses the default configuration values, unless overridden with an explicit
+  ``config`` argument.
 - **BACKWARD INCOMPATIBLE** Removed ``CallMemo`` from the API
+- **BACKWARD INCOMPATIBLE** Required checkers to use the configuration from
+  ``memo.config``, rather than the global configuration
+- Added keyword arguments to ``@typechecked``, allowing users to override settings on a
+  per-function basis
 - Changed instrumentation to statically copy the function annotations to avoid having to
   look up the function object at run time
 - Added support for type checking against nonlocal classes defined within the same
