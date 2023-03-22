@@ -29,7 +29,7 @@ The checker function receives four arguments:
 #. The origin type
 #. The generic arguments from the annotation (empty tuple when the annotation was not
    parametrized)
-#. The memo object, either :class:`~.TypeCheckMemo` or :class:`~.CallMemo`
+#. The memo object (:class:`~.TypeCheckMemo`)
 
 There are a couple of things to take into account when writing a type checker:
 
