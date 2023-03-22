@@ -11,7 +11,7 @@ from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._config import global_config
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import CallMemo, TypeCheckMemo
-from ._utils import qualified_name
+from ._utils import get_stacklevel, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import Never
@@ -308,7 +308,7 @@ def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
     :attr:`TypeCheckConfiguration.typecheck_fail_callback`.
 
     """
-    warnings.warn(TypeCheckWarning(str(exc)), stacklevel=3)
+    warnings.warn(TypeCheckWarning(str(exc)), stacklevel=get_stacklevel())
 
 
 @contextmanager

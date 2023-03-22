@@ -65,6 +65,7 @@ def pytest_configure(config: Config) -> None:
                     f"typeguard cannot check these packages because they are already "
                     f"imported: {', '.join(already_imported_packages)}",
                     InstrumentationWarning,
+                    stacklevel=1,
                 )
 
         install_import_hook(packages=packages)
