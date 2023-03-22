@@ -3,8 +3,9 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module
-from types import CodeType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union
+from inspect import currentframe
+from types import CodeType, FrameType, FunctionType
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union, cast
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -145,6 +146,16 @@ def is_method_of(obj: object, cls: type) -> bool:
         and obj.__module__ == cls.__module__
         and obj.__qualname__.startswith(cls.__qualname__ + ".")
     )
+
+
+def get_stacklevel() -> int:
+    level = 1
+    frame = cast(FrameType, currentframe()).f_back
+    while frame and frame.f_globals.get("__name__", "").startswith("typeguard."):
+        level += 1
+        frame = frame.f_back
+
+    return level
 
 
 @final

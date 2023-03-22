@@ -13,7 +13,7 @@ from ._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
 from ._exceptions import InstrumentationWarning
 from ._functions import TypeCheckFailCallback
 from ._transformer import TypeguardTransformer
-from ._utils import Unset, function_name, is_method_of, unset
+from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
 
 if TYPE_CHECKING:
     from typeshed.stdlib.types import _Cell
@@ -207,6 +207,7 @@ def typechecked(
         warn(
             f"{retval} -- not typechecking {function_name(target)}",
             InstrumentationWarning,
+            stacklevel=get_stacklevel(),
         )
         return target
 

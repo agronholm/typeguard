@@ -870,13 +870,17 @@ class TestProtocol:
 
         with pytest.warns(
             UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
-        ):
+        ) as warning:
             check_type(Foo(), StaticProtocol)
+
+        assert warning.list[0].filename == __file__
 
         with pytest.warns(
             UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
-        ):
+        ) as warning:
             check_type(Foo, Type[StaticProtocol])
+
+        assert warning.list[0].filename == __file__
 
     def test_fail_non_method_members(self):
         class Foo:
