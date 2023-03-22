@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import sys
 import warnings
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any, Callable, NoReturn, TypeVar, cast, overload
+from typing import Any, Callable, NoReturn, TypeVar, overload
 
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._config import global_config
@@ -245,31 +245,59 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
 
 
 def check_variable_assignment(
-    value: object, expected_annotations: dict[str, Any], memo: CallMemo
+    value: object, varname: str, annotation: Any, memo: CallMemo
 ) -> Any:
     if type_checks_suppressed:
         return
 
-    if len(expected_annotations) > 1:
-        source_values = cast("Iterable[Any]", value)
+    try:
+        check_type_internal(value, annotation, memo)
+    except TypeCheckError as exc:
+        qualname = qualified_name(value, add_class_prefix=True)
+        exc.append_path_element(f"value assigned to {varname} ({qualname})")
+        if global_config.typecheck_fail_callback:
+            global_config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
+
+    return value
+
+
+def check_multi_variable_assignment(
+    value: Any, targets: list[dict[str, Any]], memo: CallMemo
+) -> Any:
+    if type_checks_suppressed:
+        return
+
+    if max(len(target) for target in targets) == 1:
+        iterated_values = [value]
     else:
-        source_values = (value,)
+        iterated_values = list(value)
 
-    iterated_values = []
-    for obj, (argname, expected_type) in zip(
-        source_values, expected_annotations.items()
-    ):
-        iterated_values.append(obj)
-        try:
-            check_type_internal(obj, expected_type, memo)
-        except TypeCheckError as exc:
-            exc.append_path_element(argname)
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
+    for expected_types in targets:
+        value_index = 0
+        for ann_index, (varname, expected_type) in enumerate(expected_types.items()):
+            if varname.startswith("*"):
+                varname = varname[1:]
+                keys_left = len(expected_types) - 1 - ann_index
+                next_value_index = len(iterated_values) - keys_left
+                obj: object = iterated_values[value_index:next_value_index]
+                value_index = next_value_index
             else:
-                raise
+                obj = iterated_values[value_index]
+                value_index += 1
 
-    return iterated_values if len(iterated_values) > 1 else iterated_values[0]
+            try:
+                check_type_internal(obj, expected_type, memo)
+            except TypeCheckError as exc:
+                qualname = qualified_name(obj, add_class_prefix=True)
+                exc.append_path_element(f"value assigned to {varname} ({qualname})")
+                if global_config.typecheck_fail_callback:
+                    global_config.typecheck_fail_callback(exc, memo)
+                else:
+                    raise
+
+    return iterated_values[0] if len(iterated_values) == 1 else iterated_values
 
 
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:

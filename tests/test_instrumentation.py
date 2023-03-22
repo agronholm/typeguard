@@ -27,11 +27,12 @@ def method(request: FixtureRequest) -> str:
 def dummymodule(method: str):
     sys.path.insert(0, str(this_dir))
     try:
-        if method == "typechecked":
-            return import_module("dummymodule")
-
         if cached_module_path.exists():
             cached_module_path.unlink()
+            sys.modules.pop("dummymodule", None)
+
+        if method == "typechecked":
+            return import_module("dummymodule")
 
         with install_import_hook(["dummymodule"]):
             with warnings.catch_warnings():
@@ -212,6 +213,14 @@ def test_augmented_assign(dummymodule):
     assert dummymodule.aug_assign() == 2
 
 
+def test_multi_assign_single_value(dummymodule):
+    assert dummymodule.multi_assign_single_value() == (6, 6, 6)
+
+
+def test_multi_assign_iterable(dummymodule):
+    assert dummymodule.multi_assign_iterable() == ([6, 7], [6, 7], [6, 7])
+
+
 def test_unpacking_assign(dummymodule):
     assert dummymodule.unpacking_assign() == (1, "foo")
 
@@ -220,7 +229,7 @@ def test_unpacking_assign_from_generator(dummymodule):
     assert dummymodule.unpacking_assign_generator() == (1, "foo")
 
 
-def test_unpacking_assign_star_with_annotationr(dummymodule):
+def test_unpacking_assign_star_with_annotation(dummymodule):
     assert dummymodule.unpacking_assign_star_with_annotation() == (
         1,
         [b"abc", b"bah"],
@@ -228,9 +237,18 @@ def test_unpacking_assign_star_with_annotationr(dummymodule):
     )
 
 
-def test_unpacking_assign_star_no_annotationr(dummymodule):
-    assert dummymodule.unpacking_assign_star_no_annotation() == (
+def test_unpacking_assign_star_no_annotation_success(dummymodule):
+    assert dummymodule.unpacking_assign_star_no_annotation(
+        (1, b"abc", b"bah", "foo")
+    ) == (
         1,
         [b"abc", b"bah"],
         "foo",
     )
+
+
+def test_unpacking_assign_star_no_annotation_fail(dummymodule):
+    with pytest.raises(
+        TypeCheckError, match=r"value assigned to z \(bytes\) is not an instance of str"
+    ):
+        dummymodule.unpacking_assign_star_no_annotation((1, b"abc", b"bah", b"foo"))

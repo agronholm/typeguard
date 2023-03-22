@@ -6,6 +6,8 @@ from typing import (
     AsyncGenerator,
     Callable,
     Generator,
+    List,
+    Sequence,
     Tuple,
     Union,
     no_type_check,
@@ -198,6 +200,24 @@ def aug_assign() -> int:
 
 
 @typechecked
+def multi_assign_single_value() -> Tuple[int, float, complex]:
+    x: int
+    y: float
+    z: complex
+    x = y = z = 6
+    return x, y, z
+
+
+@typechecked
+def multi_assign_iterable() -> Tuple[Sequence[int], Sequence[float], Sequence[complex]]:
+    x: Sequence[int]
+    y: Sequence[float]
+    z: Sequence[complex]
+    x = y = z = [6, 7]
+    return x, y, z
+
+
+@typechecked
 def unpacking_assign() -> Tuple[int, str]:
     x: int
     x, y = (1, "foo")
@@ -216,7 +236,7 @@ def unpacking_assign_generator() -> Tuple[int, str]:
 
 
 @typechecked
-def unpacking_assign_star_with_annotation() -> Tuple[int, list[bytes], str]:
+def unpacking_assign_star_with_annotation() -> Tuple[int, List[bytes], str]:
     x: int
     z: str
     x, *y, z = (1, b"abc", b"bah", "foo")
@@ -224,9 +244,9 @@ def unpacking_assign_star_with_annotation() -> Tuple[int, list[bytes], str]:
 
 
 @typechecked
-def unpacking_assign_star_no_annotation() -> Tuple[int, list[bytes], str]:
+def unpacking_assign_star_no_annotation(value: Any) -> Tuple[int, List[bytes], str]:
     x: int
-    y: list[bytes]
+    y: List[bytes]
     z: str
-    x, *y, z = (1, b"abc", b"bah", "foo")
+    x, *y, z = value
     return x, y, z
