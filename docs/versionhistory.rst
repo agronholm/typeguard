@@ -8,6 +8,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``warn_on_error()`` not showing where the type violation actually occurred
 - Fixed local assignment to ``*args`` or ``**kwargs`` being type checked incorrectly
 - Fixed ``TypeError`` on ``check_type(..., None)``
+- Fixed unpacking assignment not working with a starred variable (``x, *y = ...``) in
+  the target tuple
 
 **3.0.1** (2023-03-16)
 

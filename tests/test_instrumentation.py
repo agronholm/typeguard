@@ -218,3 +218,19 @@ def test_unpacking_assign(dummymodule):
 
 def test_unpacking_assign_from_generator(dummymodule):
     assert dummymodule.unpacking_assign_generator() == (1, "foo")
+
+
+def test_unpacking_assign_star_with_annotationr(dummymodule):
+    assert dummymodule.unpacking_assign_star_with_annotation() == (
+        1,
+        [b"abc", b"bah"],
+        "foo",
+    )
+
+
+def test_unpacking_assign_star_no_annotationr(dummymodule):
+    assert dummymodule.unpacking_assign_star_no_annotation() == (
+        1,
+        [b"abc", b"bah"],
+        "foo",
+    )

@@ -213,3 +213,20 @@ def unpacking_assign_generator() -> Tuple[int, str]:
     x: int
     x, y = genfunc()
     return x, y
+
+
+@typechecked
+def unpacking_assign_star_with_annotation() -> Tuple[int, list[bytes], str]:
+    x: int
+    z: str
+    x, *y, z = (1, b"abc", b"bah", "foo")
+    return x, y, z
+
+
+@typechecked
+def unpacking_assign_star_no_annotation() -> Tuple[int, list[bytes], str]:
+    x: int
+    y: list[bytes]
+    z: str
+    x, *y, z = (1, b"abc", b"bah", "foo")
+    return x, y, z
