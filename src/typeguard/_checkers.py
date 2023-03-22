@@ -35,7 +35,7 @@ from unittest.mock import Mock
 from ._config import ForwardRefPolicy, global_config
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import CallMemo, TypeCheckMemo
-from ._utils import evaluate_forwardref, get_type_name, qualified_name
+from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import (
@@ -572,7 +572,8 @@ def check_protocol(
         warnings.warn(
             f"Typeguard cannot check the {origin_type.__qualname__} protocol because "
             f"it is a non-runtime protocol. If you would like to type check this "
-            f"protocol, please use @typing.runtime_checkable"
+            f"protocol, please use @typing.runtime_checkable",
+            stacklevel=get_stacklevel(),
         )
 
 
@@ -637,6 +638,7 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
                 warnings.warn(
                     f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
                     TypeHintWarning,
+                    stacklevel=get_stacklevel(),
                 )
 
             return
@@ -770,7 +772,8 @@ def load_plugins() -> None:
             plugin = ep.load()
         except Exception as exc:
             warnings.warn(
-                f"Failed to load plugin {ep.name!r}: " f"{qualified_name(exc)}: {exc}"
+                f"Failed to load plugin {ep.name!r}: " f"{qualified_name(exc)}: {exc}",
+                stacklevel=2,
             )
             continue
 

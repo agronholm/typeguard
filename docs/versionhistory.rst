@@ -5,6 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Improved warnings by ensuring that they target user code and not Typeguard internal
+  code
 - Fixed ``warn_on_error()`` not showing where the type violation actually occurred
 - Fixed local assignment to ``*args`` or ``**kwargs`` being type checked incorrectly
 - Fixed ``TypeError`` on ``check_type(..., None)``

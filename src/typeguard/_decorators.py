@@ -11,7 +11,7 @@ from warnings import warn
 from ._config import global_config
 from ._exceptions import InstrumentationWarning
 from ._transformer import TypeguardTransformer
-from ._utils import function_name, is_method_of
+from ._utils import function_name, get_stacklevel, is_method_of
 
 if TYPE_CHECKING:
     from typeshed.stdlib.types import _Cell
@@ -177,6 +177,7 @@ def typechecked(target: T_CallableOrType | None = None) -> Any:
         warn(
             f"{retval} -- not typechecking {function_name(target)}",
             InstrumentationWarning,
+            stacklevel=get_stacklevel(),
         )
         return target
 
