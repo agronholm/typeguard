@@ -778,7 +778,9 @@ def load_plugins() -> None:
             continue
 
         if not callable(plugin):
-            warnings.warn(f"Plugin {ep} returned a non-callable object: {plugin!r}")
+            warnings.warn(
+                f"Plugin {ep} returned a non-callable object: {plugin!r}", stacklevel=2
+            )
             continue
 
         checker_lookup_functions.insert(0, plugin)
