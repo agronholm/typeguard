@@ -817,8 +817,7 @@ class TestAssign:
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
-                    x: int = check_variable_assignment(otherfunc(), {'x': int}, \
-call_memo)
+                    x: int = check_variable_assignment(otherfunc(), 'x', int, call_memo)
                 """
             ).strip()
         )
@@ -852,8 +851,8 @@ check_variable_assignment
                 def foo(*args: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    args = check_variable_assignment((5,), \
-{{'args': {tuple_type}[int, ...]}}, call_memo)
+                    args = check_variable_assignment((5,), 'args', \
+{tuple_type}[int, ...], call_memo)
                 """
             ).strip()
         )
@@ -887,8 +886,8 @@ check_variable_assignment
                 def foo(**kwargs: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    kwargs = check_variable_assignment({{'a': 5}}, \
-{{'kwargs': {dict_type}[str, int]}}, call_memo)
+                    kwargs = check_variable_assignment({{'a': 5}}, 'kwargs', \
+{dict_type}[str, int], call_memo)
                 """
             ).strip()
         )
@@ -917,8 +916,8 @@ check_variable_assignment
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
-                    x: Union_[int, str] = check_variable_assignment(otherfunc(), \
-{'x': Union_[int, str]}, call_memo)
+                    x: Union_[int, str] = check_variable_assignment(otherfunc(), 'x', \
+Union_[int, str], call_memo)
                 """
             ).strip()
         )
@@ -941,15 +940,46 @@ check_variable_assignment
             == dedent(
                 f"""
                 from typeguard import CallMemo
-                from typeguard._functions import check_variable_assignment
+                from typeguard._functions import check_multi_variable_assignment
                 from typing import Any
 
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
                     z: bytes
-                    {target} = check_variable_assignment(otherfunc(), \
-{{'x': int, 'y': Any, 'z': bytes}}, call_memo)
+                    {target} = check_multi_variable_assignment(otherfunc(), \
+[{{'x': int, 'y': Any, 'z': bytes}}], call_memo)
+                """
+            ).strip()
+        )
+
+    def test_star_multi_assign(self) -> None:
+        node = parse(
+            dedent(
+                """
+                def foo() -> None:
+                    x: int
+                    z: bytes
+                    x, *y, z = otherfunc()
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        target = "x, *y, z" if sys.version_info >= (3, 11) else "(x, *y, z)"
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import CallMemo
+                from typeguard._functions import check_multi_variable_assignment
+                from typing import Any
+
+                def foo() -> None:
+                    call_memo = CallMemo(foo, locals())
+                    x: int
+                    z: bytes
+                    {target} = check_multi_variable_assignment(otherfunc(), \
+[{{'x': int, '*y': Any, 'z': bytes}}], call_memo)
                 """
             ).strip()
         )
@@ -975,7 +1005,7 @@ check_variable_assignment
                 def foo(x: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    x = check_variable_assignment(6, {'x': int}, call_memo)
+                    x = check_variable_assignment(6, 'x', int, call_memo)
                 """
             ).strip()
         )
@@ -1002,7 +1032,7 @@ check_variable_assignment
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
-                    if (x := check_variable_assignment(otherfunc(), {'x': int}, \
+                    if (x := check_variable_assignment(otherfunc(), 'x', int, \
 call_memo)):
                         pass
                 """
@@ -1031,7 +1061,7 @@ check_variable_assignment
                 def foo(x: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    if (x := check_variable_assignment(otherfunc(), {'x': int}, \
+                    if (x := check_variable_assignment(otherfunc(), 'x', int, \
 call_memo)):
                         pass
                 """
@@ -1077,8 +1107,7 @@ call_memo)):
                 def foo() -> None:
                     call_memo = CallMemo(foo, locals())
                     x: int
-                    x = check_variable_assignment({function}(x, 6), {{'x': int}}, \
-call_memo)
+                    x = check_variable_assignment({function}(x, 6), 'x', int, call_memo)
                 """
             ).strip()
         )
@@ -1127,7 +1156,7 @@ check_variable_assignment
                 def foo(x: int) -> None:
                     call_memo = CallMemo(foo, locals())
                     check_argument_types(call_memo)
-                    x = check_variable_assignment(iadd(x, 6), {'x': int}, call_memo)
+                    x = check_variable_assignment(iadd(x, 6), 'x', int, call_memo)
                 """
             ).strip()
         )
