@@ -34,7 +34,7 @@ Two options are provided for code instrumentation:
 #. the ``@typechecked`` function:
 
    * can be applied to functions individually
-#. the import hook (``typeguard.importhook.install_import_hook()``):
+#. the import hook (``typeguard.install_import_hook()``):
 
    * automatically instruments targeted modules on import
    * no manual code changes required in the target modules
