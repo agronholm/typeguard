@@ -17,6 +17,17 @@ cached_module_path = Path(
     cache_from_source(str(dummy_module_path), optimization="typeguard")
 )
 
+# This block here is to test the recipe mentioned in the user guide
+if "pytest" in sys.modules:
+    from typeguard import typechecked
+else:
+    from typing import TypeVar
+
+    _T = TypeVar("_T")
+
+    def typechecked(target: _T, **kwargs) -> _T:
+        return target if target else typechecked
+
 
 @pytest.fixture(scope="module", params=["typechecked", "importhook"])
 def method(request: FixtureRequest) -> str:
@@ -260,3 +271,32 @@ def test_unpacking_assign_star_no_annotation_fail(dummymodule):
         TypeCheckError, match=r"value assigned to z \(bytes\) is not an instance of str"
     ):
         dummymodule.unpacking_assign_star_no_annotation((1, b"abc", b"bah", b"foo"))
+
+
+class TestOptionsOverride:
+    def test_forward_ref_policy(self, dummymodule):
+        with pytest.raises(NameError, match="name 'NonexistentType' is not defined"):
+            dummymodule.override_forward_ref_policy(6)
+
+    def test_typecheck_fail_callback(self, dummymodule, capsys):
+        dummymodule.override_typecheck_fail_callback("foo")
+        assert capsys.readouterr().out == (
+            'argument "value" (str) is not an instance of int\n'
+        )
+
+    def test_override_collection_check_strategy(self, dummymodule):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'item 1 of argument "value" \(list\) is not an instance of int',
+        ):
+            dummymodule.override_collection_check_strategy([1, "foo"])
+
+    def test_outer_class_typecheck_fail_callback(self, dummymodule, capsys):
+        dummymodule.OverrideClass().override_typecheck_fail_callback("foo")
+        assert capsys.readouterr().out == (
+            'argument "value" (str) is not an instance of int\n'
+        )
+
+    def test_inner_class_no_overrides(self, dummymodule):
+        with pytest.raises(TypeCheckError):
+            dummymodule.OverrideClass.Inner().override_typecheck_fail_callback("foo")

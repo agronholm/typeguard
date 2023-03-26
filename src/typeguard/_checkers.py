@@ -32,7 +32,7 @@ from typing import (
 )
 from unittest.mock import Mock
 
-from ._config import ForwardRefPolicy, global_config
+from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
@@ -143,7 +143,10 @@ BINARY_MAGIC_METHODS = {
 
 
 def check_callable(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not callable(value):
         raise TypeCheckError("is not callable")
@@ -199,7 +202,10 @@ def check_callable(
 
 
 def check_mapping(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if origin_type is Dict or origin_type is dict:
         if not isinstance(value, dict):
@@ -213,7 +219,7 @@ def check_mapping(
     if args:
         key_type, value_type = args
         if key_type is not Any or value_type is not Any:
-            samples = global_config.collection_check_strategy.iterate_samples(
+            samples = memo.config.collection_check_strategy.iterate_samples(
                 value.items()
             )
             for k, v in samples:
@@ -231,7 +237,10 @@ def check_mapping(
 
 
 def check_typed_dict(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
@@ -261,13 +270,16 @@ def check_typed_dict(
 
 
 def check_list(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, list):
         raise TypeCheckError("is not a list")
 
     if args and args != (Any,):
-        samples = global_config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
@@ -277,13 +289,16 @@ def check_list(
 
 
 def check_sequence(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, collections.abc.Sequence):
         raise TypeCheckError("is not a sequence")
 
     if args and args != (Any,):
-        samples = global_config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, v in enumerate(samples):
             try:
                 check_type_internal(v, args[0], memo)
@@ -293,13 +308,16 @@ def check_sequence(
 
 
 def check_set(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, AbstractSet):
         raise TypeCheckError("is not a set")
 
     if args and args != (Any,):
-        samples = global_config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for v in samples:
             try:
                 check_type_internal(v, args[0], memo)
@@ -309,7 +327,10 @@ def check_set(
 
 
 def check_tuple(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     # Specialized check for NamedTuples
     field_types = getattr(origin_type, "__annotations__", None)
@@ -343,7 +364,7 @@ def check_tuple(
 
     if use_ellipsis:
         element_type = tuple_params[0]
-        samples = global_config.collection_check_strategy.iterate_samples(value)
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
         for i, element in enumerate(samples):
             try:
                 check_type_internal(element, element_type, memo)
@@ -369,7 +390,10 @@ def check_tuple(
 
 
 def check_union(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
     for type_ in args:
@@ -386,7 +410,10 @@ def check_union(
 
 
 def check_uniontype(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
     for type_ in args:
@@ -403,7 +430,10 @@ def check_uniontype(
 
 
 def check_class(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isclass(value):
         raise TypeCheckError("is not a class")
@@ -442,7 +472,10 @@ def check_class(
 
 
 def check_newtype(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     supertype = origin_type.__supertype__
     if not isinstance(value, supertype):
@@ -450,7 +483,10 @@ def check_newtype(
 
 
 def check_instance(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
@@ -488,7 +524,10 @@ def check_typevar(
 
 
 def check_literal(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     def get_literal_args(literal_args: tuple[Any, ...]) -> tuple[Any, ...]:
         retval: list[Any] = []
@@ -519,26 +558,38 @@ def check_literal(
 
 
 def check_literal_string(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     check_type_internal(value, str, memo)
 
 
 def check_typeguard(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     check_type_internal(value, bool, memo)
 
 
 def check_none(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if value is not None:
         raise TypeCheckError("is not None")
 
 
 def check_number(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if origin_type is complex and not isinstance(value, (complex, float, int)):
         raise TypeCheckError("is neither complex, float or int")
@@ -547,7 +598,10 @@ def check_number(
 
 
 def check_io(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if origin_type is TextIO or (origin_type is IO and args == (str,)):
         if not isinstance(value, TextIOBase):
@@ -560,7 +614,10 @@ def check_io(
 
 
 def check_protocol(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     # TODO: implement proper compatibility checking and support non-runtime protocols
     if getattr(origin_type, "_is_runtime_protocol", False):
@@ -578,14 +635,20 @@ def check_protocol(
 
 
 def check_byteslike(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, (bytearray, bytes, memoryview)):
         raise TypeCheckError("is not bytes-like")
 
 
 def check_self(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if memo.self_type is None:
         raise TypeCheckError("cannot be checked against Self outside of a method call")
@@ -603,19 +666,29 @@ def check_self(
 
 
 def check_paramspec(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     pass  # No-op for now
 
 
 def check_instanceof(
-    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
 ) -> None:
     if not isinstance(value, origin_type):
         raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
 
 
-def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> None:
+def check_type_internal(
+    value: Any,
+    annotation: Any,
+    memo: TypeCheckMemo,
+) -> None:
     """
     Check that the given object is compatible with the given type annotation.
 
@@ -632,9 +705,9 @@ def check_type_internal(value: Any, annotation: Any, memo: TypeCheckMemo) -> Non
         try:
             annotation = evaluate_forwardref(annotation, memo)
         except NameError:
-            if global_config.forward_ref_policy is ForwardRefPolicy.ERROR:
+            if memo.config.forward_ref_policy is ForwardRefPolicy.ERROR:
                 raise
-            elif global_config.forward_ref_policy is ForwardRefPolicy.WARN:
+            elif memo.config.forward_ref_policy is ForwardRefPolicy.WARN:
                 warnings.warn(
                     f"Cannot resolve forward reference {annotation.__forward_arg__!r}",
                     TypeHintWarning,

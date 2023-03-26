@@ -47,6 +47,12 @@ else:
             raise
 
 
+if sys.version_info >= (3, 8):
+    from typing import final
+else:
+    from typing_extensions import final
+
+
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
@@ -150,3 +156,14 @@ def get_stacklevel() -> int:
         frame = frame.f_back
 
     return level
+
+
+@final
+class Unset:
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<unset>"
+
+
+unset = Unset()

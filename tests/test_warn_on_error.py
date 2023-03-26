@@ -5,14 +5,13 @@ import pytest
 from typeguard import TypeCheckWarning, check_type, config, typechecked, warn_on_error
 
 
-def test_check_type(monkeypatch, recwarn):
-    monkeypatch.setattr(config, "typecheck_fail_callback", warn_on_error)
+def test_check_type(recwarn):
     with pytest.warns(TypeCheckWarning) as warning:
-        check_type(1, str)
+        check_type(1, str, typecheck_fail_callback=warn_on_error)
 
     assert len(warning.list) == 1
     assert warning.list[0].filename == __file__
-    assert warning.list[0].lineno == test_check_type.__code__.co_firstlineno + 3
+    assert warning.list[0].lineno == test_check_type.__code__.co_firstlineno + 2
 
 
 def test_typechecked(monkeypatch, recwarn):

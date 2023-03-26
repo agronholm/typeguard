@@ -51,6 +51,7 @@ from ast import (
     copy_location,
     expr,
     fix_missing_locations,
+    keyword,
     walk,
 )
 from collections import defaultdict
@@ -127,6 +128,7 @@ class TransformMemo:
     memo_var_name: Name | None = field(init=False, default=None)
     should_instrument: bool = field(init=False, default=True)
     variable_annotations: dict[str, expr] = field(init=False, default_factory=dict)
+    configuration_overrides: dict[str, Any] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         elements: list[str] = []
@@ -224,6 +226,8 @@ class TransformMemo:
 
         if isinstance(top_expression, Subscript):
             top_expression = top_expression.value
+        elif isinstance(top_expression, Call):
+            top_expression = top_expression.func
 
         while isinstance(top_expression, Attribute):
             path.insert(0, top_expression.attr)
@@ -241,6 +245,15 @@ class TransformMemo:
             return self.parent.name_matches(expression, *names)
         else:
             return False
+
+    def get_config_keywords(self) -> list[keyword]:
+        if self.parent and isinstance(self.parent.node, ClassDef):
+            overrides = self.parent.configuration_overrides.copy()
+        else:
+            overrides = {}
+
+        overrides.update(self.configuration_overrides)
+        return [keyword(key, value) for key, value in overrides.items()]
 
 
 class NameCollector(NodeVisitor):
@@ -435,6 +448,17 @@ class TypeguardTransformer(NodeTransformer):
             return None
 
         with self._use_memo(node):
+            for decorator in node.decorator_list.copy():
+                if self._memo.name_matches(decorator, "typeguard.typechecked"):
+                    # Remove the decorator to prevent duplicate instrumentation
+                    node.decorator_list.remove(decorator)
+
+                    # Store any configuration overrides
+                    if isinstance(decorator, Call) and decorator.keywords:
+                        self._memo.configuration_overrides.update(
+                            {kw.arg: kw.value for kw in decorator.keywords if kw.arg}
+                        )
+
             self.generic_visit(node)
             return node
 
@@ -457,14 +481,6 @@ class TypeguardTransformer(NodeTransformer):
         ):
             return None
 
-        for decorator in node.decorator_list.copy():
-            if self._memo.name_matches(decorator, "typing.overload"):
-                # Remove overloads entirely
-                return None
-            elif self._memo.name_matches(decorator, "typeguard.typechecked"):
-                # Remove @typechecked decorators to prevent duplicate instrumentation
-                node.decorator_list.remove(decorator)
-
         # Skip instrumentation if we're instrumenting the whole module and the function
         # contains either @no_type_check or @typeguard_ignore
         if self._target_path is None:
@@ -479,6 +495,20 @@ class TypeguardTransformer(NodeTransformer):
 
         with self._use_memo(node):
             if self._target_path is None or self._memo.path == self._target_path:
+                for decorator in node.decorator_list.copy():
+                    if self._memo.name_matches(decorator, "typing.overload"):
+                        # Remove overloads entirely
+                        return None
+                    elif self._memo.name_matches(decorator, "typeguard.typechecked"):
+                        # Remove the decorator to prevent duplicate instrumentation
+                        node.decorator_list.remove(decorator)
+
+                        # Store any configuration overrides
+                        if isinstance(decorator, Call) and decorator.keywords:
+                            self._memo.configuration_overrides = {
+                                kw.arg: kw.value for kw in decorator.keywords if kw.arg
+                            }
+
                 all_args = node.args.args + node.args.kwonlyargs
                 if sys.version_info >= (3, 8):
                     all_args.extend(node.args.posonlyargs)
@@ -594,7 +624,7 @@ class TypeguardTransformer(NodeTransformer):
             # Insert code to create the call memo, if it was ever needed for this
             # function
             if self._memo.memo_var_name:
-                extra_args: list[expr] = []
+                memo_kwargs: dict[str, Any] = {}
                 if self._memo.parent and isinstance(self._memo.parent.node, ClassDef):
                     for decorator in node.decorator_list:
                         if (
@@ -606,18 +636,16 @@ class TypeguardTransformer(NodeTransformer):
                             isinstance(decorator, Name)
                             and decorator.id == "classmethod"
                         ):
-                            extra_args.append(
-                                Name(id=node.args.args[0].arg, ctx=Load())
+                            memo_kwargs["self_type"] = Name(
+                                id=node.args.args[0].arg, ctx=Load()
                             )
                             break
                     else:
                         if node.args.args:
-                            extra_args.append(
-                                Attribute(
-                                    Name(id=node.args.args[0].arg, ctx=Load()),
-                                    "__class__",
-                                    ctx=Load(),
-                                )
+                            memo_kwargs["self_type"] = Attribute(
+                                Name(id=node.args.args[0].arg, ctx=Load()),
+                                "__class__",
+                                ctx=Load(),
                             )
 
                 # Construct the function reference
@@ -636,14 +664,22 @@ class TypeguardTransformer(NodeTransformer):
                     names.insert(0, memo.node.name)
                     memo = memo.parent
 
+                config_keywords = self._memo.get_config_keywords()
+                if config_keywords:
+                    memo_kwargs["config"] = Call(
+                        self._get_import("dataclasses", "replace"),
+                        [self._get_import("typeguard._config", "global_config")],
+                        config_keywords,
+                    )
+
                 self._memo.memo_var_name.id = self._memo.get_unused_name("memo")
                 memo_store_name = Name(id=self._memo.memo_var_name.id, ctx=Store())
                 globals_call = Call(Name(id="globals", ctx=Load()), [], [])
                 locals_call = Call(Name(id="locals", ctx=Load()), [], [])
                 memo_expr = Call(
                     self._get_import("typeguard", "TypeCheckMemo"),
-                    [globals_call, locals_call, *extra_args],
-                    [],
+                    [globals_call, locals_call],
+                    [keyword(key, value) for key, value in memo_kwargs.items()],
                 )
                 node.body.insert(
                     0,

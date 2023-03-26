@@ -25,7 +25,12 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-from typeguard import typechecked, typeguard_ignore
+from typeguard import (
+    CollectionCheckStrategy,
+    ForwardRefPolicy,
+    typechecked,
+    typeguard_ignore,
+)
 
 P = ParamSpec("P")
 
@@ -262,3 +267,29 @@ def unpacking_assign_star_no_annotation(value: Any) -> Tuple[int, List[bytes], s
     z: str
     x, *y, z = value
     return x, y, z
+
+
+@typechecked(forward_ref_policy=ForwardRefPolicy.ERROR)
+def override_forward_ref_policy(value: "NonexistentType") -> None:  # noqa: F821
+    pass
+
+
+@typechecked(typecheck_fail_callback=lambda exc, memo: print(exc))
+def override_typecheck_fail_callback(value: int) -> None:
+    pass
+
+
+@typechecked(collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS)
+def override_collection_check_strategy(value: List[int]) -> None:
+    pass
+
+
+@typechecked(typecheck_fail_callback=lambda exc, memo: print(exc))
+class OverrideClass:
+    def override_typecheck_fail_callback(self, value: int) -> None:
+        pass
+
+    class Inner:
+        @typechecked
+        def override_typecheck_fail_callback(self, value: int) -> None:
+            pass

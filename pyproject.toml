@@ -83,7 +83,8 @@ select = [
     "B0",           # flake8-bugbear
 ]
 ignore = [
-    "PGH001"
+    "PGH001",
+    "B008",
 ]
 target-version = "py37"
 src = ["src"]
