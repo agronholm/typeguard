@@ -5,7 +5,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- Fixed checking against mixed types when ``TypedDict`` is one of the types
+- Fixed checking non-dictionary objects against a ``TypedDict`` annotation
+  (PR by Tolker-KU)
 
 **3.0.2** (2023-03-22)
 
