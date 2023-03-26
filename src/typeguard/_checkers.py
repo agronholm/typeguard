@@ -233,8 +233,8 @@ def check_mapping(
 def check_typed_dict(
     value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
 ) -> None:
-    if not (isinstance(value, dict) or is_typeddict(value)):
-        raise TypeCheckError("is not a TypedDict")
+    if not isinstance(value, dict):
+        raise TypeCheckError("is not a dict")
 
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
