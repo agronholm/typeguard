@@ -102,7 +102,7 @@ def check_type(
     )
 
     if type_checks_suppressed or expected_type is Any:
-        return
+        return value
 
     frame = sys._getframe(1)
     memo = TypeCheckMemo(frame.f_globals, frame.f_locals, config=config)

@@ -37,6 +37,7 @@ from typeguard import (
     TypeCheckError,
     TypeHintWarning,
     check_type,
+    suppress_type_checks,
 )
 from typeguard._utils import qualified_name
 
@@ -985,7 +986,12 @@ def test_forward_reference_policy(
 
 
 def test_any():
-    check_type("aa", Any)
+    assert check_type("aa", Any) == "aa"
+
+
+def test_suppressed_checking():
+    with suppress_type_checks():
+        assert check_type("aa", int) == "aa"
 
 
 def test_any_subclass():
