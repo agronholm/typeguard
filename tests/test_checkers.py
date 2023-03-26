@@ -458,6 +458,12 @@ class TestTypedDict:
                 r'dict has unexpected extra key\(s\): "foo"',
                 id="unknown_key",
             ),
+            pytest.param(
+                None,
+                True,
+                "is not a TypedDict",
+                id="not_iterable_type",
+            ),
         ],
     )
     def test_typed_dict(self, value, total: bool, error_re: Optional[str]):
