@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed checking non-dictionary objects against a ``TypedDict`` annotation
+  (PR by Tolker-KU)
+
 **3.0.2** (2023-03-22)
 
 - Improved warnings by ensuring that they target user code and not Typeguard internal
