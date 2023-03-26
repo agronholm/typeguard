@@ -461,8 +461,8 @@ class TestTypedDict:
             pytest.param(
                 None,
                 True,
-                "is not a TypedDict",
-                id="not_iterable_type",
+                "is not a dict",
+                id="not_dict",
             ),
         ],
     )
