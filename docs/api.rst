@@ -37,6 +37,8 @@ Configuration
 
 .. autoclass:: CollectionCheckStrategy
 
+.. autoclass:: Unset
+
 .. autoclass:: ForwardRefPolicy
 
 .. autofunction:: warn_on_error

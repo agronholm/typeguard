@@ -146,13 +146,13 @@ Setting configuration options
 There are several configuration options that can be set that influence how type checking
 is done. The :data:`typeguard.config` (which is of type
 :class:`~.TypeCheckConfiguration`) controls the options applied to code instrumented via
-either :func:`.typechecked <@typechecked>` or the import hook. The
+either :func:`@typechecked <.typechecked>` or the import hook. The
 :func:`~.check_type`, function, however, uses the built-in defaults and is not affected
 by the global configuration, so you must pass any configuration overrides explicitly
 with each call.
 
 You can also override specific configuration options in instrumented functions (or
-entire classes) by passing keyword arguments to :func:`.typechecked <@typechecked>`.
+entire classes) by passing keyword arguments to :func:`@typechecked <.typechecked>`.
 You can do this even if you're using the import hook, as the import hook will remove the
 decorator to ensure that no double instrumentation takes place. If you're using the
 import hook to type check your code only during tests and don't want to include
