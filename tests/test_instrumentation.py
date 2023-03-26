@@ -221,6 +221,12 @@ def test_pep_604_union_retval(dummymodule):
     )
 
 
+def test_builtin_generic_collections(dummymodule):
+    pytest.raises(TypeCheckError, dummymodule.builtin_generic_collections, 1.1).match(
+        r'argument "x" \(float\) is not a list'
+    )
+
+
 def test_paramspec(dummymodule):
     def foo(a: int, b: str, *, c: bytes) -> None:
         pass

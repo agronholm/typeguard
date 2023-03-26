@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import sys
-from _ast import List
 from ast import (
     Add,
     AnnAssign,
@@ -26,6 +26,7 @@ from ast import (
     Import,
     ImportFrom,
     Index,
+    List,
     Load,
     LShift,
     MatMult,
@@ -58,12 +59,7 @@ from collections import defaultdict
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, overload
-
-if sys.version_info < (3, 10):
-    from ._union_transformer import UnionTransformer
-else:
-    UnionTransformer = None
+from typing import Any, ClassVar, overload
 
 if sys.version_info >= (3, 8):
     from ast import NamedExpr
@@ -236,7 +232,13 @@ class TransformMemo:
         if not isinstance(top_expression, Name):
             return False
 
-        translated = self.imported_names.get(top_expression.id, top_expression.id)
+        if top_expression.id in self.imported_names:
+            translated = self.imported_names[top_expression.id]
+        elif hasattr(builtins, top_expression.id):
+            translated = "builtins." + top_expression.id
+        else:
+            translated = top_expression.id
+
         path.insert(0, translated)
         joined_path = ".".join(path)
         if joined_path in names:
@@ -307,6 +309,58 @@ class GeneratorDetector(NodeVisitor):
 
     def visit_AsyncFunctionDef(self, node: AsyncFunctionDef) -> Any:
         self.visit_FunctionDef(node)
+
+
+class AnnotationTransformer(NodeTransformer):
+    type_substitutions: ClassVar[dict[str, tuple[str, str]]] = {
+        "builtins.dict": ("typing", "Dict"),
+        "builtins.list": ("typing", "List"),
+        "builtins.tuple": ("typing", "Tuple"),
+        "builtins.set": ("typing", "Set"),
+        "builtins.frozenset": ("typing", "FrozenSet"),
+    }
+
+    def __init__(self, transformer: TypeguardTransformer):
+        self.transformer = transformer
+        self._memo = transformer._memo
+
+    def visit_BinOp(self, node: BinOp) -> Any:
+        self.generic_visit(node)
+        if sys.version_info < (3, 10) and isinstance(node.op, BitOr):
+            union_name = self.transformer._get_import("typing", "Union")
+            return Subscript(
+                value=union_name,
+                slice=Index(
+                    Tuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
+                ),
+                ctx=Load(),
+            )
+
+        return node
+
+    def visit_Name(self, node: Name) -> Any:
+        self.generic_visit(node)
+        if sys.version_info < (3, 9):
+            for typename, substitute in self.type_substitutions.items():
+                if self._memo.name_matches(node, typename):
+                    new_node = self.transformer._get_import(*substitute)
+                    return copy_location(new_node, node)
+
+        return node
+
+    def visit_Constant(self, node: Constant) -> Any:
+        if isinstance(node.value, str):
+            expression = ast.parse(node.value, mode="eval")
+            expression = self.visit(expression)
+            return expression.body
+
+        return node
+
+    def visit_Str(self, node: Str) -> Any:
+        # Only used on Python 3.7
+        expression = ast.parse(node.s, mode="eval")
+        expression = self.visit(expression)
+        return copy_location(expression.body, node)
 
 
 class TypeguardTransformer(NodeTransformer):
@@ -380,30 +434,15 @@ class TypeguardTransformer(NodeTransformer):
         ...
 
     def _convert_annotation(self, annotation: expr | None) -> expr | None:
-        # Parse forward references to AST nodes, and convert PEP 604 unions to
-        # typing.Unions on Pythons older than 3.9
-        if isinstance(annotation, (Constant, Str)):
-            # An explicit forward reference is ast.Str on Python 3.7, Constant on later
-            # versions
-            if isinstance(annotation, Str):
-                value = annotation.s
-            else:
-                value = annotation.value
+        if annotation is None:
+            return None
 
-            if isinstance(value, str):
-                expression = ast.parse(value, mode="eval")
-
-                # Convert each PEP 604 unions (x | y) to a typing.Union
-                if UnionTransformer is not None and any(
-                    isinstance(node, BinOp) for node in walk(expression)
-                ):
-                    union_name = self._memo.get_import("typing", "Union")
-                    expression = UnionTransformer(union_name).visit(expression)
-
-                annotation = ast.copy_location(expression.body, annotation)
-
-        # Store names used in the annotation
+        # Convert PEP 604 unions (x | y) and generic built-in collections where
+        # necessary, and undo forward references
+        expression = AnnotationTransformer(self).visit(annotation)
+        annotation = ast.copy_location(expression, annotation)
         if annotation:
+            # Store names used in the annotation
             names = {node.id for node in walk(annotation) if isinstance(node, Name)}
             self.names_used_in_annotations.update(names)
 
@@ -798,19 +837,10 @@ class TypeguardTransformer(NodeTransformer):
                     return None
 
             if isinstance(node.target, Name):
-                self._memo.variable_annotations[node.target.id] = node.annotation
+                self._memo.variable_annotations[
+                    node.target.id
+                ] = annotation = self._convert_annotation(node.annotation)
                 if node.value:
-                    # On Python < 3.10, if the annotation contains a binary "|", use the
-                    # PEP 604 union transformer to turn such operations into
-                    # typing.Unions
-                    if UnionTransformer is not None and any(
-                        isinstance(n, BinOp) for n in walk(node.annotation)
-                    ):
-                        union_name = self._get_import("typing", "Union")
-                        node.annotation = UnionTransformer(union_name).visit(
-                            node.annotation
-                        )
-
                     func_name = self._get_import(
                         "typeguard._functions", "check_variable_assignment"
                     )
@@ -819,7 +849,7 @@ class TypeguardTransformer(NodeTransformer):
                         [
                             node.value,
                             Constant(node.target.id),
-                            node.annotation,
+                            annotation,
                             self._memo.get_memo_name(),
                         ],
                         [],

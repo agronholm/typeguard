@@ -926,7 +926,7 @@ check_variable_assignment
 
                 def foo() -> None:
                     memo = TypeCheckMemo(globals(), locals())
-                    x: Union_[int, str] = check_variable_assignment(otherfunc(), 'x', \
+                    x: int | str = check_variable_assignment(otherfunc(), 'x', \
 Union_[int, str], memo)
                 """
             ).strip()

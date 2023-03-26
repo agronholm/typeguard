@@ -194,13 +194,18 @@ async def asyncgen_func(yield_value: Any) -> AsyncGenerator[int, Any]:
 
 @typechecked
 def pep_604_union_args(
-    x: "Callable[[], Literal[-1]] | Callable[..., Union[int | str]]",
+    x: "Callable[[], Literal[-1]] | Callable[..., Union[int, str]]",
 ) -> None:
     pass
 
 
 @typechecked
 def pep_604_union_retval(x: Any) -> "str | int":
+    return x
+
+
+@typechecked
+def builtin_generic_collections(x: "list[set[int]]") -> Any:
     return x
 
 
