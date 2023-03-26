@@ -19,6 +19,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   parent function as the instrumented function
 - Fixed ``check_type`` not returning the passed value when checking against ``Any``, or
   when type checking is being suppressed
+- Fixed ``suppress_type_checks()`` not ending the suppression if the context block
+  raises an exception
 
 **3.0.2** (2023-03-22)
 

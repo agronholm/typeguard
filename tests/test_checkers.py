@@ -994,6 +994,14 @@ def test_suppressed_checking():
         assert check_type("aa", int) == "aa"
 
 
+def test_suppressed_checking_exception():
+    with pytest.raises(RuntimeError), suppress_type_checks():
+        assert check_type("aa", int) == "aa"
+        raise RuntimeError
+
+    pytest.raises(TypeCheckError, check_type, "aa", int)
+
+
 def test_any_subclass():
     class Foo(SubclassableAny):
         pass

@@ -329,7 +329,8 @@ def suppress_type_checks() -> Generator[None, None, None]:
     with type_checks_suppress_lock:
         type_checks_suppressed += 1
 
-    yield
-
-    with type_checks_suppress_lock:
-        type_checks_suppressed -= 1
+    try:
+        yield
+    finally:
+        with type_checks_suppress_lock:
+            type_checks_suppressed -= 1
