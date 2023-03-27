@@ -20,7 +20,7 @@ repos:
         exclude: "^tests/mypy/negative.py"
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.257
+    rev: v0.0.259
     hooks:
       - id: ruff
         args: [--fix, --show-fixes]
