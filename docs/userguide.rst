@@ -126,6 +126,23 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
+.. _forwardrefs:
+
+Notes on forward reference handling
+-----------------------------------
+
+The internal type checking functions, injected to instrumented code by either
+:func:`@typechecked <typechecked>` or the import hook, use the "naked" versions of any
+annotations, undoing any quotations in them (and the effects of
+``from __future__ import annotations``). As such, the
+:attr:`~.TypeCheckConfiguration.forward_ref_policy` does not apply to instrumented code.
+
+To facilitate the use of types only available to static type checkers, Typeguard
+recognizes module-level imports guarded by ``if typing.TYPE_CHECKING:`` or
+``if TYPE_CHECKING:`` (add the appropriate :mod:`typing` imports). Imports made within
+such blocks on the module level will be replaced in calls to internal type checking
+functions with :data:`~typing.Any`.
+
 Using the pytest plugin
 -----------------------
 

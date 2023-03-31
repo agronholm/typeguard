@@ -17,6 +17,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   look up the function object at run time
 - Added support for type checking against nonlocal classes defined within the same
   parent function as the instrumented function
+- Improved support for avoiding type checks against imports declared in
+  ``if TYPE_CHECKING:`` blocks
 - Fixed ``check_type`` not returning the passed value when checking against ``Any``, or
   when type checking is being suppressed
 - Fixed ``suppress_type_checks()`` not ending the suppression if the context block

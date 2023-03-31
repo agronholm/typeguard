@@ -733,7 +733,7 @@ class TestTypecheckingImport:
     run-time checks.
     """
 
-    def test_sync_function(self) -> None:
+    def test_direct_references(self) -> None:
         node = parse(
             dedent(
                 """
@@ -759,9 +759,77 @@ class TestTypecheckingImport:
                     import typing
                     from typing import Hashable, Sequence
 
-                def foo(x, y) -> Sequence:
-                    baz = 1
+                def foo(x: Hashable, y: typing.Collection) -> Sequence:
+                    bar: typing.Collection
+                    baz: Hashable = 1
                     return (1, 2)
+                """
+            ).strip()
+        )
+
+    def test_collection_parameter(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: list[FooBar]) -> list[FooBar]:
+                    return x
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types, check_return_type
+                from typing import Any
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: list[FooBar]) -> list[FooBar]:
+                    memo = TypeCheckMemo(globals(), locals())
+                    check_argument_types('foo', {'x': (x, list[Any])}, memo)
+                    return check_return_type('foo', x, list[Any], memo)
+                """
+            ).strip()
+        )
+
+    def test_variable_annotations(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import Any, TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: Any) -> None:
+                    y: FooBar = x
+                    z: list[FooBar] = [y]
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_variable_assignment
+                from typing import Any, TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: Any) -> None:
+                    memo = TypeCheckMemo(globals(), locals())
+                    y: FooBar = x
+                    z: list[FooBar] = check_variable_assignment([y], 'z', list[Any], \
+memo)
                 """
             ).strip()
         )
@@ -776,10 +844,8 @@ class TestTypecheckingImport:
                     import typing
                     from typing import Hashable, Sequence
 
-                def foo(x: Hashable, y: typing.Collection) -> Generator[Hashable, Any, \
-Sequence]:
-                    bar: typing.Collection
-                    baz: Hashable = 1
+                def foo(x: Hashable, y: typing.Collection) -> Generator[Hashable, \
+typing.Collection, Sequence]:
                     yield 'foo'
                     return (1, 2)
                 """
@@ -796,8 +862,8 @@ Sequence]:
                     import typing
                     from typing import Hashable, Sequence
 
-                def foo(x, y) -> Generator[Hashable, Any, Sequence]:
-                    baz = 1
+                def foo(x: Hashable, y: typing.Collection) -> Generator[Hashable, \
+typing.Collection, Sequence]:
                     yield 'foo'
                     return (1, 2)
                 """
