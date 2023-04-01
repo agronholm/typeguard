@@ -141,15 +141,20 @@ Temporarily disabling type checks
 +++++++++++++++++++++++++++++++++
 
 If you need to temporarily suppress type checking, you can use the
-:func:`~.suppress_type_checks` context manager to skip the checks::
+:func:`~.suppress_type_checks` function, either as a context manager or a decorator, to
+skip the checks::
 
     from typeguard import check_type, suppress_type_checks
 
     with suppress_type_checks():
         check_type(1, str)  # would fail without the suppression
 
-These context managers will stack, so type checking is only done once all such context
-managers have exited.
+    @suppress_type_checks
+    def my_suppressed_function(x: int) -> None:
+        ...
+
+Suppression state is tracked globally. Suppression ends only when all the context
+managers have exited and all calls to decorated functions have returned.
 
 Permanently suppressing type checks for selected functions
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

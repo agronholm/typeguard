@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, suppress_type_checks, typechecked
+from typeguard import TypeCheckError, typechecked
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -528,15 +528,6 @@ def test_retain_dunder_attributes():
     assert foo.__qualname__ == "test_retain_dunder_attributes.<locals>.foo"
     assert foo.__doc__ == "This is a docstring."
     assert foo.__defaults__ == ("foo",)
-
-
-def test_suppressed_checking():
-    @typechecked
-    def foo(x: str) -> None:
-        pass
-
-    with suppress_type_checks():
-        foo(1)
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason="Requires ast.unparse()")

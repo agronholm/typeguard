@@ -16,13 +16,13 @@ from ._exceptions import TypeCheckWarning as TypeCheckWarning
 from ._exceptions import TypeHintWarning as TypeHintWarning
 from ._functions import TypeCheckFailCallback as TypeCheckFailCallback
 from ._functions import check_type as check_type
-from ._functions import suppress_type_checks as suppress_type_checks
 from ._functions import warn_on_error as warn_on_error
 from ._importhook import ImportHookManager as ImportHookManager
 from ._importhook import TypeguardFinder as TypeguardFinder
 from ._importhook import install_import_hook as install_import_hook
 from ._memo import CallMemo as CallMemo
 from ._memo import TypeCheckMemo as TypeCheckMemo
+from ._suppression import suppress_type_checks as suppress_type_checks
 
 # Re-export imports so they look like they live directly in this package
 for value in list(locals().values()):

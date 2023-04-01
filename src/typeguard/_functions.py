@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import sys
 import warnings
-from collections.abc import Generator
-from contextlib import contextmanager
-from threading import Lock
 from typing import Any, Callable, NoReturn, TypeVar, overload
 
+from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
 from ._config import global_config
 from ._exceptions import TypeCheckError, TypeCheckWarning
@@ -19,20 +17,18 @@ else:
     from typing_extensions import Never
 
 if sys.version_info >= (3, 10):
-    from typing import TypeAlias
+    from typing import ParamSpec, TypeAlias
 else:
-    from typing_extensions import TypeAlias
+    from typing_extensions import ParamSpec, TypeAlias
 
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
 
+P = ParamSpec("P")
 T = TypeVar("T")
 TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
-
-type_checks_suppressed = 0
-type_checks_suppress_lock = Lock()
 
 
 @overload
@@ -65,7 +61,7 @@ def check_type(value: object, expected_type: Any) -> Any:
     :raises TypeCheckError: if there is a type mismatch
 
     """
-    if type_checks_suppressed or expected_type is Any:
+    if _suppression.type_checks_suppressed or expected_type is Any:
         return
 
     frame = sys._getframe(1)
@@ -94,7 +90,7 @@ def check_argument_types(memo: CallMemo) -> Literal[True]:
     :raises TypeError: if there is an argument type mismatch
 
     """
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return True
 
     for argname, expected_type in memo.type_hints.items():
@@ -139,7 +135,7 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
     :raises TypeCheckError: if there is a type mismatch
 
     """
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return retval
 
     if "return" in memo.type_hints:
@@ -174,7 +170,7 @@ def check_return_type(retval: T, memo: CallMemo) -> T:
 
 
 def check_send_type(sendval: T, memo: CallMemo) -> T:
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return sendval
 
     annotation = memo.type_hints[":send"]
@@ -217,7 +213,7 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
     :raises TypeCheckError: if there is a type mismatch
 
     """
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return yieldval
 
     if "yield" in memo.type_hints:
@@ -247,7 +243,7 @@ def check_yield_type(yieldval: T, memo: CallMemo) -> T:
 def check_variable_assignment(
     value: object, varname: str, annotation: Any, memo: CallMemo
 ) -> Any:
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return
 
     try:
@@ -266,7 +262,7 @@ def check_variable_assignment(
 def check_multi_variable_assignment(
     value: Any, targets: list[dict[str, Any]], memo: CallMemo
 ) -> Any:
-    if type_checks_suppressed:
+    if _suppression.type_checks_suppressed:
         return
 
     if max(len(target) for target in targets) == 1:
@@ -309,26 +305,3 @@ def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:
 
     """
     warnings.warn(TypeCheckWarning(str(exc)), stacklevel=get_stacklevel())
-
-
-@contextmanager
-def suppress_type_checks() -> Generator[None, None, None]:
-    """
-    A context manager that can be used to temporarily suppress type checks.
-
-    While this context manager is active, :func:`check_type` and any automatically
-    instrumented functions skip the actual type checking. These context managers can be
-    nested. Type checking will resume once the last context manager block is exited.
-
-    This context manager is thread-safe.
-
-    """
-    global type_checks_suppressed
-
-    with type_checks_suppress_lock:
-        type_checks_suppressed += 1
-
-    yield
-
-    with type_checks_suppress_lock:
-        type_checks_suppressed -= 1
