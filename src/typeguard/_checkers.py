@@ -242,6 +242,9 @@ def check_typed_dict(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
+    if not isinstance(value, dict):
+        raise TypeCheckError("is not a dict")
+
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
         required_keys = origin_type.__required_keys__

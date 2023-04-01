@@ -103,7 +103,7 @@ minversion = 4.0
 
 [testenv]
 extras = test
-commands = pytest {posargs}
+commands = python -m pytest {posargs}
 
 [testenv:docs]
 extras = doc

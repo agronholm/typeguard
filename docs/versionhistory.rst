@@ -23,6 +23,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   when type checking is being suppressed
 - Fixed ``suppress_type_checks()`` not ending the suppression if the context block
   raises an exception
+- Fixed checking non-dictionary objects against a ``TypedDict`` annotation
+  (PR by Tolker-KU)
 
 **3.0.2** (2023-03-22)
 
