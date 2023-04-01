@@ -30,7 +30,6 @@ from typing import (
 )
 
 import pytest
-from pytest import MonkeyPatch
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -38,7 +37,7 @@ from typeguard import (
     TypeCheckError,
     TypeHintWarning,
     check_type,
-    config,
+    suppress_type_checks,
 )
 from typeguard._utils import qualified_name
 
@@ -319,26 +318,22 @@ class TestMapping:
             f"instance of str"
         )
 
-    def test_bad_key_type_full_check(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
+    def test_bad_key_type_full_check(self):
         pytest.raises(
             TypeCheckError,
             check_type,
             {"x": 1, 3: 2},
             Mapping[str, int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("key 3 of dict is not an instance of str")
 
-    def test_bad_value_type_full_check(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
+    def test_bad_value_type_full_check(self):
         pytest.raises(
             TypeCheckError,
             check_type,
             {"x": 1, "y": "a"},
             Mapping[str, int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("value of key 'y' of dict is not an instance of int")
 
     def test_any_value_type(self):
@@ -408,23 +403,22 @@ class TestDict:
             "value of key 'x' of dict is not an instance of int"
         )
 
-    def test_bad_key_type_full_check(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
-        pytest.raises(TypeCheckError, check_type, {"x": 1, 3: 2}, Dict[str, int]).match(
-            "key 3 of dict is not an instance of str"
-        )
+    def test_bad_key_type_full_check(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"x": 1, 3: 2},
+            Dict[str, int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("key 3 of dict is not an instance of str")
 
-    def test_bad_value_type_full_check(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
+    def test_bad_value_type_full_check(self):
         pytest.raises(
             TypeCheckError,
             check_type,
             {"x": 1, "y": "a"},
             Dict[str, int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("value of key 'y' of dict is not an instance of int")
 
 
@@ -502,13 +496,14 @@ class TestList:
             "list is not an instance of int"
         )
 
-    def test_full_check_fail(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
-        pytest.raises(TypeCheckError, check_type, [1, 2, "bb"], List[int]).match(
-            "list is not an instance of int"
-        )
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            [1, 2, "bb"],
+            List[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("list is not an instance of int")
 
 
 class TestSequence:
@@ -532,13 +527,14 @@ class TestSequence:
             "list is not an instance of int"
         )
 
-    def test_full_check_fail(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
-        pytest.raises(TypeCheckError, check_type, [1, 2, "bb"], Sequence[int]).match(
-            "list is not an instance of int"
-        )
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            [1, 2, "bb"],
+            Sequence[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("list is not an instance of int")
 
 
 class TestAbstractSet:
@@ -566,13 +562,14 @@ class TestAbstractSet:
             "set is not an instance of int"
         )
 
-    def test_full_check_fail(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
-        pytest.raises(TypeCheckError, check_type, {1, 2, "bb"}, AbstractSet[int]).match(
-            "set is not an instance of int"
-        )
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {1, 2, "bb"},
+            AbstractSet[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("set is not an instance of int")
 
 
 class TestSet:
@@ -590,13 +587,14 @@ class TestSet:
             "set is not an instance of int"
         )
 
-    def test_full_check_fail(self, monkeypatch: MonkeyPatch):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
-        pytest.raises(TypeCheckError, check_type, {1, 2, "bb"}, Set[int]).match(
-            "set is not an instance of int"
-        )
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {1, 2, "bb"},
+            Set[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("set is not an instance of int")
 
 
 @pytest.mark.parametrize(
@@ -652,17 +650,13 @@ class TestTuple:
             TypeCheckError, check_type, ("blah",), annotated_type[int, ...]
         ).match("tuple is not an instance of int")
 
-    def test_ellipsis_bad_element_full_check(
-        self, annotated_type: Any, monkeypatch: MonkeyPatch
-    ):
-        monkeypatch.setattr(
-            config, "collection_check_strategy", CollectionCheckStrategy.ALL_ITEMS
-        )
+    def test_ellipsis_bad_element_full_check(self, annotated_type: Any):
         pytest.raises(
             TypeCheckError,
             check_type,
             (1, 2, "blah"),
             annotated_type[int, ...],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("tuple is not an instance of int")
 
     def test_empty_tuple(self, annotated_type: Any):
@@ -991,15 +985,27 @@ class TestTypeGuard:
     ],
 )
 def test_forward_reference_policy(
-    policy: ForwardRefPolicy, contextmanager: ContextManager, monkeypatch: MonkeyPatch
+    policy: ForwardRefPolicy, contextmanager: ContextManager
 ):
-    monkeypatch.setattr(config, "forward_ref_policy", policy)
     with contextmanager:
-        check_type(1, ForwardRef("Foo"))  # noqa: F821
+        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)  # noqa: F821
 
 
 def test_any():
-    check_type("aa", Any)
+    assert check_type("aa", Any) == "aa"
+
+
+def test_suppressed_checking():
+    with suppress_type_checks():
+        assert check_type("aa", int) == "aa"
+
+
+def test_suppressed_checking_exception():
+    with pytest.raises(RuntimeError), suppress_type_checks():
+        assert check_type("aa", int) == "aa"
+        raise RuntimeError
+
+    pytest.raises(TypeCheckError, check_type, "aa", int)
 
 
 def test_any_subclass():

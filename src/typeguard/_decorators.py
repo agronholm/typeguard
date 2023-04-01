@@ -3,15 +3,17 @@ from __future__ import annotations
 import ast
 import inspect
 import sys
+from functools import partial
 from inspect import isclass, isfunction
-from types import CodeType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, TypeVar, overload
+from types import CodeType, FrameType, FunctionType
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
 from warnings import warn
 
-from ._config import global_config
+from ._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
 from ._exceptions import InstrumentationWarning
+from ._functions import TypeCheckFailCallback
 from ._transformer import TypeguardTransformer
-from ._utils import function_name, get_stacklevel, is_method_of
+from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
 
 if TYPE_CHECKING:
     from typeshed.stdlib.types import _Cell
@@ -28,8 +30,7 @@ else:
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 
-def make_cell() -> _Cell:
-    value = None
+def make_cell(value: object) -> _Cell:
     return (lambda: value).__closure__[0]  # type: ignore[index]
 
 
@@ -83,24 +84,26 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         else:
             return "cannot find the target function in the AST"
 
-    cell = None
-    if new_code.co_freevars == f.__code__.co_freevars:
-        # The existing closure works fine
-        closure = f.__closure__
-    elif f.__closure__ is not None:
-        # Existing closure needs modifications
-        cell = make_cell()
-        index = new_code.co_freevars.index(f.__name__)
-        closure = f.__closure__[:index] + (cell,) + f.__closure__[index:]
-    else:
-        # Make a brand new closure
-        cell = make_cell()
-        closure = (cell,)
+    closure = f.__closure__
+    if new_code.co_freevars != f.__code__.co_freevars:
+        # Create a new closure and find values for the new free variables
+        frame = cast(FrameType, inspect.currentframe())
+        frame = cast(FrameType, frame.f_back)
+        frame_locals = cast(FrameType, frame.f_back).f_locals
+        cells: list[_Cell] = []
+        for key in new_code.co_freevars:
+            if key in instrumentor.names_used_in_annotations:
+                # Find the value and make a new cell from it
+                value = frame_locals.get(key) or ForwardRef(key)
+                cells.append(make_cell(value))
+            else:
+                # Reuse the cell from the existing closure
+                assert f.__closure__
+                cells.append(f.__closure__[f.__code__.co_freevars.index(key)])
+
+        closure = tuple(cells)
 
     new_function = FunctionType(new_code, f.__globals__, f.__name__, closure=closure)
-    if cell is not None:
-        cell.cell_contents = new_function
-
     new_function.__module__ = f.__module__
     new_function.__name__ = f.__name__
     new_function.__qualname__ = f.__qualname__
@@ -108,12 +111,17 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     new_function.__doc__ = f.__doc__
     new_function.__defaults__ = f.__defaults__
     new_function.__kwdefaults__ = f.__kwdefaults__
-    new_function.__globals__[f.__name__] = new_function
     return new_function
 
 
 @overload
-def typechecked() -> Callable[[T_CallableOrType], T_CallableOrType]:
+def typechecked(
+    *,
+    forward_ref_policy: ForwardRefPolicy | Unset = unset,
+    typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
+    collection_check_strategy: CollectionCheckStrategy | Unset = unset,
+    debug_instrumentation: bool | Unset = unset,
+) -> Callable[[T_CallableOrType], T_CallableOrType]:
     ...
 
 
@@ -122,7 +130,14 @@ def typechecked(target: T_CallableOrType) -> T_CallableOrType:
     ...
 
 
-def typechecked(target: T_CallableOrType | None = None) -> Any:
+def typechecked(
+    target: T_CallableOrType | None = None,
+    *,
+    forward_ref_policy: ForwardRefPolicy | Unset = unset,
+    typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
+    collection_check_strategy: CollectionCheckStrategy | Unset = unset,
+    debug_instrumentation: bool | Unset = unset,
+) -> Any:
     """
     Instrument the target function to perform run-time type checking.
 
@@ -136,10 +151,24 @@ def typechecked(target: T_CallableOrType | None = None) -> Any:
     methods in the class.
 
     :param target: the function or class to enable type checking for
+    :param forward_ref_policy: override for
+        :attr:`.TypeCheckConfiguration.forward_ref_policy`
+    :param typecheck_fail_callback: override for
+        :attr:`.TypeCheckConfiguration.typecheck_fail_callback`
+    :param collection_check_strategy: override for
+        :attr:`.TypeCheckConfiguration.collection_check_strategy`
+    :param debug_instrumentation: override for
+        :attr:`.TypeCheckConfiguration.debug_instrumentation`
 
     """
     if target is None:
-        return typechecked
+        return partial(
+            typechecked,
+            forward_ref_policy=forward_ref_policy,
+            typecheck_fail_callback=typecheck_fail_callback,
+            collection_check_strategy=collection_check_strategy,
+            debug_instrumentation=debug_instrumentation,
+        )
 
     if isclass(target):
         for key, attr in target.__dict__.items():

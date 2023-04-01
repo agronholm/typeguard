@@ -3,13 +3,6 @@ User guide
 
 .. py:currentmodule:: typeguard
 
-Setting configuration options
------------------------------
-
-There are several configuration options that can be set that influence how type checking
-is done. To change the options, import :data:`typeguard.config` (which is of type
-:class:`~.TypeCheckConfiguration`) and set the attributes you want to change.
-
 Checking types directly
 -----------------------
 
@@ -74,6 +67,19 @@ abstract syntax tree using :func:`ast.parse`, modifying it to add type checking,
 finally compiling the modified AST into byte code. This code is then used to make a new
 function object that is used to replace the original one.
 
+To explicitly set type checking options on a per-function basis, you can pass them as
+keyword arguments to :func:`@typechecked <typechecked>`::
+
+    from typeguard import CollectionCheckStrategy, typechecked
+
+    @typechecked(collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS)
+    def some_function(a: int, b: float, c: str, *args: str) -> bool:
+        ...
+        return retval
+
+This also allows you to override the global options for specific functions when using
+the import hook.
+
 .. note:: You should always place this decorator closest to the original function,
     as it will not work when there is another decorator wrapping the function.
     For the same reason, when you use it on a class that has wrapping decorators on
@@ -120,6 +126,23 @@ You can also customize the logic used to select which modules to instrument::
 
     install_import_hook('', cls=CustomFinder)
 
+.. _forwardrefs:
+
+Notes on forward reference handling
+-----------------------------------
+
+The internal type checking functions, injected to instrumented code by either
+:func:`@typechecked <typechecked>` or the import hook, use the "naked" versions of any
+annotations, undoing any quotations in them (and the effects of
+``from __future__ import annotations``). As such, the
+:attr:`~.TypeCheckConfiguration.forward_ref_policy` does not apply to instrumented code.
+
+To facilitate the use of types only available to static type checkers, Typeguard
+recognizes module-level imports guarded by ``if typing.TYPE_CHECKING:`` or
+``if TYPE_CHECKING:`` (add the appropriate :mod:`typing` imports). Imports made within
+such blocks on the module level will be replaced in calls to internal type checking
+functions with :data:`~typing.Any`.
+
 Using the pytest plugin
 -----------------------
 
@@ -133,6 +156,40 @@ previous section). To use it, run ``pytest`` with the appropriate
     pytest --typeguard-packages=foo.bar,xyz
 
 There is currently no support for specifying a customized module finder.
+
+Setting configuration options
+-----------------------------
+
+There are several configuration options that can be set that influence how type checking
+is done. The :data:`typeguard.config` (which is of type
+:class:`~.TypeCheckConfiguration`) controls the options applied to code instrumented via
+either :func:`@typechecked <.typechecked>` or the import hook. The
+:func:`~.check_type`, function, however, uses the built-in defaults and is not affected
+by the global configuration, so you must pass any configuration overrides explicitly
+with each call.
+
+You can also override specific configuration options in instrumented functions (or
+entire classes) by passing keyword arguments to :func:`@typechecked <.typechecked>`.
+You can do this even if you're using the import hook, as the import hook will remove the
+decorator to ensure that no double instrumentation takes place. If you're using the
+import hook to type check your code only during tests and don't want to include
+``typeguard`` as a run-time dependency, you can use a dummy replacement for the
+decorator.
+
+For example, the following snippet will only import the decorator during a pytest_ run::
+
+    import sys
+
+    if "pytest" in sys.modules:
+        from typeguard import typechecked
+    else:
+        from typing import TypeVar
+        _T = TypeVar("_T")
+
+        def typechecked(target: _T, **kwargs) -> _T:
+            return target if target else typechecked
+
+.. _pytest: https://docs.pytest.org/
 
 Suppressing type checks
 -----------------------

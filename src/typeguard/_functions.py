@@ -6,42 +6,60 @@ from typing import Any, Callable, NoReturn, TypeVar, overload
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
-from ._config import global_config
+from ._config import (
+    CollectionCheckStrategy,
+    ForwardRefPolicy,
+    TypeCheckConfiguration,
+)
 from ._exceptions import TypeCheckError, TypeCheckWarning
-from ._memo import CallMemo, TypeCheckMemo
+from ._memo import TypeCheckMemo
 from ._utils import get_stacklevel, qualified_name
 
 if sys.version_info >= (3, 11):
-    from typing import Never
+    from typing import Literal, Never, TypeAlias
 else:
-    from typing_extensions import Never
+    from typing_extensions import Literal, Never, TypeAlias
 
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec, TypeAlias
-else:
-    from typing_extensions import ParamSpec, TypeAlias
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
-P = ParamSpec("P")
 T = TypeVar("T")
 TypeCheckFailCallback: TypeAlias = Callable[[TypeCheckError, TypeCheckMemo], Any]
 
 
 @overload
-def check_type(value: object, expected_type: type[T]) -> T:
+def check_type(
+    value: object,
+    expected_type: type[T],
+    *,
+    forward_ref_policy: ForwardRefPolicy = ...,
+    typecheck_fail_callback: TypeCheckFailCallback | None = ...,
+    collection_check_strategy: CollectionCheckStrategy = ...,
+) -> T:
     ...
 
 
 @overload
-def check_type(value: object, expected_type: Any) -> Any:
+def check_type(
+    value: object,
+    expected_type: Any,
+    *,
+    forward_ref_policy: ForwardRefPolicy = ...,
+    typecheck_fail_callback: TypeCheckFailCallback | None = ...,
+    collection_check_strategy: CollectionCheckStrategy = ...,
+) -> Any:
     ...
 
 
-def check_type(value: object, expected_type: Any) -> Any:
+def check_type(
+    value: object,
+    expected_type: Any,
+    *,
+    forward_ref_policy: ForwardRefPolicy = TypeCheckConfiguration().forward_ref_policy,
+    typecheck_fail_callback: (TypeCheckFailCallback | None) = (
+        TypeCheckConfiguration().typecheck_fail_callback
+    ),
+    collection_check_strategy: CollectionCheckStrategy = (
+        TypeCheckConfiguration().collection_check_strategy
+    ),
+) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -55,131 +73,128 @@ def check_type(value: object, expected_type: Any) -> Any:
     * Forms a :class:`~.TypeCheckMemo` from the current stack frame
     * Calls the configured type check fail callback if the check fails
 
+    Note that this function is independent of the globally shared configuration in
+    :data:`typeguard.config`. This means that usage within libraries is safe from being
+    affected configuration changes made by other libraries or by the integrating
+    application. Instead, configuration options have the same default values as their
+    corresponding fields in :class:`TypeCheckConfiguration`.
+
     :param value: value to be checked against ``expected_type``
     :param expected_type: a class or generic type instance
+    :param forward_ref_policy: see :attr:`TypeCheckConfiguration.forward_ref_policy`
+    :param typecheck_fail_callback:
+        see :attr`TypeCheckConfiguration.typecheck_fail_callback`
+    :param collection_check_strategy:
+        see :attr:`TypeCheckConfiguration.collection_check_strategy`
     :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
     """
+    config = TypeCheckConfiguration(
+        forward_ref_policy=forward_ref_policy,
+        typecheck_fail_callback=typecheck_fail_callback,
+        collection_check_strategy=collection_check_strategy,
+    )
+
     if _suppression.type_checks_suppressed or expected_type is Any:
-        return
+        return value
 
     frame = sys._getframe(1)
-    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
+    memo = TypeCheckMemo(frame.f_globals, frame.f_locals, config=config)
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
         exc.append_path_element(qualified_name(value, add_class_prefix=True))
-        if global_config.typecheck_fail_callback:
-            global_config.typecheck_fail_callback(exc, memo)
+        if config.typecheck_fail_callback:
+            config.typecheck_fail_callback(exc, memo)
         else:
             raise
 
     return value
 
 
-def check_argument_types(memo: CallMemo) -> Literal[True]:
-    """
-    Check that the argument values match the annotated types.
-
-    This should be called first thing within the body of a type annotated function.
-    If ``memo`` is not provided, the information will be retrieved from the previous
-    stack frame (ie. from the function that called this).
-
-    :return: ``True``
-    :raises TypeError: if there is an argument type mismatch
-
-    """
+def check_argument_types(
+    func_name: str,
+    arguments: dict[str, tuple[Any, Any]],
+    memo: TypeCheckMemo,
+) -> Literal[True]:
     if _suppression.type_checks_suppressed:
         return True
 
-    for argname, expected_type in memo.type_hints.items():
-        if argname != "return" and argname in memo.arguments:
-            if expected_type is NoReturn or expected_type is Never:
-                exc = TypeCheckError(
-                    f"{memo.func_name}() was declared never to be called but it was"
-                )
-                if global_config.typecheck_fail_callback:
-                    global_config.typecheck_fail_callback(exc, memo)
-                else:
-                    raise exc
-
-            value = memo.arguments[argname]
-            try:
-                check_type_internal(value, expected_type, memo=memo)
-            except TypeCheckError as exc:
-                qualname = qualified_name(value, add_class_prefix=True)
-                exc.append_path_element(f'argument "{argname}" ({qualname})')
-                if global_config.typecheck_fail_callback:
-                    global_config.typecheck_fail_callback(exc, memo)
-                else:
-                    raise
-
-    return True
-
-
-def check_return_type(retval: T, memo: CallMemo) -> T:
-    """
-    Check that the return value is compatible with the return value annotation in the
-    function.
-
-    This should be used to wrap the return statement, as in::
-
-        # Before
-        return "foo"
-        # After
-        return check_return_type("foo")
-
-    :param retval: the value that should be returned from the call
-    :return: ``retval``, unmodified
-    :raises TypeCheckError: if there is a type mismatch
-
-    """
-    if _suppression.type_checks_suppressed:
-        return retval
-
-    if "return" in memo.type_hints:
-        annotation = memo.type_hints["return"]
+    for argname, (value, annotation) in arguments.items():
         if annotation is NoReturn or annotation is Never:
             exc = TypeCheckError(
-                f"{memo.func_name}() was declared never to return but it did"
+                f"{func_name}() was declared never to be called but it was"
             )
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
             else:
                 raise exc
 
         try:
-            check_type_internal(retval, annotation, memo)
+            check_type_internal(value, annotation, memo)
         except TypeCheckError as exc:
-            # Allow NotImplemented if this is a binary magic method (__eq__() et al)
-            if retval is NotImplemented and annotation is bool:
-                # This does (and cannot) not check if it's actually a method
-                func_name = memo.func_name.rsplit(".", 1)[-1]
-                if len(memo.arguments) == 2 and func_name in BINARY_MAGIC_METHODS:
-                    return retval
-
-            qualname = qualified_name(retval, add_class_prefix=True)
-            exc.append_path_element(f"the return value ({qualname})")
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
+            qualname = qualified_name(value, add_class_prefix=True)
+            exc.append_path_element(f'argument "{argname}" ({qualname})')
+            if memo.config.typecheck_fail_callback:
+                memo.config.typecheck_fail_callback(exc, memo)
             else:
                 raise
+
+    return True
+
+
+def check_return_type(
+    func_name: str,
+    retval: T,
+    annotation: Any,
+    memo: TypeCheckMemo,
+) -> T:
+    if _suppression.type_checks_suppressed:
+        return retval
+
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(f"{func_name}() was declared never to return but it did")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
+
+    try:
+        check_type_internal(retval, annotation, memo)
+    except TypeCheckError as exc:
+        # Allow NotImplemented if this is a binary magic method (__eq__() et al)
+        if retval is NotImplemented and annotation is bool:
+            # This does (and cannot) not check if it's actually a method
+            func_name = func_name.rsplit(".", 1)[-1]
+            if func_name in BINARY_MAGIC_METHODS:
+                return retval
+
+        qualname = qualified_name(retval, add_class_prefix=True)
+        exc.append_path_element(f"the return value ({qualname})")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
 
     return retval
 
 
-def check_send_type(sendval: T, memo: CallMemo) -> T:
+def check_send_type(
+    func_name: str,
+    sendval: T,
+    annotation: Any,
+    memo: TypeCheckMemo,
+) -> T:
     if _suppression.type_checks_suppressed:
         return sendval
 
-    annotation = memo.type_hints[":send"]
     if annotation is NoReturn or annotation is Never:
         exc = TypeCheckError(
-            f"{memo.func_name}() was declared never to be sent a value to but it was"
+            f"{func_name}() was declared never to be sent a value to but it was"
         )
-        if global_config.typecheck_fail_callback:
-            global_config.typecheck_fail_callback(exc, memo)
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
         else:
             raise exc
 
@@ -188,60 +203,45 @@ def check_send_type(sendval: T, memo: CallMemo) -> T:
     except TypeCheckError as exc:
         qualname = qualified_name(sendval, add_class_prefix=True)
         exc.append_path_element(f"the value sent to generator ({qualname})")
-        if global_config.typecheck_fail_callback:
-            global_config.typecheck_fail_callback(exc, memo)
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
         else:
             raise
 
     return sendval
 
 
-def check_yield_type(yieldval: T, memo: CallMemo) -> T:
-    """
-    Check that the yielded value is compatible with the generator return value
-    annotation in the function.
-
-    This should be used to wrap a ``yield`` statement, as in::
-
-        # Before
-        yield "foo"
-        # After
-        yield check_yield_value("foo")
-
-    :param yieldval: the value that should be yielded from the generator
-    :return: ``yieldval``, unmodified
-    :raises TypeCheckError: if there is a type mismatch
-
-    """
+def check_yield_type(
+    func_name: str,
+    yieldval: T,
+    annotation: Any,
+    memo: TypeCheckMemo,
+) -> T:
     if _suppression.type_checks_suppressed:
         return yieldval
 
-    if "yield" in memo.type_hints:
-        annotation = memo.type_hints["yield"]
-        if annotation is NoReturn or annotation is Never:
-            exc = TypeCheckError(
-                f"{memo.func_name}() was declared never to yield but it did"
-            )
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
-            else:
-                raise exc
+    if annotation is NoReturn or annotation is Never:
+        exc = TypeCheckError(f"{func_name}() was declared never to yield but it did")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise exc
 
-        try:
-            check_type_internal(yieldval, annotation, memo)
-        except TypeCheckError as exc:
-            qualname = qualified_name(yieldval, add_class_prefix=True)
-            exc.append_path_element(f"the yielded value ({qualname})")
-            if global_config.typecheck_fail_callback:
-                global_config.typecheck_fail_callback(exc, memo)
-            else:
-                raise
+    try:
+        check_type_internal(yieldval, annotation, memo)
+    except TypeCheckError as exc:
+        qualname = qualified_name(yieldval, add_class_prefix=True)
+        exc.append_path_element(f"the yielded value ({qualname})")
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
+        else:
+            raise
 
     return yieldval
 
 
 def check_variable_assignment(
-    value: object, varname: str, annotation: Any, memo: CallMemo
+    value: object, varname: str, annotation: Any, memo: TypeCheckMemo
 ) -> Any:
     if _suppression.type_checks_suppressed:
         return
@@ -251,8 +251,8 @@ def check_variable_assignment(
     except TypeCheckError as exc:
         qualname = qualified_name(value, add_class_prefix=True)
         exc.append_path_element(f"value assigned to {varname} ({qualname})")
-        if global_config.typecheck_fail_callback:
-            global_config.typecheck_fail_callback(exc, memo)
+        if memo.config.typecheck_fail_callback:
+            memo.config.typecheck_fail_callback(exc, memo)
         else:
             raise
 
@@ -260,7 +260,7 @@ def check_variable_assignment(
 
 
 def check_multi_variable_assignment(
-    value: Any, targets: list[dict[str, Any]], memo: CallMemo
+    value: Any, targets: list[dict[str, Any]], memo: TypeCheckMemo
 ) -> Any:
     if _suppression.type_checks_suppressed:
         return
@@ -288,8 +288,8 @@ def check_multi_variable_assignment(
             except TypeCheckError as exc:
                 qualname = qualified_name(obj, add_class_prefix=True)
                 exc.append_path_element(f"value assigned to {varname} ({qualname})")
-                if global_config.typecheck_fail_callback:
-                    global_config.typecheck_fail_callback(exc, memo)
+                if memo.config.typecheck_fail_callback:
+                    memo.config.typecheck_fail_callback(exc, memo)
                 else:
                     raise
 

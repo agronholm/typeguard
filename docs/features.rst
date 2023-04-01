@@ -29,43 +29,21 @@ The following type checks are not yet supported in Typeguard:
 Other limitations
 -----------------
 
-Non-local forward references
-++++++++++++++++++++++++++++
+Local references to nested classes
+++++++++++++++++++++++++++++++++++
 
-Forward references pointing to non-local types (class defined inside a function, and a
-nested function within the same parent function referring to that class) cannot
-currently be resolved::
-
-    def outer():
-        class Inner:
-            pass
-
-        instance = Inner()
-
-        # Inner cannot be resolved because it is not in the __globals__ of inner() or
-        # its closure
-        def inner() -> "Inner":
-            return instance
-
-        return inner()
-
-However, if you explicitly reference the type in the nested function, that will work::
-
-        # Inner is part of the closure of inner() now so it can be resolved
-        def inner() -> "Inner":
-            return Inner()
-
-A similar corner case would be a forward reference to a nested class::
+Forward references from methods pointing to non-local nested classes cannot currently be
+resolved::
 
     class Outer:
         class Inner:
             pass
 
         # Cannot be resolved as the name is no longer available
-        def method() -> "Inner":
+        def method(self) -> "Inner":
             return Outer.Inner()
 
-Both these shortcomings may be resolved in a future release.
+This shortcoming may be resolved in a future release.
 
 Using :func:`@typechecked <typechecked>` on top of other decorators
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

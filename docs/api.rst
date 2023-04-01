@@ -29,10 +29,15 @@ Configuration
 
    The global configuration object.
 
+   Used by :func:`@typechecked <.typechecked>` and :func:`.install_import_hook`, and
+   notably **not used** by :func:`.check_type`.
+
 .. autoclass:: TypeCheckConfiguration
    :members:
 
 .. autoclass:: CollectionCheckStrategy
+
+.. autoclass:: Unset
 
 .. autoclass:: ForwardRefPolicy
 
@@ -51,10 +56,6 @@ Custom checkers
    A list of callables that are used to look up a checker callable for an annotation.
 
 .. autoclass:: TypeCheckMemo
-    :members:
-
-.. autoclass:: CallMemo
-    :show-inheritance:
     :members:
 
 Type check suppression

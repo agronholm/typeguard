@@ -5,11 +5,27 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- **BACKWARD INCOMPATIBLE** ``check_type()`` no longer uses the global configuration.
+  It now uses the default configuration values, unless overridden with an explicit
+  ``config`` argument.
+- **BACKWARD INCOMPATIBLE** Removed ``CallMemo`` from the API
+- **BACKWARD INCOMPATIBLE** Required checkers to use the configuration from
+  ``memo.config``, rather than the global configuration
+- Added keyword arguments to ``@typechecked``, allowing users to override settings on a
+  per-function basis
 - Added support for using ``suppress_type_checks()`` as a decorator
+- Added support for type checking against nonlocal classes defined within the same
+  parent function as the instrumented function
+- Changed instrumentation to statically copy the function annotations to avoid having to
+  look up the function object at run time
+- Improved support for avoiding type checks against imports declared in
+  ``if TYPE_CHECKING:`` blocks
+- Fixed ``check_type`` not returning the passed value when checking against ``Any``, or
+  when type checking is being suppressed
+- Fixed ``suppress_type_checks()`` not ending the suppression if the context block
+  raises an exception
 - Fixed checking non-dictionary objects against a ``TypedDict`` annotation
   (PR by Tolker-KU)
-- Fixed ``suppress_type_checks()`` stopping type check suppression if an exception is
-  raised in the context manager block
 
 **3.0.2** (2023-03-22)
 

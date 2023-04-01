@@ -47,6 +47,12 @@ else:
             raise
 
 
+if sys.version_info >= (3, 8):
+    from typing import final
+else:
+    from typing_extensions import final
+
+
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
@@ -92,7 +98,9 @@ def qualified_name(obj: Any, *, add_class_prefix: bool = False) -> str:
     the module name stripped from the generated name.
 
     """
-    if inspect.isclass(obj):
+    if obj is None:
+        return "None"
+    elif inspect.isclass(obj):
         prefix = "class " if add_class_prefix else ""
         type_ = obj
     else:
@@ -148,3 +156,14 @@ def get_stacklevel() -> int:
         frame = frame.f_back
 
     return level
+
+
+@final
+class Unset:
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<unset>"
+
+
+unset = Unset()
