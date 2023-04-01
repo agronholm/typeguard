@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.0.0rc1** (2023-04-02)
 
 - **BACKWARD INCOMPATIBLE** ``check_type()`` no longer uses the global configuration.
   It now uses the default configuration values, unless overridden with an explicit
