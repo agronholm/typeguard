@@ -369,7 +369,7 @@ class TestSelf:
             def method(self) -> Self:
                 return self
 
-        Foo().method
+        Foo().method()
 
     def test_return_invalid(self):
         class Foo:
