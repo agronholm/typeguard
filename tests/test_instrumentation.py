@@ -9,12 +9,13 @@ import pytest
 from pytest import FixtureRequest
 
 from typeguard import TypeCheckError, config, install_import_hook
+from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
 cached_module_path = Path(
-    cache_from_source(str(dummy_module_path), optimization="typeguard")
+    cache_from_source(str(dummy_module_path), optimization=OPTIMIZATION)
 )
 
 # This block here is to test the recipe mentioned in the user guide

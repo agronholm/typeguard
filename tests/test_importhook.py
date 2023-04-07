@@ -7,12 +7,13 @@ from pathlib import Path
 import pytest
 
 from typeguard import TypeCheckError, TypeguardFinder, install_import_hook
+from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
 cached_module_path = Path(
-    cache_from_source(str(dummy_module_path), optimization="typeguard")
+    cache_from_source(str(dummy_module_path), optimization=OPTIMIZATION)
 )
 
 

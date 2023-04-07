@@ -20,6 +20,11 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import ParamSpec
 
+if sys.version_info >= (3, 10):
+    from importlib.metadata import PackageNotFoundError, version
+else:
+    from importlib_metadata import PackageNotFoundError, version
+
 if TYPE_CHECKING:
     from array import array
     from mmap import mmap
@@ -30,6 +35,11 @@ if TYPE_CHECKING:
         from ctypes import _CData
     except ImportError:
         pass
+
+try:
+    OPTIMIZATION = "typeguard" + "".join(version("typeguard").split(".")[:3])
+except PackageNotFoundError:
+    OPTIMIZATION = "typeguard"
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -43,7 +53,7 @@ def _call_with_frames_removed(
 
 
 def optimized_cache_from_source(path: str, debug_override: bool | None = None) -> str:
-    return cache_from_source(path, debug_override, optimization="typeguard")
+    return cache_from_source(path, debug_override, optimization=OPTIMIZATION)
 
 
 class TypeguardLoader(SourceFileLoader):
