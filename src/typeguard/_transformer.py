@@ -384,16 +384,16 @@ class AnnotationTransformer(NodeTransformer):
     def visit_Constant(self, node: Constant) -> Any:
         if isinstance(node.value, str):
             expression = ast.parse(node.value, mode="eval")
-            expression = self.visit(expression)
-            return expression.body
+            new_node = self.visit(expression)
+            return copy_location(new_node.body, node)
 
         return node
 
     def visit_Str(self, node: Str) -> Any:
         # Only used on Python 3.7
         expression = ast.parse(node.s, mode="eval")
-        expression = self.visit(expression)
-        return copy_location(expression.body, node)
+        new_node = self.visit(expression)
+        return copy_location(new_node.body, node)
 
 
 class TypeguardTransformer(NodeTransformer):
