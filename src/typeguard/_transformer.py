@@ -604,16 +604,18 @@ class TypeguardTransformer(NodeTransformer):
                     else:
                         container = self._get_import("typing", "Tuple")
 
-                    arg_annotations[node.args.vararg.arg] = Subscript(
-                        container,
-                        Tuple(
-                            [
-                                self._convert_annotation(node.args.vararg.annotation),
-                                Constant(Ellipsis),
-                            ],
-                            ctx=Load(),
-                        ),
+                    subscript_slice: Tuple | Index = Tuple(
+                        [
+                            self._convert_annotation(node.args.vararg.annotation),
+                            Constant(Ellipsis),
+                        ],
                         ctx=Load(),
+                    )
+                    if sys.version_info < (3, 9):
+                        subscript_slice = Index(subscript_slice, ctx=Load())
+
+                    arg_annotations[node.args.vararg.arg] = Subscript(
+                        container, subscript_slice, ctx=Load()
                     )
 
                 if node.args.kwarg and node.args.kwarg.annotation:
@@ -622,16 +624,18 @@ class TypeguardTransformer(NodeTransformer):
                     else:
                         container = self._get_import("typing", "Dict")
 
-                    arg_annotations[node.args.kwarg.arg] = Subscript(
-                        container,
-                        Tuple(
-                            [
-                                Name("str", ctx=Load()),
-                                self._convert_annotation(node.args.kwarg.annotation),
-                            ],
-                            ctx=Load(),
-                        ),
+                    subscript_slice = Tuple(
+                        [
+                            Name("str", ctx=Load()),
+                            self._convert_annotation(node.args.kwarg.annotation),
+                        ],
                         ctx=Load(),
+                    )
+                    if sys.version_info < (3, 9):
+                        subscript_slice = Index(subscript_slice, ctx=Load())
+
+                    arg_annotations[node.args.kwarg.arg] = Subscript(
+                        container, subscript_slice, ctx=Load()
                     )
 
                 if arg_annotations:

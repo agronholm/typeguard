@@ -5,6 +5,7 @@ from typing import (
     Any,
     AsyncGenerator,
     Callable,
+    Dict,
     Generator,
     List,
     Sequence,
@@ -298,3 +299,10 @@ class OverrideClass:
         @typechecked
         def override_typecheck_fail_callback(self, value: int) -> None:
             pass
+
+
+@typechecked
+def typed_variable_args(
+    *args: str, **kwargs: int
+) -> Tuple[Tuple[str, ...], Dict[str, int]]:
+    return args, kwargs

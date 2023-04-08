@@ -307,3 +307,26 @@ class TestOptionsOverride:
     def test_inner_class_no_overrides(self, dummymodule):
         with pytest.raises(TypeCheckError):
             dummymodule.OverrideClass.Inner().override_typecheck_fail_callback("foo")
+
+
+class TestVariableArguments:
+    def test_success(self, dummymodule):
+        assert dummymodule.typed_variable_args("foo", "bar", a=1, b=8) == (
+            ("foo", "bar"),
+            {"a": 1, "b": 8},
+        )
+
+    def test_args_fail(self, dummymodule):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'item 0 of argument "args" \(tuple\) is not an instance of str',
+        ):
+            dummymodule.typed_variable_args(1, a=1, b=8)
+
+    def test_kwargs_fail(self, dummymodule):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'value of key \'a\' of argument "kwargs" \(dict\) is not an '
+            r"instance of int",
+        ):
+            dummymodule.typed_variable_args("foo", "bar", a="baz")
