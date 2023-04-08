@@ -3,8 +3,8 @@ from __future__ import annotations
 import ast
 import builtins
 import sys
-from _ast import AST, Expression
 from ast import (
+    AST,
     Add,
     AnnAssign,
     Assign,
@@ -21,6 +21,7 @@ from ast import (
     Dict,
     Div,
     Expr,
+    Expression,
     FloorDiv,
     FunctionDef,
     If,
