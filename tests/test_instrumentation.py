@@ -330,3 +330,7 @@ class TestVariableArguments:
             r"instance of int",
         ):
             dummymodule.typed_variable_args("foo", "bar", a="baz")
+
+
+def test_guarded_type(dummymodule):
+    assert dummymodule.guarded_type_hint("foo") == "foo"

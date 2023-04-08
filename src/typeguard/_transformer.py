@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import builtins
 import sys
+from _ast import AST, Expression
 from ast import (
     Add,
     AnnAssign,
@@ -330,6 +331,13 @@ class AnnotationTransformer(NodeTransformer):
         self._memo = transformer._memo
         self.level = 0
 
+    def visit(self, node: AST) -> Any:
+        new_node = super().visit(node)
+        if isinstance(new_node, Expression) and not hasattr(new_node, "body"):
+            return None
+
+        return new_node
+
     def visit_BinOp(self, node: BinOp) -> Any:
         self.level += 1
         self.generic_visit(node)
@@ -385,7 +393,10 @@ class AnnotationTransformer(NodeTransformer):
         if isinstance(node.value, str):
             expression = ast.parse(node.value, mode="eval")
             new_node = self.visit(expression)
-            return copy_location(new_node.body, node)
+            if new_node:
+                return copy_location(new_node.body, node)
+            else:
+                return None
 
         return node
 
@@ -393,7 +404,10 @@ class AnnotationTransformer(NodeTransformer):
         # Only used on Python 3.7
         expression = ast.parse(node.s, mode="eval")
         new_node = self.visit(expression)
-        return copy_location(new_node.body, node)
+        if new_node:
+            return copy_location(new_node.body, node)
+        else:
+            return None
 
 
 class TypeguardTransformer(NodeTransformer):

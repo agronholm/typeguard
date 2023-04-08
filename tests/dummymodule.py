@@ -2,6 +2,7 @@
 import sys
 from contextlib import contextmanager
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncGenerator,
     Callable,
@@ -32,6 +33,9 @@ from typeguard import (
     typechecked,
     typeguard_ignore,
 )
+
+if TYPE_CHECKING:
+    from nonexistent import Imaginary
 
 P = ParamSpec("P")
 
@@ -306,3 +310,9 @@ def typed_variable_args(
     *args: str, **kwargs: int
 ) -> Tuple[Tuple[str, ...], Dict[str, int]]:
     return args, kwargs
+
+
+@typechecked
+def guarded_type_hint(x: "Imaginary") -> "Imaginary":
+    y: Imaginary = x
+    return y
