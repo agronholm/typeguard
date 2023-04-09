@@ -316,3 +316,9 @@ def typed_variable_args(
 def guarded_type_hint(x: "Imaginary") -> "Imaginary":
     y: Imaginary = x
     return y
+
+
+@typechecked
+def literal(x: Literal["foo"]) -> Literal["foo"]:
+    y: Literal["foo"] = x
+    return y

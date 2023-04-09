@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``typing.Literal`` subscript contents being evaluated as forward references
+
 **4.0.0rc2** (2023-04-08)
 
 - The ``.pyc`` files now use a version-based optimization suffix in the file names so as

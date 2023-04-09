@@ -334,3 +334,7 @@ class TestVariableArguments:
 
 def test_guarded_type(dummymodule):
     assert dummymodule.guarded_type_hint("foo") == "foo"
+
+
+def test_literal(dummymodule):
+    assert dummymodule.literal("foo") == "foo"

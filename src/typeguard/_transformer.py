@@ -85,6 +85,10 @@ anytype_names = (
     "typing.Any",
     "typing_extensions.Any",
 )
+literal_names = (
+    "typing.Literal",
+    "typing_extensions.Literal",
+)
 ignore_decorators = (
     "typing.no_type_check",
     "typeguard.typeguard_ignore",
@@ -367,7 +371,12 @@ class AnnotationTransformer(NodeTransformer):
 
     def visit_Subscript(self, node: Subscript) -> Any:
         self.level += 1
-        self.generic_visit(node)
+
+        # The subscript of typing(_extensions).Literal can be any arbitrary string, so
+        # don't try to evaluate it as code
+        if not self._memo.name_matches(node.value, *literal_names):
+            self.generic_visit(node)
+
         self.level -= 1
         return node
 
