@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Fixed ``typing.Literal`` subscript contents being evaluated as forward references
+- Fixed resolution of forward references in type aliases
 
 **4.0.0rc2** (2023-04-08)
 

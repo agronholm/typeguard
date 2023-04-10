@@ -445,7 +445,11 @@ def check_class(
     if not args:
         return
 
-    expected_class = args[0]
+    if isinstance(args[0], ForwardRef):
+        expected_class = evaluate_forwardref(args[0], memo)
+    else:
+        expected_class = args[0]
+
     if expected_class is Any:
         return
     elif getattr(expected_class, "_is_protocol", False):

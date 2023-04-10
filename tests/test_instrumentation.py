@@ -338,3 +338,8 @@ def test_guarded_type(dummymodule):
 
 def test_literal(dummymodule):
     assert dummymodule.literal("foo") == "foo"
+
+
+def test_typevar_forwardref(dummymodule):
+    instance = dummymodule.typevar_forwardref(dummymodule.DummyClass)
+    assert isinstance(instance, dummymodule.DummyClass)

@@ -11,6 +11,8 @@ from typing import (
     List,
     Sequence,
     Tuple,
+    Type,
+    TypeVar,
     Union,
     no_type_check,
     no_type_check_decorator,
@@ -37,6 +39,7 @@ from typeguard import (
 if TYPE_CHECKING:
     from nonexistent import Imaginary
 
+T = TypeVar("T", bound="DummyClass")
 P = ParamSpec("P")
 
 
@@ -322,3 +325,8 @@ def guarded_type_hint(x: "Imaginary") -> "Imaginary":
 def literal(x: Literal["foo"]) -> Literal["foo"]:
     y: Literal["foo"] = x
     return y
+
+
+@typechecked
+def typevar_forwardref(x: Type[T]) -> T:
+    return x()
