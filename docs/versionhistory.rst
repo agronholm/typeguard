@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.0.0rc3** (2023-04-10)
 
 - Fixed ``typing.Literal`` subscript contents being evaluated as forward references
 - Fixed resolution of forward references in type aliases
