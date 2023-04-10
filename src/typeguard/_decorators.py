@@ -196,7 +196,9 @@ def typechecked(
         return target
 
     # Find either the first Python wrapper or the actual function
-    wrapper_class: type[classmethod[Any]] | type[staticmethod[Any]] | None = None
+    wrapper_class: type[classmethod[Any, Any, Any]] | type[
+        staticmethod[Any, Any]
+    ] | None = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
         target = target.__func__

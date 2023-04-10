@@ -8,6 +8,7 @@ from importlib.abc import MetaPathFinder
 from importlib.machinery import ModuleSpec, SourceFileLoader
 from importlib.util import cache_from_source, decode_source
 from inspect import isclass
+from os import PathLike
 from types import CodeType, ModuleType, TracebackType
 from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 from unittest.mock import patch
@@ -66,20 +67,35 @@ class TypeguardLoader(SourceFileLoader):
         | mmap
         | _CData
         | PickleBuffer
-        | str,
-        path: str = "<string>",
+        | str
+        | ast.Module
+        | ast.Expression
+        | ast.Interactive,
+        path: bytes
+        | bytearray
+        | memoryview
+        | array[Any]
+        | mmap
+        | _CData
+        | PickleBuffer
+        | str
+        | PathLike[str] = "<string>",
     ) -> CodeType:
-        if isinstance(data, str):
-            source = data
+        if isinstance(data, (ast.Module, ast.Expression, ast.Interactive)):
+            tree = data
         else:
-            source = decode_source(data)
+            if isinstance(data, str):
+                source = data
+            else:
+                source = decode_source(data)
 
-        tree = _call_with_frames_removed(
-            ast.parse,
-            source,
-            path,
-            "exec",
-        )
+            tree = _call_with_frames_removed(
+                ast.parse,
+                source,
+                path,
+                "exec",
+            )
+
         tree = TypeguardTransformer().visit(tree)
         ast.fix_missing_locations(tree)
 
