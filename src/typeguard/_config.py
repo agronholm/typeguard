@@ -76,10 +76,6 @@ class TypeCheckConfiguration:
 
          Specifies what to do when a forward reference fails to resolve.
 
-         Note that this setting only applies to :func:`.check_type`, as instrumented
-         code eagerly resolves forward references during compilation. See the
-         :ref:`forwardrefs` section in the documentation for further information.
-
          Default: ``WARN``
 
     .. attribute:: collection_check_strategy

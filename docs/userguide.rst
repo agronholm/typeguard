@@ -134,8 +134,10 @@ Notes on forward reference handling
 The internal type checking functions, injected to instrumented code by either
 :func:`@typechecked <typechecked>` or the import hook, use the "naked" versions of any
 annotations, undoing any quotations in them (and the effects of
-``from __future__ import annotations``). As such, the
-:attr:`~.TypeCheckConfiguration.forward_ref_policy` does not apply to instrumented code.
+``from __future__ import annotations``). As such, in instrumented code, the
+:attr:`~.TypeCheckConfiguration.forward_ref_policy` only applies when using type
+variables containing forward references, or type aliases likewise containing forward
+references.
 
 To facilitate the use of types only available to static type checkers, Typeguard
 recognizes module-level imports guarded by ``if typing.TYPE_CHECKING:`` or
