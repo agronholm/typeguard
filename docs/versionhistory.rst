@@ -9,6 +9,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   (``SomeType[...]``) being replaced with ``Any[...]`` instead of just ``Any``
 - Fixed instrumentation inadvertently mutating a function's annotations on Python 3.7
   and 3.8
+- Fixed ``Concatenate[...]`` in ``Callable`` parameters causing ``TypeError`` to be
+  raised
 
 **4.0.0rc3** (2023-04-10)
 

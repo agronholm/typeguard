@@ -64,9 +64,9 @@ else:
     from typing_extensions import LiteralString
 
 if sys.version_info >= (3, 10):
-    from typing import TypeGuard
+    from typing import Concatenate, ParamSpec, TypeGuard
 else:
-    from typing_extensions import TypeGuard
+    from typing_extensions import Concatenate, ParamSpec, TypeGuard
 
 if sys.version_info >= (3, 9):
     from typing import Annotated
@@ -77,6 +77,8 @@ if sys.version_info >= (3, 8):
     from typing import Literal, TypedDict
 else:
     from typing_extensions import Literal, TypedDict
+
+P = ParamSpec("P")
 
 
 class TestAnyStr:
@@ -256,6 +258,10 @@ class TestCallable:
 
         """
         check_type([].append, Callable[[int], Any])
+
+    def test_concatenate(self):
+        """Test that ``Concatenate`` in the arglist is ignored."""
+        check_type([].append, Callable[Concatenate[object, P], Any])
 
 
 class TestLiteral:

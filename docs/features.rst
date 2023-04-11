@@ -24,7 +24,7 @@ The following type checks are not yet supported in Typeguard:
 * Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
   if instrumented)
 * ``yield_from`` statements in generator functions
-* ``ParamSpec`` is currently ignored
+* ``ParamSpec`` and ``Concatenate`` are currently ignored
 
 Other limitations
 -----------------

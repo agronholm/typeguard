@@ -158,7 +158,9 @@ def check_callable(
             return
 
         argument_types = args[0]
-        if argument_types is not Ellipsis:
+        if isinstance(argument_types, list) and not any(
+            type(item) is ParamSpec for item in argument_types
+        ):
             # The callable must not have keyword-only arguments without defaults
             unfulfilled_kwonlyargs = [
                 param.name
