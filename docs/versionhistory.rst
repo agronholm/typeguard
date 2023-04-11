@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed imports guarded by ``if TYPE_CHECKING:`` when used with subscripts
+  (``SomeType[...]``) being replaced with ``Any[...]`` instead of just ``Any``
+
 **4.0.0rc3** (2023-04-10)
 
 - Fixed ``typing.Literal`` subscript contents being evaluated as forward references

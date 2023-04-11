@@ -332,8 +332,15 @@ class TestVariableArguments:
             dummymodule.typed_variable_args("foo", "bar", a="baz")
 
 
-def test_guarded_type(dummymodule):
-    assert dummymodule.guarded_type_hint("foo") == "foo"
+class TestGuardedType:
+    def test_plain(self, dummymodule):
+        assert dummymodule.guarded_type_hint_plain("foo") == "foo"
+
+    def test_subscript_toplevel(self, dummymodule):
+        assert dummymodule.guarded_type_hint_subscript_toplevel("foo") == "foo"
+
+    def test_subscript_nested(self, dummymodule):
+        assert dummymodule.guarded_type_hint_subscript_nested(["foo"]) == ["foo"]
 
 
 def test_literal(dummymodule):

@@ -316,8 +316,22 @@ def typed_variable_args(
 
 
 @typechecked
-def guarded_type_hint(x: "Imaginary") -> "Imaginary":
+def guarded_type_hint_plain(x: "Imaginary") -> "Imaginary":
     y: Imaginary = x
+    return y
+
+
+@typechecked
+def guarded_type_hint_subscript_toplevel(x: "Imaginary[int]") -> "Imaginary[int]":
+    y: Imaginary[int] = x
+    return y
+
+
+@typechecked
+def guarded_type_hint_subscript_nested(
+    x: List["Imaginary[int]"],
+) -> List["Imaginary[int]"]:
+    y: List[Imaginary[int]] = x
     return y
 
 

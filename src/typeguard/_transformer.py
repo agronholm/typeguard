@@ -370,6 +370,12 @@ class AnnotationTransformer(NodeTransformer):
         return node
 
     def visit_Subscript(self, node: Subscript) -> Any:
+        if self._memo.is_ignored_name(node.value):
+            if self.level > 0:
+                return self.transformer._get_import("typing", "Any")
+            else:
+                return None
+
         self.level += 1
 
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
