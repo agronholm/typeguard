@@ -40,9 +40,9 @@ def dummymodule(method: str):
     config.debug_instrumentation = True
     sys.path.insert(0, str(this_dir))
     try:
+        sys.modules.pop("dummymodule", None)
         if cached_module_path.exists():
             cached_module_path.unlink()
-            sys.modules.pop("dummymodule", None)
 
         if method == "typechecked":
             return import_module("dummymodule")

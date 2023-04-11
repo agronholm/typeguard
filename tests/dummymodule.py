@@ -344,3 +344,8 @@ def literal(x: Literal["foo"]) -> Literal["foo"]:
 @typechecked
 def typevar_forwardref(x: Type[T]) -> T:
     return x()
+
+
+def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa: F821
+    """Regression test for #337."""
+    return x

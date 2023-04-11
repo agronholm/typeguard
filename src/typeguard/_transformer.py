@@ -60,7 +60,7 @@ from ast import (
 from collections import defaultdict
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
-from copy import copy
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, cast, overload
 
@@ -448,7 +448,7 @@ class TypeguardTransformer(NodeTransformer):
 
                 # Extract yield, send and return types where possible from a subscripted
                 # annotation like Generator[int, str, bool]
-                return_annotation = copy(node.returns)
+                return_annotation = deepcopy(node.returns)
                 if detector.contains_yields and new_memo.name_matches(
                     return_annotation, *generator_names
                 ):
@@ -622,7 +622,7 @@ class TypeguardTransformer(NodeTransformer):
                     all_args.extend(node.args.posonlyargs)
 
                 for arg in all_args:
-                    annotation = self._convert_annotation(copy(arg.annotation))
+                    annotation = self._convert_annotation(deepcopy(arg.annotation))
                     if annotation and not self._memo.name_matches(
                         annotation, *anytype_names
                     ):
@@ -898,7 +898,7 @@ class TypeguardTransformer(NodeTransformer):
             and node.annotation
             and isinstance(node.target, Name)
         ):
-            annotation = self._convert_annotation(copy(node.annotation))
+            annotation = self._convert_annotation(deepcopy(node.annotation))
             if annotation:
                 self._memo.variable_annotations[node.target.id] = annotation
                 if node.value and not self._memo.name_matches(
