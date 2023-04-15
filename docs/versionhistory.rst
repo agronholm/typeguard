@@ -13,6 +13,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   raised
 - Fixed type checks for ``*args`` or ``**kwargs`` not being suppressed when their types
   are unusable (guarded by ``if TYPE_CHECKING:`` or otherwise)
+- Fixed ``TypeError`` when checking against a generic ``NewType``
 - Don't try to check types shadowed by argument names (e.g.
   ``def foo(x: type, type: str): ...``)
 - Don't check against unions where one of the elements is ``Any``

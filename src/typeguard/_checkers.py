@@ -486,9 +486,7 @@ def check_newtype(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    supertype = origin_type.__supertype__
-    if not isinstance(value, supertype):
-        raise TypeCheckError(f"is not an instance of {qualified_name(supertype)}")
+    check_type_internal(value, origin_type.__supertype__, memo)
 
 
 def check_instance(

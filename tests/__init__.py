@@ -34,6 +34,7 @@ class Employee(NamedTuple):
 
 JSONType = Union[str, float, bool, None, List["JSONType"], Dict[str, "JSONType"]]
 myint = NewType("myint", int)
+mylist = NewType("mylist", List[int])
 
 
 class FooGeneric(Generic[T_Foo]):

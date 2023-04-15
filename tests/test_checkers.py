@@ -53,6 +53,7 @@ from . import (
     TParent,
     TTypingConstrained,
     myint,
+    mylist,
 )
 
 if sys.version_info >= (3, 11):
@@ -757,12 +758,20 @@ class TestTypevar:
 
 
 class TestNewType:
-    def test_valid(self):
+    def test_simple_valid(self):
         check_type(1, myint)
 
-    def test_bad_value(self):
+    def test_simple_bad_value(self):
         pytest.raises(TypeCheckError, check_type, "a", myint).match(
             r"str is not an instance of int"
+        )
+
+    def test_generic_valid(self):
+        check_type([1], mylist)
+
+    def test_generic_bad_value(self):
+        pytest.raises(TypeCheckError, check_type, ["a"], mylist).match(
+            r"item 0 of list is not an instance of int"
         )
 
 
