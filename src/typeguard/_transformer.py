@@ -380,14 +380,41 @@ class AnnotationTransformer(NodeTransformer):
 
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
         # don't try to evaluate it as code
-        if not self._memo.name_matches(node.value, *literal_names):
-            self.generic_visit(node)
+        if not self._memo.name_matches(node.value, *literal_names) and node.slice:
+            if isinstance(node.slice, Index):
+                # Python 3.7 and 3.8
+                slice_value = node.slice.value  # type: ignore[attr-defined]
+            else:
+                slice_value = node.slice
 
-            # Erase the subscript if the slice value was erased (if it was Any)
-            if sys.version_info >= (3, 9) and not hasattr(node, "slice"):
-                return node.value
-            elif sys.version_info < (3, 9) and not hasattr(node.slice, "value"):
-                return node.value
+            if isinstance(slice_value, Tuple):
+                items = [self.visit(item) for item in slice_value.elts]
+
+                # If this is a Union and any of the items is None, erase the entire
+                # annotation
+                if self._memo.name_matches(node.value, "typing.Union") and any(
+                    item is None for item in items
+                ):
+                    return None
+
+                # If all items in the subscript were Any, erase the subscript entirely
+                if all(item is None for item in items):
+                    return node.value
+
+                for index, item in enumerate(items):
+                    if item is None:
+                        items[index] = self.transformer._get_import("typing", "Any")
+
+                slice_value.elts = items
+            else:
+                self.generic_visit(node)
+
+                # If the transformer erased the slice entirely, just return the node
+                # value without the subscript
+                if sys.version_info >= (3, 9) and not hasattr(node, "slice"):
+                    return node.value
+                elif sys.version_info < (3, 9) and not hasattr(node.slice, "value"):
+                    return node.value
 
         return node
 

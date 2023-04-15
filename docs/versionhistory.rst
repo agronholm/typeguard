@@ -15,6 +15,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   are unusable (guarded by ``if TYPE_CHECKING:`` or otherwise)
 - Don't try to check types shadowed by argument names (e.g.
   ``def foo(x: type, type: str): ...``)
+- Don't check against unions where one of the elements is ``Any``
 
 **4.0.0rc3** (2023-04-10)
 

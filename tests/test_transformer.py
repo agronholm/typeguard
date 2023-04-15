@@ -352,6 +352,31 @@ def test_any_in_union() -> None:
     node = parse(
         dedent(
             """
+            from typing import Any, Union
+
+            def foo(x, y: Union[Any, None]) -> Union[Any, None]:
+                return 1
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typing import Any, Union
+
+            def foo(x, y: Union[Any, None]) -> Union[Any, None]:
+                return 1
+            """
+        ).strip()
+    )
+
+
+def test_any_in_pep_604_union() -> None:
+    node = parse(
+        dedent(
+            """
             from typing import Any
 
             def foo(x, y: Any | None) -> Any | None:
