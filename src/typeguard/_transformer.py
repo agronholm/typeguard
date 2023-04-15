@@ -351,15 +351,20 @@ class AnnotationTransformer(NodeTransformer):
     def visit_BinOp(self, node: BinOp) -> Any:
         self.generic_visit(node)
 
-        if sys.version_info < (3, 10) and isinstance(node.op, BitOr):
-            union_name = self.transformer._get_import("typing", "Union")
-            return Subscript(
-                value=union_name,
-                slice=Index(
-                    Tuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
-                ),
-                ctx=Load(),
-            )
+        if isinstance(node.op, BitOr):
+            # If either side of the operation resolved to None, return None
+            if not hasattr(node, "left") or not hasattr(node, "right"):
+                return None
+
+            if sys.version_info < (3, 10):
+                union_name = self.transformer._get_import("typing", "Union")
+                return Subscript(
+                    value=union_name,
+                    slice=Index(
+                        Tuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
+                    ),
+                    ctx=Load(),
+                )
 
         return node
 

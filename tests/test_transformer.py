@@ -348,6 +348,31 @@ def test_any_only(import_line: str, annotation: str) -> None:
     )
 
 
+def test_any_in_union() -> None:
+    node = parse(
+        dedent(
+            """
+            from typing import Any
+
+            def foo(x, y: Any | None) -> Any | None:
+                return 1
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typing import Any
+
+            def foo(x, y: Any | None) -> Any | None:
+                return 1
+            """
+        ).strip()
+    )
+
+
 def test_avoid_global_names() -> None:
     node = parse(
         dedent(
