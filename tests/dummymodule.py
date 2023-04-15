@@ -70,14 +70,6 @@ def non_typeguard_checked_func(x: int, y: str) -> 6:
     return "foo"
 
 
-def dynamic_type_checking_func(arg, argtype, return_annotation):
-    @typechecked
-    def inner(x: argtype) -> return_annotation:
-        return str(x)
-
-    return inner(arg)
-
-
 class Metaclass(type):
     pass
 

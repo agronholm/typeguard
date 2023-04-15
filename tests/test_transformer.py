@@ -789,15 +789,14 @@ class TestTypecheckingImport:
                 """
                 from typeguard import TypeCheckMemo
                 from typeguard._functions import check_argument_types, check_return_type
-                from typing import Any
                 from typing import TYPE_CHECKING
                 if TYPE_CHECKING:
                     from nonexistent import FooBar
 
                 def foo(x: list[FooBar]) -> list[FooBar]:
                     memo = TypeCheckMemo(globals(), locals())
-                    check_argument_types('foo', {'x': (x, list[Any])}, memo)
-                    return check_return_type('foo', x, list[Any], memo)
+                    check_argument_types('foo', {'x': (x, list)}, memo)
+                    return check_return_type('foo', x, list, memo)
                 """
             ).strip()
         )
@@ -830,7 +829,7 @@ class TestTypecheckingImport:
                 def foo(x: Any) -> None:
                     memo = TypeCheckMemo(globals(), locals())
                     y: FooBar = x
-                    z: list[FooBar] = check_variable_assignment([y], 'z', list[Any], \
+                    z: list[FooBar] = check_variable_assignment([y], 'z', list, \
 memo)
                 """
             ).strip()
@@ -1237,3 +1236,32 @@ check_variable_assignment
                 """
             ).strip()
         )
+
+
+def test_argname_typename_conflicts() -> None:
+    node = parse(
+        dedent(
+            """
+            from collections.abc import Generator
+
+            def foo(x: kwargs, /, y: args, *args: x, baz: x, **kwargs: y) -> \
+Generator[args, x, kwargs]:
+                yield y
+                return x
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from collections.abc import Generator
+
+            def foo(x: kwargs, /, y: args, *args: x, baz: x, **kwargs: y) -> \
+Generator[args, x, kwargs]:
+                yield y
+                return x
+            """
+        ).strip()
+    )

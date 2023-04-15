@@ -97,29 +97,6 @@ def test_type_checked_staticmethod(dummymodule):
     ).match(r'argument "x" \(str\) is not an instance of int')
 
 
-@pytest.mark.parametrize(
-    "argtype, returntype, error",
-    [
-        (int, str, None),
-        (str, str, r'argument "x" \(int\) is not an instance of str'),
-        (int, int, r"the return value \(str\) is not an instance of int"),
-    ],
-    ids=["correct", "bad_argtype", "bad_returntype"],
-)
-def test_dynamic_type_checking_func(dummymodule, argtype, returntype, error):
-    if error:
-        exc = pytest.raises(
-            TypeCheckError,
-            dummymodule.dynamic_type_checking_func,
-            4,
-            argtype,
-            returntype,
-        )
-        exc.match(error)
-    else:
-        assert dummymodule.dynamic_type_checking_func(4, argtype, returntype) == "4"
-
-
 @pytest.mark.xfail(reason="No workaround for this has been implemented yet")
 def test_inner_class_method(dummymodule):
     retval = dummymodule.Outer().create_inner()

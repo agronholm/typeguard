@@ -334,19 +334,22 @@ class AnnotationTransformer(NodeTransformer):
     def __init__(self, transformer: TypeguardTransformer):
         self.transformer = transformer
         self._memo = transformer._memo
-        self.level = 0
 
     def visit(self, node: AST) -> Any:
         new_node = super().visit(node)
         if isinstance(new_node, Expression) and not hasattr(new_node, "body"):
             return None
 
+        # Return None if this new node matches a variation of typing.Any
+        if isinstance(new_node, expr) and self._memo.name_matches(
+            new_node, *anytype_names
+        ):
+            return None
+
         return new_node
 
     def visit_BinOp(self, node: BinOp) -> Any:
-        self.level += 1
         self.generic_visit(node)
-        self.level -= 1
 
         if sys.version_info < (3, 10) and isinstance(node.op, BitOr):
             union_name = self.transformer._get_import("typing", "Union")
@@ -362,36 +365,30 @@ class AnnotationTransformer(NodeTransformer):
 
     def visit_Attribute(self, node: Attribute) -> Any:
         if self._memo.is_ignored_name(node):
-            if self.level > 0:
-                return self.transformer._get_import("typing", "Any")
-            else:
-                return None
+            return None
 
         return node
 
     def visit_Subscript(self, node: Subscript) -> Any:
         if self._memo.is_ignored_name(node.value):
-            if self.level > 0:
-                return self.transformer._get_import("typing", "Any")
-            else:
-                return None
-
-        self.level += 1
+            return None
 
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
         # don't try to evaluate it as code
         if not self._memo.name_matches(node.value, *literal_names):
             self.generic_visit(node)
 
-        self.level -= 1
+            # Erase the subscript if the slice value was erased (if it was Any)
+            if sys.version_info >= (3, 9) and not hasattr(node, "slice"):
+                return node.value
+            elif sys.version_info < (3, 9) and not hasattr(node.slice, "value"):
+                return node.value
+
         return node
 
     def visit_Name(self, node: Name) -> Any:
         if self._memo.is_ignored_name(node):
-            if self.level > 0:
-                return self.transformer._get_import("typing", "Any")
-            else:
-                return None
+            return None
 
         if sys.version_info < (3, 9):
             for typename, substitute in self.type_substitutions.items():
@@ -621,16 +618,29 @@ class TypeguardTransformer(NodeTransformer):
                 if sys.version_info >= (3, 8):
                     all_args.extend(node.args.posonlyargs)
 
+                # Ensure that any type shadowed by the positional or keyword-only
+                # argument names are ignored in this function
+                for arg in all_args:
+                    self._memo.ignored_names.add(arg.arg)
+
+                # Ensure that any type shadowed by the variable positional argument name
+                # (e.g. "args" in *args) is ignored this function
+                if node.args.vararg:
+                    self._memo.ignored_names.add(node.args.vararg.arg)
+
+                # Ensure that any type shadowed by the variable keywrod argument name
+                # (e.g. "kwargs" in *kwargs) is ignored this function
+                if node.args.kwarg:
+                    self._memo.ignored_names.add(node.args.kwarg.arg)
+
                 for arg in all_args:
                     annotation = self._convert_annotation(deepcopy(arg.annotation))
-                    if annotation and not self._memo.name_matches(
-                        annotation, *anytype_names
-                    ):
+                    if annotation:
                         arg_annotations[arg.arg] = annotation
 
                 if node.args.vararg:
                     annotation_ = self._convert_annotation(node.args.vararg.annotation)
-                    if annotation_ and not self._memo.is_ignored_name(annotation_):
+                    if annotation_:
                         if sys.version_info >= (3, 9):
                             container = Name("tuple", ctx=Load())
                         else:
@@ -652,7 +662,7 @@ class TypeguardTransformer(NodeTransformer):
 
                 if node.args.kwarg:
                     annotation_ = self._convert_annotation(node.args.kwarg.annotation)
-                    if annotation_ and not self._memo.is_ignored_name(annotation_):
+                    if annotation_:
                         if sys.version_info >= (3, 9):
                             container = Name("dict", ctx=Load())
                         else:
@@ -699,9 +709,6 @@ class TypeguardTransformer(NodeTransformer):
             # Skip if the return annotation is None or Any
             if (
                 self._memo.return_annotation
-                and not self._memo.name_matches(
-                    self._memo.return_annotation, *anytype_names
-                )
                 and (not self._memo.is_async or not self._memo.has_yield_expressions)
                 and not isinstance(node.body[-1], Return)
                 and (
@@ -816,9 +823,7 @@ class TypeguardTransformer(NodeTransformer):
         if (
             self._memo.return_annotation
             and self._memo.should_instrument
-            and not self._memo.name_matches(
-                self._memo.return_annotation, *anytype_names
-            )
+            and not self._memo.is_ignored_name(self._memo.return_annotation)
         ):
             func_name = self._get_import("typeguard._functions", "check_return_type")
             old_node = node
@@ -852,7 +857,7 @@ class TypeguardTransformer(NodeTransformer):
         if (
             self._memo.yield_annotation
             and self._memo.should_instrument
-            and not self._memo.name_matches(self._memo.yield_annotation, *anytype_names)
+            and not self._memo.is_ignored_name(self._memo.yield_annotation)
         ):
             func_name = self._get_import("typeguard._functions", "check_yield_type")
             yieldval = node.value or Constant(None)
@@ -870,7 +875,7 @@ class TypeguardTransformer(NodeTransformer):
         if (
             self._memo.send_annotation
             and self._memo.should_instrument
-            and not self._memo.name_matches(self._memo.send_annotation, *anytype_names)
+            and not self._memo.is_ignored_name(self._memo.send_annotation)
         ):
             func_name = self._get_import("typeguard._functions", "check_send_type")
             old_node = node
@@ -905,9 +910,7 @@ class TypeguardTransformer(NodeTransformer):
             annotation = self._convert_annotation(deepcopy(node.annotation))
             if annotation:
                 self._memo.variable_annotations[node.target.id] = annotation
-                if node.value and not self._memo.name_matches(
-                    annotation, *anytype_names
-                ):
+                if node.value:
                     func_name = self._get_import(
                         "typeguard._functions", "check_variable_assignment"
                     )

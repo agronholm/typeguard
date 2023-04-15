@@ -25,6 +25,8 @@ The following type checks are not yet supported in Typeguard:
   if instrumented)
 * ``yield_from`` statements in generator functions
 * ``ParamSpec`` and ``Concatenate`` are currently ignored
+* Types where they are shadowed by arguments with the same name (e.g.
+  ``def foo(x: type, type: str): ...``)
 
 Other limitations
 -----------------

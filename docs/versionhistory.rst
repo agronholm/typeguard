@@ -13,6 +13,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   raised
 - Fixed type checks for ``*args`` or ``**kwargs`` not being suppressed when their types
   are unusable (guarded by ``if TYPE_CHECKING:`` or otherwise)
+- Don't try to check types shadowed by argument names (e.g.
+  ``def foo(x: type, type: str): ...``)
 
 **4.0.0rc3** (2023-04-10)
 
