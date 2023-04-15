@@ -628,45 +628,49 @@ class TypeguardTransformer(NodeTransformer):
                     ):
                         arg_annotations[arg.arg] = annotation
 
-                if node.args.vararg and node.args.vararg.annotation:
-                    if sys.version_info >= (3, 9):
-                        container = Name("tuple", ctx=Load())
-                    else:
-                        container = self._get_import("typing", "Tuple")
+                if node.args.vararg:
+                    annotation_ = self._convert_annotation(node.args.vararg.annotation)
+                    if annotation_ and not self._memo.is_ignored_name(annotation_):
+                        if sys.version_info >= (3, 9):
+                            container = Name("tuple", ctx=Load())
+                        else:
+                            container = self._get_import("typing", "Tuple")
 
-                    subscript_slice: Tuple | Index = Tuple(
-                        [
-                            self._convert_annotation(node.args.vararg.annotation),
-                            Constant(Ellipsis),
-                        ],
-                        ctx=Load(),
-                    )
-                    if sys.version_info < (3, 9):
-                        subscript_slice = Index(subscript_slice, ctx=Load())
+                        subscript_slice: Tuple | Index = Tuple(
+                            [
+                                annotation_,
+                                Constant(Ellipsis),
+                            ],
+                            ctx=Load(),
+                        )
+                        if sys.version_info < (3, 9):
+                            subscript_slice = Index(subscript_slice, ctx=Load())
 
-                    arg_annotations[node.args.vararg.arg] = Subscript(
-                        container, subscript_slice, ctx=Load()
-                    )
+                        arg_annotations[node.args.vararg.arg] = Subscript(
+                            container, subscript_slice, ctx=Load()
+                        )
 
-                if node.args.kwarg and node.args.kwarg.annotation:
-                    if sys.version_info >= (3, 9):
-                        container = Name("dict", ctx=Load())
-                    else:
-                        container = self._get_import("typing", "Dict")
+                if node.args.kwarg:
+                    annotation_ = self._convert_annotation(node.args.kwarg.annotation)
+                    if annotation_ and not self._memo.is_ignored_name(annotation_):
+                        if sys.version_info >= (3, 9):
+                            container = Name("dict", ctx=Load())
+                        else:
+                            container = self._get_import("typing", "Dict")
 
-                    subscript_slice = Tuple(
-                        [
-                            Name("str", ctx=Load()),
-                            self._convert_annotation(node.args.kwarg.annotation),
-                        ],
-                        ctx=Load(),
-                    )
-                    if sys.version_info < (3, 9):
-                        subscript_slice = Index(subscript_slice, ctx=Load())
+                        subscript_slice = Tuple(
+                            [
+                                Name("str", ctx=Load()),
+                                annotation_,
+                            ],
+                            ctx=Load(),
+                        )
+                        if sys.version_info < (3, 9):
+                            subscript_slice = Index(subscript_slice, ctx=Load())
 
-                    arg_annotations[node.args.kwarg.arg] = Subscript(
-                        container, subscript_slice, ctx=Load()
-                    )
+                        arg_annotations[node.args.kwarg.arg] = Subscript(
+                            container, subscript_slice, ctx=Load()
+                        )
 
                 if arg_annotations:
                     self._memo.variable_annotations.update(arg_annotations)

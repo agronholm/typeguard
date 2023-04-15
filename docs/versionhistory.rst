@@ -11,6 +11,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   and 3.8
 - Fixed ``Concatenate[...]`` in ``Callable`` parameters causing ``TypeError`` to be
   raised
+- Fixed type checks for ``*args`` or ``**kwargs`` not being suppressed when their types
+  are unusable (guarded by ``if TYPE_CHECKING:`` or otherwise)
 
 **4.0.0rc3** (2023-04-10)
 

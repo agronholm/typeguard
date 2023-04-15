@@ -742,7 +742,8 @@ class TestTypecheckingImport:
                     import typing
                     from typing import Hashable, Sequence
 
-                def foo(x: Hashable, y: typing.Collection) -> Sequence:
+                def foo(x: Hashable, y: typing.Collection, *args: Hashable, \
+**kwargs: typing.Collection) -> Sequence:
                     bar: typing.Collection
                     baz: Hashable = 1
                     return (1, 2)
@@ -759,7 +760,8 @@ class TestTypecheckingImport:
                     import typing
                     from typing import Hashable, Sequence
 
-                def foo(x: Hashable, y: typing.Collection) -> Sequence:
+                def foo(x: Hashable, y: typing.Collection, *args: Hashable, \
+**kwargs: typing.Collection) -> Sequence:
                     bar: typing.Collection
                     baz: Hashable = 1
                     return (1, 2)
