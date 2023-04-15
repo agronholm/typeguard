@@ -347,5 +347,5 @@ def typevar_forwardref(x: Type[T]) -> T:
 
 
 def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa: F821
-    """Regression test for #337."""
+    """Regression test for #335."""
     return x
