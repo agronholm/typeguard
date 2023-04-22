@@ -921,6 +921,36 @@ typing.Collection, Sequence]:
             ).strip()
         )
 
+    def test_optional(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import Any, Optional, TYPE_CHECKING
+                from collections.abc import Generator
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Optional[Hashable]) -> Optional[Hashable]:
+                    return x
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typing import Any, Optional, TYPE_CHECKING
+                from collections.abc import Generator
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Optional[Hashable]) -> Optional[Hashable]:
+                    return x
+                """
+            ).strip()
+        )
+
 
 class TestAssign:
     def test_annotated_assign(self) -> None:

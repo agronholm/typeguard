@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed instrumentation using ``typing.Optional`` without a subscript when the subscript
+  value was erased due to being an ignored import
+
 **4.0.0rc4** (2023-04-15)
 
 - Fixed imports guarded by ``if TYPE_CHECKING:`` when used with subscripts
