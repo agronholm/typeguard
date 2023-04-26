@@ -5,6 +5,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Added ``InstrumentationWarning`` to the public API
 - Fixed instrumentation using ``typing.Optional`` without a subscript when the subscript
   value was erased due to being an ignored import
 

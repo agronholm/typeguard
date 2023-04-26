@@ -68,6 +68,8 @@ Type check suppression
 Exceptions and warnings
 -----------------------
 
+.. autoexception:: InstrumentationWarning
+
 .. autoexception:: TypeCheckError
 
 .. autoexception:: TypeCheckWarning

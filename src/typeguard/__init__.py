@@ -11,6 +11,7 @@ from ._config import ForwardRefPolicy as ForwardRefPolicy
 from ._config import TypeCheckConfiguration as TypeCheckConfiguration
 from ._decorators import typechecked as typechecked
 from ._decorators import typeguard_ignore as typeguard_ignore
+from ._exceptions import InstrumentationWarning as InstrumentationWarning
 from ._exceptions import TypeCheckError as TypeCheckError
 from ._exceptions import TypeCheckWarning as TypeCheckWarning
 from ._exceptions import TypeHintWarning as TypeHintWarning
