@@ -141,6 +141,9 @@ def typechecked(target: T_CallableOrType | None = None) -> Any:
     if target is None:
         return typechecked
 
+    if sys.flags.optimize > 0:
+        return target
+
     if isclass(target):
         for key, attr in target.__dict__.items():
             if is_method_of(attr, target):

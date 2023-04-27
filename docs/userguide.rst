@@ -80,6 +80,10 @@ function object that is used to replace the original one.
     its methods, such methods will not be instrumented. In contrast, the import hook
     has no such restrictions.
 
+.. note::
+   The decorator also respects the optimized mode setting so it does nothing when the interpreter
+   is running in optimized mode.
+
 Using the import hook
 ---------------------
 
