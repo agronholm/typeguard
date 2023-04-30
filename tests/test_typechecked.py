@@ -598,7 +598,7 @@ def test_existing_method_decorator():
     ],
 )
 def test_typechecked_disabled_in_optimized_mode(
-    tmp_path: Path, flags: list[str], expected_return_code: int
+    tmp_path: Path, flags: List[str], expected_return_code: int
 ):
     code = dedent(
         """
