@@ -11,6 +11,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``TypeError: isinstance() arg 2 must be a type or tuple of types`` when
   instrumented code tries to check a value against a naked (``str``, not ``ForwardRef``)
   forward reference
+- Fixed instrumentation using the wrong "self" type in the ``__new__()`` method
 
 **4.0.0rc4** (2023-04-15)
 

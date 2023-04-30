@@ -592,6 +592,38 @@ check_return_type
     )
 
 
+def test_new() -> None:
+    node = parse(
+        dedent(
+            """
+            from typing import Self
+
+            class Foo:
+                def __new__(cls) -> Self:
+                    return super().__new__(cls)
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_return_type
+            from typing import Self
+
+            class Foo:
+
+                def __new__(cls) -> Self:
+                    memo = TypeCheckMemo(globals(), locals(), self_type=cls)
+                    return check_return_type('Foo.__new__', super().__new__(cls), \
+Self, memo)
+            """
+        ).strip()
+    )
+
+
 def test_local_function() -> None:
     node = parse(
         dedent(

@@ -795,11 +795,16 @@ class TypeguardTransformer(NodeTransformer):
                             break
                     else:
                         if node.args.args:
-                            memo_kwargs["self_type"] = Attribute(
-                                Name(id=node.args.args[0].arg, ctx=Load()),
-                                "__class__",
-                                ctx=Load(),
-                            )
+                            if node.name == "__new__":
+                                memo_kwargs["self_type"] = Name(
+                                    id=node.args.args[0].arg, ctx=Load()
+                                )
+                            else:
+                                memo_kwargs["self_type"] = Attribute(
+                                    Name(id=node.args.args[0].arg, ctx=Load()),
+                                    "__class__",
+                                    ctx=Load(),
+                                )
 
                 # Construct the function reference
                 # Nested functions get special treatment: the function name is added
