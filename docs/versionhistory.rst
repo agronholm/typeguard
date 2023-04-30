@@ -8,6 +8,9 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Added ``InstrumentationWarning`` to the public API
 - Fixed instrumentation using ``typing.Optional`` without a subscript when the subscript
   value was erased due to being an ignored import
+- Fixed ``TypeError: isinstance() arg 2 must be a type or tuple of types`` when
+  instrumented code tries to check a value against a naked (``str``, not ``ForwardRef``)
+  forward reference
 
 **4.0.0rc4** (2023-04-15)
 

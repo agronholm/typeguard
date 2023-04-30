@@ -35,8 +35,10 @@ from typeguard import (
     CollectionCheckStrategy,
     ForwardRefPolicy,
     TypeCheckError,
+    TypeCheckMemo,
     TypeHintWarning,
     check_type,
+    check_type_internal,
     suppress_type_checks,
 )
 from typeguard._utils import qualified_name
@@ -1037,3 +1039,11 @@ def test_none():
 def test_return_checked_value():
     value = {"foo": 1}
     assert check_type(value, Dict[str, int]) is value
+
+
+def test_imported_str_forward_ref():
+    value = {"foo": 1}
+    memo = TypeCheckMemo(globals(), locals())
+    pattern = r"Skipping type check against 'Dict\[str, int\]'"
+    with pytest.warns(TypeHintWarning, match=pattern):
+        check_type_internal(value, "Dict[str, int]", memo)

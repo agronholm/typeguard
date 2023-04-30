@@ -756,8 +756,16 @@ def check_type_internal(
             checker(value, origin_type, args, memo)
             return
 
-    if not isinstance(value, origin_type):
-        raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
+    if isclass(origin_type):
+        if not isinstance(value, origin_type):
+            raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
+    elif type(origin_type) is str:
+        warnings.warn(
+            f"Skipping type check against {origin_type!r}; this looks like a "
+            f"string-form forward reference imported from another module",
+            TypeHintWarning,
+            stacklevel=get_stacklevel(),
+        )
 
 
 # Equality checks are applied to these
