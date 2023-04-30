@@ -947,6 +947,7 @@ class TypeguardTransformer(NodeTransformer):
             and node.annotation
             and isinstance(node.target, Name)
         ):
+            self._memo.ignored_names.add(node.target.id)
             annotation = self._convert_annotation(deepcopy(node.annotation))
             if annotation:
                 self._memo.variable_annotations[node.target.id] = annotation
@@ -996,6 +997,7 @@ class TypeguardTransformer(NodeTransformer):
                         prefix = "*"
 
                     if isinstance(exp, Name):
+                        self._memo.ignored_names.add(exp.id)
                         name = prefix + exp.id
                         annotation = self._memo.variable_annotations.get(exp.id)
                         if annotation:
@@ -1055,6 +1057,8 @@ class TypeguardTransformer(NodeTransformer):
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)) and isinstance(
             node.target, Name
         ):
+            self._memo.ignored_names.add(node.target.id)
+
             # Bail out if no matching annotation is found
             annotation = self._memo.variable_annotations.get(node.target.id)
             if annotation is None:

@@ -1377,3 +1377,82 @@ Generator[args, x, kwargs]:
             """
         ).strip()
     )
+
+
+def test_local_assignment_typename_conflicts() -> None:
+    node = parse(
+        dedent(
+            """
+            def foo() -> int:
+                int = 6
+                return int
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            def foo() -> int:
+                int = 6
+                return int
+            """
+        ).strip()
+    )
+
+
+def test_local_ann_assignment_typename_conflicts() -> None:
+    node = parse(
+        dedent(
+            """
+            from typing import Any
+
+            def foo() -> int:
+                int: Any = 6
+                return int
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typing import Any
+
+            def foo() -> int:
+                int: Any = 6
+                return int
+            """
+        ).strip()
+    )
+
+
+def test_local_named_expr_typename_conflicts() -> None:
+    node = parse(
+        dedent(
+            """
+            from typing import Any
+
+            def foo() -> int:
+                if (int := 6):
+                    pass
+                return int
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typing import Any
+
+            def foo() -> int:
+                if (int := 6):
+                    pass
+                return int
+            """
+        ).strip()
+    )

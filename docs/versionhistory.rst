@@ -6,6 +6,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Added ``InstrumentationWarning`` to the public API
+- Avoid type checks where the types in question are shadowed by local variables
 - Fixed instrumentation using ``typing.Optional`` without a subscript when the subscript
   value was erased due to being an ignored import
 - Fixed ``TypeError: isinstance() arg 2 must be a type or tuple of types`` when
