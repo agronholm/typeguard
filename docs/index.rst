@@ -13,5 +13,6 @@ Quick links
    userguide
    features
    extending
+   contributing
    api
    versionhistory
