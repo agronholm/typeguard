@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.0.0rc5** (2023-05-01)
 
 - Added ``InstrumentationWarning`` to the public API
 - Changed ``@typechecked`` to skip instrumentation in optimized mode, as in typeguard
