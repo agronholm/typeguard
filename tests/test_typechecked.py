@@ -1,6 +1,8 @@
 import asyncio
+import subprocess
 import sys
 from contextlib import contextmanager
+from pathlib import Path
 from textwrap import dedent
 from typing import (
     Any,
@@ -585,3 +587,38 @@ def test_existing_method_decorator():
 
     with Foo().method(6) as value:
         assert value == 7
+
+
+@pytest.mark.parametrize(
+    "flags, expected_return_code",
+    [
+        pytest.param([], 1, id="debug"),
+        pytest.param(["-O"], 0, id="O"),
+        pytest.param(["-OO"], 0, id="OO"),
+    ],
+)
+def test_typechecked_disabled_in_optimized_mode(
+    tmp_path: Path, flags: List[str], expected_return_code: int
+):
+    code = dedent(
+        """
+        from typeguard import typechecked
+
+        @typechecked
+        def foo(x: int) -> None:
+            pass
+
+        foo("a")
+        """
+    )
+    script_path = tmp_path / "code.py"
+    script_path.write_text(code)
+    process = subprocess.run(
+        [sys.executable, *flags, str(script_path)], capture_output=True
+    )
+    assert process.returncode == expected_return_code
+    if process.returncode == 1:
+        assert process.stderr.endswith(
+            b'typeguard.TypeCheckError: argument "x" (str) is not an instance of '
+            b"int\n"
+        )

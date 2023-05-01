@@ -238,6 +238,19 @@ when the containing module is instrumented by the import hook::
 .. warning:: The :func:`@no_type_check_decorator <typing.no_type_check_decorator>`
     decorator is not currently recognized by Typeguard.
 
+Suppressing the ``@typechecked`` decorator in production
+--------------------------------------------------------
+
+If you're using the :func:`@typechecked <typechecked>` decorator to gradually introduce
+run-time type checks to your code base, you can disable the checks in production by
+running Python in optimized mode (as opposed to debug mode which is the default mode).
+You can do this by either starting Python with the ``-O`` or ``-OO`` option, or by
+setting the PYTHONOPTIMIZE_ environment variable. This will cause
+:func:`@typechecked <typechecked>` to become a no-op when the import hook is not being
+used to instrument the code.
+
+.. _PYTHONOPTIMIZE: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONOPTIMIZE
+
 Debugging instrumented code
 ---------------------------
 

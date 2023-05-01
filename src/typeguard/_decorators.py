@@ -150,6 +150,10 @@ def typechecked(
     :func:`@staticmethod <staticmethod>`,  and :class:`@property <property>` decorated
     methods in the class.
 
+    .. note:: When Python is run in optimized mode (``-O`` or ``-OO``, this decorator
+        is a no-op). This is a feature meant for selectively introducing type checking
+        into a code base where the checks aren't meant to be run in production.
+
     :param target: the function or class to enable type checking for
     :param forward_ref_policy: override for
         :attr:`.TypeCheckConfiguration.forward_ref_policy`
@@ -169,6 +173,9 @@ def typechecked(
             collection_check_strategy=collection_check_strategy,
             debug_instrumentation=debug_instrumentation,
         )
+
+    if not __debug__:
+        return target
 
     if isclass(target):
         for key, attr in target.__dict__.items():
