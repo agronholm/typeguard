@@ -1456,3 +1456,39 @@ def test_local_named_expr_typename_conflicts() -> None:
             """
         ).strip()
     )
+
+
+def test_dont_leave_empty_ast_container_nodes() -> None:
+    # Regression test for #352
+    node = parse(
+        dedent(
+            """
+            if True:
+
+                class A:
+                    ...
+
+                def func():
+                    ...
+
+            def foo(x: str) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer(["foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            if True:
+                pass
+
+            def foo(x: str) -> None:
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'x': (x, str)}, memo)
+            """
+        ).strip()
+    )

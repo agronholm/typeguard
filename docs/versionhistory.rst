@@ -3,6 +3,12 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
+  when an ``if`` block was left empty by the AST transformer
+  (`#352 <https://github.com/agronholm/typeguard/issues/352>`_)
+
 **4.0.0rc5** (2023-05-01)
 
 - Added ``InstrumentationWarning`` to the public API

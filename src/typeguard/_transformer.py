@@ -1127,6 +1127,12 @@ class TypeguardTransformer(NodeTransformer):
 
         """
         self.generic_visit(node)
+
+        # Fix empty node body (caused by removal of classes/functions not on the target
+        # path)
+        if not node.body:
+            node.body.append(Pass())
+
         if (
             self._memo is self._module_memo
             and isinstance(node.test, Name)
