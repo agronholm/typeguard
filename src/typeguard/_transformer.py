@@ -89,6 +89,10 @@ literal_names = (
     "typing.Literal",
     "typing_extensions.Literal",
 )
+annotated_names = (
+    "typing.Annotated",
+    "typing_extensions.Annotated",
+)
 ignore_decorators = (
     "typing.no_type_check",
     "typeguard.typeguard_ignore",
@@ -388,7 +392,12 @@ class AnnotationTransformer(NodeTransformer):
                 slice_value = node.slice
 
             if isinstance(slice_value, Tuple):
-                items = [self.visit(item) for item in slice_value.elts]
+                if self._memo.name_matches(node.value, *annotated_names):
+                    # Only treat the first argument to typing.Annotated as a potential
+                    # forward reference
+                    items = [self.visit(slice_value.elts[0])] + slice_value.elts[1:]
+                else:
+                    items = [self.visit(item) for item in slice_value.elts]
 
                 # If this is a Union and any of the items is None, erase the entire
                 # annotation

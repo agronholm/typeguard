@@ -8,6 +8,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
   when an ``if`` block was left empty by the AST transformer
   (`#352 <https://github.com/agronholm/typeguard/issues/352>`_)
+- Fixed the AST transformer trying to parse the second argument of ``typing.Annotated``
+  as a forward reference (`#353 <https://github.com/agronholm/typeguard/issues/353>`_)
 
 **4.0.0rc5** (2023-05-01)
 

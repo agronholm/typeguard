@@ -1492,3 +1492,32 @@ def test_dont_leave_empty_ast_container_nodes() -> None:
             """
         ).strip()
     )
+
+
+def test_dont_parse_annotated_2nd_arg() -> None:
+    # Regression test for #352
+    node = parse(
+        dedent(
+            """
+            from typing import Annotated
+
+            def foo(x: Annotated[str, 'foo bar']) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer(["foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typing import Annotated
+
+            def foo(x: Annotated[str, 'foo bar']) -> None:
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'x': (x, Annotated[str, 'foo bar'])}, memo)
+            """
+        ).strip()
+    )
