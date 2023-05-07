@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.0.0rc6** (2023-05-07)
 
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
   when an ``if`` block was left empty by the AST transformer
