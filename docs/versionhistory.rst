@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**4.0.0** (2023-05-12)
+
+- No changes
+
 **4.0.0rc6** (2023-05-07)
 
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
