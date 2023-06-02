@@ -33,17 +33,16 @@ from typing import (
 )
 from unittest.mock import Mock
 
+import typing_extensions
+
 from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
-import typing_extensions
-
 if sys.version_info >= (3, 11):
     from typing import (
         Annotated,
-        Literal,
         LiteralString,
         Self,
         TypeAlias,
@@ -58,7 +57,6 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import (
         Annotated,
-        Literal,
         LiteralString,
         Self,
         TypeAlias,
@@ -534,9 +532,12 @@ def check_typevar(
 
 
 if hasattr(typing, "Literal"):
+
     def _is_literal_type(typ):
         return typ is typing.Literal or typ is typing_extensions.Literal
+
 else:
+
     def _is_literal_type(arg):
         return typ is typing_extensions.Literal
 
