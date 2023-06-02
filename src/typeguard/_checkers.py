@@ -533,12 +533,12 @@ def check_typevar(
 
 if hasattr(typing, "Literal"):
 
-    def _is_literal_type(typ):
+    def _is_literal_type(typ: object) -> bool:
         return typ is typing.Literal or typ is typing_extensions.Literal
 
 else:
 
-    def _is_literal_type(arg):
+    def _is_literal_type(typ: object) -> bool:
         return typ is typing_extensions.Literal
 
 
