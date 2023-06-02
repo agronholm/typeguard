@@ -4,6 +4,7 @@ import collections.abc
 import inspect
 import sys
 import types
+import typing
 import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
@@ -36,6 +37,8 @@ from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
+
+import typing_extensions
 
 if sys.version_info >= (3, 11):
     from typing import (
@@ -530,6 +533,14 @@ def check_typevar(
             )
 
 
+if hasattr(typing, "Literal"):
+    def _is_literal_type(typ):
+        return typ is typing.Literal or typ is typing_extensions.Literal
+else:
+    def _is_literal_type(arg):
+        return typ is typing_extensions.Literal
+
+
 def check_literal(
     value: Any,
     origin_type: Any,
@@ -539,7 +550,7 @@ def check_literal(
     def get_literal_args(literal_args: tuple[Any, ...]) -> tuple[Any, ...]:
         retval: list[Any] = []
         for arg in literal_args:
-            if get_origin(arg) is Literal:
+            if _is_literal_type(get_origin(arg)):
                 # The first check works on py3.6 and lower, the second one on py3.7+
                 retval.extend(get_literal_args(arg.__args__))
             elif arg is None or isinstance(arg, (int, str, bytes, bool, Enum)):
@@ -782,7 +793,8 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
-    Literal: check_literal,
+    typing.Literal: check_literal,
+    typing_extensions.Literal: check_literal,
     LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
