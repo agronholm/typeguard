@@ -794,7 +794,6 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
-    typing.Literal: check_literal,
     typing_extensions.Literal: check_literal,
     LiteralString: check_literal_string,
     Mapping: check_mapping,
@@ -816,6 +815,8 @@ origin_type_checkers = {
     TypeGuard: check_typeguard,
     Union: check_union,
 }
+if hasattr(typing, "Literal"):
+    origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
 
