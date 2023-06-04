@@ -828,7 +828,19 @@ if sys.version_info >= (3, 8):
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
 if typing_extensions is not None:
-    origin_type_checkers[typing_extensions.Literal] = check_literal
+    # On some Python versions, these may simply be re-exports from typing,
+    # but exactly which Python versions is subject to change,
+    # so it's best to err on the safe side
+    # and update the dictionary on all Python versions
+    # if typing_extensions is installed
+    origin_type_checkers.update(
+        {
+            typing_extensions.Literal: check_literal,
+            typing_extensions.LiteralString: check_literal_string,
+            typing_extensions.Self: check_self,
+            typing_extensions.TypeGuard: check_typeguard,
+        }
+    )
 
 
 def builtin_checker_lookup(
