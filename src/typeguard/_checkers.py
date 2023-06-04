@@ -46,10 +46,7 @@ from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualifie
 if sys.version_info >= (3, 11):
     from typing import (
         Annotated,
-        LiteralString,
-        Self,
         TypeAlias,
-        TypeGuard,
         get_args,
         get_origin,
         get_type_hints,
@@ -60,10 +57,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import (
         Annotated,
-        LiteralString,
-        Self,
         TypeAlias,
-        TypeGuard,
         get_args,
         get_origin,
         get_type_hints,
@@ -803,13 +797,11 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
-    LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
-    Self: check_self,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
@@ -820,13 +812,21 @@ origin_type_checkers = {
     Tuple: check_tuple,
     type: check_class,
     Type: check_class,
-    TypeGuard: check_typeguard,
     Union: check_union,
 }
 if sys.version_info >= (3, 8):
     origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
-    origin_type_checkers[types.UnionType] = check_uniontype
+    origin_type_checkers.update(
+        {
+            types.UnionType: check_uniontype,
+            typing.TypeGuard: check_typeguard,
+        }
+    )
+if sys.version_info >= (3, 11):
+    origin_type_checkers.update(
+        {typing.LiteralString: check_literal_string, typing.Self: check_self}
+    )
 if typing_extensions is not None:
     # On some Python versions, these may simply be re-exports from typing,
     # but exactly which Python versions is subject to change,
