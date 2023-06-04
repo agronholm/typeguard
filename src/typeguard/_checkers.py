@@ -531,7 +531,7 @@ def check_typevar(
             )
 
 
-if hasattr(typing, "Literal"):
+if sys.version_info >= (3, 8):
 
     def _is_literal_type(typ: object) -> bool:
         return typ is typing.Literal or typ is typing_extensions.Literal
@@ -815,7 +815,7 @@ origin_type_checkers = {
     TypeGuard: check_typeguard,
     Union: check_union,
 }
-if hasattr(typing, "Literal"):
+if sys.version_info >= (3, 8):
     origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
