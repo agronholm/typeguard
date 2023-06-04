@@ -33,7 +33,10 @@ from typing import (
 )
 from unittest.mock import Mock
 
-import typing_extensions
+try:
+    import typing_extensions
+except ImportError:
+    typing_extensions = None  # type: ignore[assignment]
 
 from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
@@ -532,9 +535,15 @@ def check_typevar(
 
 
 if sys.version_info >= (3, 8):
+    if typing_extensions is None:
 
-    def _is_literal_type(typ: object) -> bool:
-        return typ is typing.Literal or typ is typing_extensions.Literal
+        def _is_literal_type(typ: object) -> bool:
+            return typ is typing.Literal
+
+    else:
+
+        def _is_literal_type(typ: object) -> bool:
+            return typ is typing.Literal or typ is typing_extensions.Literal
 
 else:
 
@@ -794,7 +803,6 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
-    typing_extensions.Literal: check_literal,
     LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
@@ -819,6 +827,8 @@ if sys.version_info >= (3, 8):
     origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
+if typing_extensions is not None:
+    origin_type_checkers[typing_extensions.Literal] = check_literal
 
 
 def builtin_checker_lookup(
