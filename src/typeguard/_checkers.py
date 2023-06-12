@@ -817,12 +817,8 @@ origin_type_checkers = {
 if sys.version_info >= (3, 8):
     origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
-    origin_type_checkers.update(
-        {
-            types.UnionType: check_uniontype,
-            typing.TypeGuard: check_typeguard,
-        }
-    )
+    origin_type_checkers[types.UnionType] = check_uniontype
+    origin_type_checkers[typing.TypeGuard] = check_typeguard
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(
         {typing.LiteralString: check_literal_string, typing.Self: check_self}
