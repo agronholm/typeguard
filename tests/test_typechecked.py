@@ -9,6 +9,7 @@ from typing import (
     AsyncGenerator,
     AsyncIterable,
     AsyncIterator,
+    Dict,
     Generator,
     Iterable,
     Iterator,
@@ -622,3 +623,13 @@ def test_typechecked_disabled_in_optimized_mode(
             b'typeguard.TypeCheckError: argument "x" (str) is not an instance of '
             b"int\n"
         )
+
+
+def test_reference_imported_name_from_method() -> None:
+    # Regression test for #362
+    @typechecked
+    class A:
+        def foo(self) -> Dict[str, Any]:
+            return {}
+
+    A().foo()

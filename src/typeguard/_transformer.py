@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import builtins
 import sys
+import typing
 from ast import (
     AST,
     Add,
@@ -395,14 +396,23 @@ class AnnotationTransformer(NodeTransformer):
                 if self._memo.name_matches(node.value, *annotated_names):
                     # Only treat the first argument to typing.Annotated as a potential
                     # forward reference
-                    items = [self.visit(slice_value.elts[0])] + slice_value.elts[1:]
+                    items = cast(
+                        typing.List[expr],
+                        [self.generic_visit(slice_value.elts[0])]
+                        + slice_value.elts[1:],
+                    )
                 else:
-                    items = [self.visit(item) for item in slice_value.elts]
+                    items = cast(
+                        typing.List[expr],
+                        [self.generic_visit(item) for item in slice_value.elts],
+                    )
 
-                # If this is a Union and any of the items is None, erase the entire
+                # If this is a Union and any of the items is Any, erase the entire
                 # annotation
                 if self._memo.name_matches(node.value, "typing.Union") and any(
-                    item is None for item in items
+                    isinstance(item, expr)
+                    and self._memo.name_matches(item, *anytype_names)
+                    for item in items
                 ):
                     return None
 

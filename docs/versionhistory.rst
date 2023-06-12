@@ -5,8 +5,11 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
-- Fix handling of ``typing_extensions.Literal`` on Python 3.8 and 3.9
-  when ``typing_extensions>=4.6.0`` is installed.
+- Fixed handling of ``typing_extensions.Literal`` on Python 3.8 and 3.9 when
+  ``typing_extensions>=4.6.0`` is installed
+  (`#363 <https://github.com/agronholm/typeguard/issues/363>`_; PR by Alex Waygood)
+- Fixed ``NameError`` when generated type checking code references an imported name from
+  a method (`#362 <https://github.com/agronholm/typeguard/issues/362>`_)
 
 **4.0.0** (2023-05-12)
 
