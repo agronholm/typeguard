@@ -4,6 +4,7 @@ import collections.abc
 import inspect
 import sys
 import types
+import typing
 import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
@@ -32,6 +33,11 @@ from typing import (
 )
 from unittest.mock import Mock
 
+try:
+    import typing_extensions
+except ImportError:
+    typing_extensions = None  # type: ignore[assignment]
+
 from ._config import ForwardRefPolicy
 from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
@@ -40,11 +46,7 @@ from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualifie
 if sys.version_info >= (3, 11):
     from typing import (
         Annotated,
-        Literal,
-        LiteralString,
-        Self,
         TypeAlias,
-        TypeGuard,
         get_args,
         get_origin,
         get_type_hints,
@@ -55,11 +57,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import (
         Annotated,
-        Literal,
-        LiteralString,
-        Self,
         TypeAlias,
-        TypeGuard,
         get_args,
         get_origin,
         get_type_hints,
@@ -530,6 +528,23 @@ def check_typevar(
             )
 
 
+if sys.version_info >= (3, 8):
+    if typing_extensions is None:
+
+        def _is_literal_type(typ: object) -> bool:
+            return typ is typing.Literal
+
+    else:
+
+        def _is_literal_type(typ: object) -> bool:
+            return typ is typing.Literal or typ is typing_extensions.Literal
+
+else:
+
+    def _is_literal_type(typ: object) -> bool:
+        return typ is typing_extensions.Literal
+
+
 def check_literal(
     value: Any,
     origin_type: Any,
@@ -539,7 +554,7 @@ def check_literal(
     def get_literal_args(literal_args: tuple[Any, ...]) -> tuple[Any, ...]:
         retval: list[Any] = []
         for arg in literal_args:
-            if get_origin(arg) is Literal:
+            if _is_literal_type(get_origin(arg)):
                 # The first check works on py3.6 and lower, the second one on py3.7+
                 retval.extend(get_literal_args(arg.__args__))
             elif arg is None or isinstance(arg, (int, str, bytes, bool, Enum)):
@@ -782,14 +797,11 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
-    Literal: check_literal,
-    LiteralString: check_literal_string,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
-    Self: check_self,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
@@ -800,11 +812,27 @@ origin_type_checkers = {
     Tuple: check_tuple,
     type: check_class,
     Type: check_class,
-    TypeGuard: check_typeguard,
     Union: check_union,
 }
+if sys.version_info >= (3, 8):
+    origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
+    origin_type_checkers[typing.TypeGuard] = check_typeguard
+if sys.version_info >= (3, 11):
+    origin_type_checkers.update(
+        {typing.LiteralString: check_literal_string, typing.Self: check_self}
+    )
+if typing_extensions is not None:
+    # On some Python versions, these may simply be re-exports from typing,
+    # but exactly which Python versions is subject to change,
+    # so it's best to err on the safe side
+    # and update the dictionary on all Python versions
+    # if typing_extensions is installed
+    origin_type_checkers[typing_extensions.Literal] = check_literal
+    origin_type_checkers[typing_extensions.LiteralString] = check_literal_string
+    origin_type_checkers[typing_extensions.Self] = check_self
+    origin_type_checkers[typing_extensions.TypeGuard] = check_typeguard
 
 
 def builtin_checker_lookup(
