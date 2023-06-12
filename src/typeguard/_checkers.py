@@ -833,14 +833,10 @@ if typing_extensions is not None:
     # so it's best to err on the safe side
     # and update the dictionary on all Python versions
     # if typing_extensions is installed
-    origin_type_checkers.update(
-        {
-            typing_extensions.Literal: check_literal,
-            typing_extensions.LiteralString: check_literal_string,
-            typing_extensions.Self: check_self,
-            typing_extensions.TypeGuard: check_typeguard,
-        }
-    )
+    origin_type_checkers[typing_extensions.Literal] = check_literal
+    origin_type_checkers[typing_extensions.LiteralString] = check_literal_string
+    origin_type_checkers[typing_extensions.Self] = check_self
+    origin_type_checkers[typing_extensions.TypeGuard] = check_typeguard
 
 
 def builtin_checker_lookup(
