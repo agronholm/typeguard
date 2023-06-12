@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fix handling of ``typing_extensions.Literal`` on Python 3.8 and 3.9
+  when ``typing_extensions>=4.6.0`` is installed.
+
 **4.0.0** (2023-05-12)
 
 - No changes
