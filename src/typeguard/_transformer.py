@@ -137,6 +137,7 @@ class TransformMemo:
     should_instrument: bool = field(init=False, default=True)
     variable_annotations: dict[str, expr] = field(init=False, default_factory=dict)
     configuration_overrides: dict[str, Any] = field(init=False, default_factory=dict)
+    code_inject_index: int = field(init=False, default=0)
 
     def __post_init__(self) -> None:
         elements: list[str] = []
@@ -151,6 +152,18 @@ class TransformMemo:
                 elements.insert(0, "<locals>")
 
         self.joined_path = Constant(".".join(elements))
+
+        # Figure out where to insert instrumentation code
+        if self.node:
+            for index, child in enumerate(self.node.body):
+                if isinstance(child, ImportFrom) and child.module == "__future__":
+                    # (module only) __future__ imports must come first
+                    continue
+                elif isinstance(child, Expr) and isinstance(child.value, Str):
+                    continue  # docstring
+
+                self.code_inject_index = index
+                break
 
     def get_unused_name(self, name: str) -> str:
         memo: TransformMemo | None = self
@@ -212,20 +225,12 @@ class TransformMemo:
             return
 
         # Insert imports after any "from __future__ ..." imports and any docstring
-        for i, child in enumerate(node.body):
-            if isinstance(child, ImportFrom) and child.module == "__future__":
-                continue
-            elif isinstance(child, Expr) and isinstance(child.value, Str):
-                continue  # module docstring
-
-            for modulename, names in self.load_names.items():
-                aliases = [
-                    alias(orig_name, new_name.id if orig_name != new_name.id else None)
-                    for orig_name, new_name in sorted(names.items())
-                ]
-                node.body.insert(i, ImportFrom(modulename, aliases, 0))
-
-            break
+        for modulename, names in self.load_names.items():
+            aliases = [
+                alias(orig_name, new_name.id if orig_name != new_name.id else None)
+                for orig_name, new_name in sorted(names.items())
+            ]
+            node.body.insert(self.code_inject_index, ImportFrom(modulename, aliases, 0))
 
     def name_matches(self, expression: expr | Expr | None, *names: str) -> bool:
         if expression is None:
@@ -757,7 +762,9 @@ class TypeguardTransformer(NodeTransformer):
                     annotations_dict,
                     self._memo.get_memo_name(),
                 ]
-                node.body.insert(0, Expr(Call(func_name, args, [])))
+                node.body.insert(
+                    self._memo.code_inject_index, Expr(Call(func_name, args, []))
+                )
 
             # Add a checked "return None" to the end if there's no explicit return
             # Skip if the return annotation is None or Any
@@ -859,7 +866,7 @@ class TypeguardTransformer(NodeTransformer):
                     [keyword(key, value) for key, value in memo_kwargs.items()],
                 )
                 node.body.insert(
-                    0,
+                    self._memo.code_inject_index,
                     Assign([memo_store_name], memo_expr),
                 )
 

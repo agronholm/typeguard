@@ -1521,3 +1521,30 @@ def test_dont_parse_annotated_2nd_arg() -> None:
             """
         ).strip()
     )
+
+
+def test_respect_docstring() -> None:
+    # Regression test for #359
+    node = parse(
+        dedent(
+            '''
+            def foo() -> int:
+                """This is a docstring."""
+                return 1
+            '''
+        )
+    )
+    TypeguardTransformer(["foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            '''
+            def foo() -> int:
+                """This is a docstring."""
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_return_type
+                memo = TypeCheckMemo(globals(), locals())
+                return check_return_type('foo', 1, int, memo)
+            '''
+        ).strip()
+    )

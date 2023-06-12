@@ -10,6 +10,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   (`#363 <https://github.com/agronholm/typeguard/issues/363>`_; PR by Alex Waygood)
 - Fixed ``NameError`` when generated type checking code references an imported name from
   a method (`#362 <https://github.com/agronholm/typeguard/issues/362>`_)
+- Fixed docstrings disappearing from instrumented functions
+  (`#359 <https://github.com/agronholm/typeguard/issues/359>`_)
 
 **4.0.0** (2023-05-12)
 
