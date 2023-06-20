@@ -159,8 +159,13 @@ class TransformMemo:
                 if isinstance(child, ImportFrom) and child.module == "__future__":
                     # (module only) __future__ imports must come first
                     continue
-                elif isinstance(child, Expr) and isinstance(child.value, Str):
-                    continue  # docstring
+                elif isinstance(child, Expr):
+                    if isinstance(child.value, Constant) and isinstance(
+                        child.value.value, str
+                    ):
+                        continue  # docstring
+                    elif sys.version_info < (3, 8) and isinstance(child.value, Str):
+                        continue  # docstring
 
                 self.code_inject_index = index
                 break
