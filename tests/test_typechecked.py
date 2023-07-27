@@ -633,3 +633,40 @@ def test_reference_imported_name_from_method() -> None:
             return {}
 
     A().foo()
+
+
+def test_getter_setter():
+    """Regression test for #355."""
+
+    @typechecked
+    class Foo:
+        def __init__(self, x: int):
+            self._x = x
+
+        @property
+        def x(self) -> int:
+            return self._x
+
+        @x.setter
+        def x(self, value: int) -> None:
+            self._x = value
+
+    f = Foo(1)
+    f.x = 2
+    assert f.x == 2
+    with pytest.raises(TypeCheckError):
+        f.x = "foo"
+
+
+def test_duplicate_method():
+    class Foo:
+        def x(self) -> str:
+            return "first"
+
+        @typechecked()
+        def x(self, value: int) -> str:  # noqa: F811
+            return "second"
+
+    assert Foo().x(1) == "second"
+    with pytest.raises(TypeCheckError):
+        Foo().x("wrong")

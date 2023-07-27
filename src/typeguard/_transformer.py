@@ -488,10 +488,14 @@ class AnnotationTransformer(NodeTransformer):
 
 
 class TypeguardTransformer(NodeTransformer):
-    def __init__(self, target_path: Sequence[str] | None = None) -> None:
+    def __init__(
+        self, target_path: Sequence[str] | None = None, target_lineno: int | None = None
+    ) -> None:
         self._target_path = tuple(target_path) if target_path else None
         self._memo = self._module_memo = TransformMemo(None, None, ())
         self.names_used_in_annotations: set[str] = set()
+        self.target_node: FunctionDef | AsyncFunctionDef | None = None
+        self.target_lineno = target_lineno
 
     @contextmanager
     def _use_memo(
@@ -664,6 +668,12 @@ class TypeguardTransformer(NodeTransformer):
         with self._use_memo(node):
             arg_annotations: dict[str, Any] = {}
             if self._target_path is None or self._memo.path == self._target_path:
+                # Find line number we're supposed to match against
+                if node.decorator_list:
+                    first_lineno = node.decorator_list[0].lineno
+                else:
+                    first_lineno = node.lineno
+
                 for decorator in node.decorator_list.copy():
                     if self._memo.name_matches(decorator, "typing.overload"):
                         # Remove overloads entirely
@@ -677,6 +687,14 @@ class TypeguardTransformer(NodeTransformer):
                             self._memo.configuration_overrides = {
                                 kw.arg: kw.value for kw in decorator.keywords if kw.arg
                             }
+
+                if self.target_lineno == first_lineno:
+                    assert self.target_node is None
+                    self.target_node = node
+                    if node.decorator_list and sys.version_info >= (3, 8):
+                        self.target_lineno = node.decorator_list[0].lineno
+                    else:
+                        self.target_lineno = node.lineno
 
                 all_args = node.args.args + node.args.kwonlyargs
                 if sys.version_info >= (3, 8):
@@ -924,7 +942,6 @@ class TypeguardTransformer(NodeTransformer):
         self._memo.has_yield_expressions = True
         self.generic_visit(node)
 
-        self.generic_visit(node)
         if (
             self._memo.yield_annotation
             and self._memo.should_instrument
