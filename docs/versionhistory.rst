@@ -15,6 +15,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``@typechecked`` failing to instrument functions when there are more than one
   function within the same scope
   (`#355 <https://github.com/agronholm/typeguard/issues/355>`_)
+- Fixed ``frozenset`` not being checked
+  (`#367 <https://github.com/agronholm/typeguard/issues/367>`_)
 
 **4.0.0** (2023-05-12)
 

@@ -316,7 +316,10 @@ def check_set(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if not isinstance(value, AbstractSet):
+    if origin_type is frozenset:
+        if not isinstance(value, frozenset):
+            raise TypeCheckError("is not a frozenset")
+    elif not isinstance(value, AbstractSet):
         raise TypeCheckError("is not a set")
 
     if args and args != (Any,):
@@ -794,6 +797,7 @@ origin_type_checkers = {
     dict: check_mapping,
     Dict: check_mapping,
     float: check_number,
+    frozenset: check_set,
     IO: check_io,
     list: check_list,
     List: check_list,

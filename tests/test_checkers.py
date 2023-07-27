@@ -15,6 +15,7 @@ from typing import (
     ContextManager,
     Dict,
     ForwardRef,
+    FrozenSet,
     Iterator,
     List,
     Mapping,
@@ -604,6 +605,38 @@ class TestSet:
             Set[int],
             collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("set is not an instance of int")
+
+
+class TestFrozenSet:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, FrozenSet[int]).match(
+            "int is not a frozenset"
+        )
+
+    def test_valid(self):
+        check_type(frozenset({1, 2}), FrozenSet[int])
+
+    def test_first_check_empty(self):
+        check_type(frozenset(), FrozenSet[int])
+
+    def test_first_check_fail(self, sample_set: set):
+        pytest.raises(
+            TypeCheckError, check_type, frozenset(sample_set), FrozenSet[int]
+        ).match("set is not an instance of int")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            frozenset({1, 2, "bb"}),
+            FrozenSet[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("set is not an instance of int")
+
+    def test_set_against_frozenset(self, sample_set: set):
+        pytest.raises(TypeCheckError, check_type, sample_set, FrozenSet[int]).match(
+            "set is not a frozenset"
+        )
 
 
 @pytest.mark.parametrize(
