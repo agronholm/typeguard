@@ -10,11 +10,16 @@ from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from os import PathLike
 from types import CodeType, ModuleType, TracebackType
-from typing import TYPE_CHECKING, Any, Sequence, TypeVar
+from typing import Sequence, TypeVar
 from unittest.mock import patch
 
 from ._config import global_config
 from ._transformer import TypeguardTransformer
+
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer
+else:
+    from typing_extensions import Buffer
 
 if sys.version_info >= (3, 11):
     from typing import ParamSpec
@@ -25,17 +30,6 @@ if sys.version_info >= (3, 10):
     from importlib.metadata import PackageNotFoundError, version
 else:
     from importlib_metadata import PackageNotFoundError, version
-
-if TYPE_CHECKING:
-    from array import array
-    from mmap import mmap
-    from pickle import PickleBuffer
-
-    # This is guarded because sphinx-autodoc-typehints tries to import these
-    try:
-        from ctypes import _CData
-    except ImportError:
-        pass
 
 try:
     OPTIMIZATION = "typeguard" + "".join(version("typeguard").split(".")[:3])
@@ -60,26 +54,8 @@ def optimized_cache_from_source(path: str, debug_override: bool | None = None) -
 class TypeguardLoader(SourceFileLoader):
     @staticmethod
     def source_to_code(
-        data: bytes
-        | bytearray
-        | memoryview
-        | array[Any]
-        | mmap
-        | _CData
-        | PickleBuffer
-        | str
-        | ast.Module
-        | ast.Expression
-        | ast.Interactive,
-        path: bytes
-        | bytearray
-        | memoryview
-        | array[Any]
-        | mmap
-        | _CData
-        | PickleBuffer
-        | str
-        | PathLike[str] = "<string>",
+        data: Buffer | str | ast.Module | ast.Expression | ast.Interactive,
+        path: Buffer | str | PathLike[str] = "<string>",
     ) -> CodeType:
         if isinstance(data, (ast.Module, ast.Expression, ast.Interactive)):
             tree = data
