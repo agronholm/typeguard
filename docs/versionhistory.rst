@@ -12,6 +12,9 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
   a method (`#362 <https://github.com/agronholm/typeguard/issues/362>`_)
 - Fixed docstrings disappearing from instrumented functions
   (`#359 <https://github.com/agronholm/typeguard/issues/359>`_)
+- Fixed ``@typechecked`` failing to instrument functions when there are more than one
+  function within the same scope
+  (`#355 <https://github.com/agronholm/typeguard/issues/355>`_)
 
 **4.0.0** (2023-05-12)
 

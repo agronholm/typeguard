@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import inspect
 import sys
+from collections.abc import Sequence
 from functools import partial
 from inspect import isclass, isfunction
 from types import CodeType, FrameType, FunctionType
@@ -34,6 +35,25 @@ def make_cell(value: object) -> _Cell:
     return (lambda: value).__closure__[0]  # type: ignore[index]
 
 
+def find_target_function(
+    new_code: CodeType, target_path: Sequence[str], firstlineno: int
+) -> CodeType | None:
+    target_name = target_path[0]
+    for const in new_code.co_consts:
+        if isinstance(const, CodeType):
+            if const.co_name == target_name:
+                if const.co_firstlineno == firstlineno:
+                    return const
+                elif len(target_path) > 1:
+                    target_code = find_target_function(
+                        const, target_path[1:], firstlineno
+                    )
+                    if target_code:
+                        return target_code
+
+    return None
+
+
 def instrument(f: T_CallableOrType) -> FunctionType | str:
     if not getattr(f, "__code__", None):
         return "no code associated"
@@ -50,39 +70,31 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
     module_source = inspect.getsource(sys.modules[f.__module__])
     module_ast = ast.parse(module_source)
-    instrumentor = TypeguardTransformer(target_path)
+    instrumentor = TypeguardTransformer(target_path, f.__code__.co_firstlineno)
     instrumentor.visit(module_ast)
+
+    if not instrumentor.target_node or instrumentor.target_lineno is None:
+        return "instrumentor did not find the target function"
+
+    module_code = compile(module_ast, f.__code__.co_filename, "exec", dont_inherit=True)
+    new_code = find_target_function(
+        module_code, target_path, instrumentor.target_lineno
+    )
+    if not new_code:
+        return "cannot find the target function in the AST"
 
     if global_config.debug_instrumentation and sys.version_info >= (3, 9):
         # Find the matching AST node, then unparse it to source and print to stdout
-        level = 0
-        for node in ast.walk(module_ast):
-            if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-                if node.name == target_path[level]:
-                    if level == len(target_path) - 1:
-                        print(
-                            f"Source code of {f.__qualname__}() after instrumentation:"
-                            "\n----------------------------------------------",
-                            file=sys.stderr,
-                        )
-                        print(ast.unparse(node), file=sys.stderr)
-                        print(
-                            "----------------------------------------------",
-                            file=sys.stderr,
-                        )
-                    else:
-                        level += 1
-
-    module_code = compile(module_ast, f.__code__.co_filename, "exec", dont_inherit=True)
-    new_code = module_code
-    for name in target_path:
-        for const in new_code.co_consts:
-            if isinstance(const, CodeType):
-                if const.co_name == name:
-                    new_code = const
-                    break
-        else:
-            return "cannot find the target function in the AST"
+        print(
+            f"Source code of {f.__qualname__}() after instrumentation:"
+            "\n----------------------------------------------",
+            file=sys.stderr,
+        )
+        print(ast.unparse(instrumentor.target_node), file=sys.stderr)
+        print(
+            "----------------------------------------------",
+            file=sys.stderr,
+        )
 
     closure = f.__closure__
     if new_code.co_freevars != f.__code__.co_freevars:
