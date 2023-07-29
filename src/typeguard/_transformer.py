@@ -363,6 +363,12 @@ class AnnotationTransformer(NodeTransformer):
 
         return new_node
 
+    def generic_visit(self, node: AST) -> AST:
+        if isinstance(node, expr) and self._memo.name_matches(node, *literal_names):
+            return node
+
+        return super().generic_visit(node)
+
     def visit_BinOp(self, node: BinOp) -> Any:
         self.generic_visit(node)
 
@@ -395,7 +401,7 @@ class AnnotationTransformer(NodeTransformer):
 
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
         # don't try to evaluate it as code
-        if not self._memo.name_matches(node.value, *literal_names) and node.slice:
+        if node.slice:
             if isinstance(node.slice, Index):
                 # Python 3.7 and 3.8
                 slice_value = node.slice.value  # type: ignore[attr-defined]

@@ -324,6 +324,11 @@ def test_literal(dummymodule):
     assert dummymodule.literal("foo") == "foo"
 
 
+def test_literal_in_union(dummymodule):
+    """Regression test for #372."""
+    assert dummymodule.literal_in_union("foo") == "foo"
+
+
 def test_typevar_forwardref(dummymodule):
     instance = dummymodule.typevar_forwardref(dummymodule.DummyClass)
     assert isinstance(instance, dummymodule.DummyClass)

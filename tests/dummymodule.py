@@ -334,6 +334,12 @@ def literal(x: Literal["foo"]) -> Literal["foo"]:
 
 
 @typechecked
+def literal_in_union(x: Union[Literal["foo"],]) -> Literal["foo"]:
+    y: Literal["foo"] = x
+    return y
+
+
+@typechecked
 def typevar_forwardref(x: Type[T]) -> T:
     return x()
 

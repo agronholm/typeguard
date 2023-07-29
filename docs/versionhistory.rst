@@ -3,6 +3,12 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed regression where ``Literal`` inside a ``Union`` had quotes stripped from its
+  contents, thus typically causing ``NameError`` to be raised when run
+  (`#372 <https://github.com/agronholm/typeguard/issues/372>`_)
+
 **4.0.1** (2023-07-27)
 
 - Fixed handling of ``typing_extensions.Literal`` on Python 3.8 and 3.9 when
