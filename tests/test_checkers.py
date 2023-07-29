@@ -1080,3 +1080,11 @@ def test_imported_str_forward_ref():
     pattern = r"Skipping type check against 'Dict\[str, int\]'"
     with pytest.warns(TypeHintWarning, match=pattern):
         check_type_internal(value, "Dict[str, int]", memo)
+
+
+def test_check_against_tuple_success():
+    check_type(1, (float, Union[str, int]))
+
+
+def test_check_against_tuple_failure():
+    pytest.raises(TypeCheckError, check_type, "aa", (int, bytes))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import warnings
-from typing import Any, Callable, NoReturn, TypeVar, overload
+from typing import Any, Callable, NoReturn, TypeVar, Union, overload
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -80,7 +80,7 @@ def check_type(
     corresponding fields in :class:`TypeCheckConfiguration`.
 
     :param value: value to be checked against ``expected_type``
-    :param expected_type: a class or generic type instance
+    :param expected_type: a class or generic type instance, or a tuple of such things
     :param forward_ref_policy: see :attr:`TypeCheckConfiguration.forward_ref_policy`
     :param typecheck_fail_callback:
         see :attr`TypeCheckConfiguration.typecheck_fail_callback`
@@ -90,6 +90,9 @@ def check_type(
     :raises TypeCheckError: if there is a type mismatch
 
     """
+    if type(expected_type) is tuple:
+        expected_type = Union[expected_type]
+
     config = TypeCheckConfiguration(
         forward_ref_policy=forward_ref_policy,
         typecheck_fail_callback=typecheck_fail_callback,

@@ -5,6 +5,9 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 **UNRELEASED**
 
+- Added support for passing a tuple as ``expected_type`` to ``check_type()``, making it
+  more of a drop-in replacement for ``isinstance()``
+  (`#371 <https://github.com/agronholm/typeguard/issues/371>`_
 - Fixed regression where ``Literal`` inside a ``Union`` had quotes stripped from its
   contents, thus typically causing ``NameError`` to be raised when run
   (`#372 <https://github.com/agronholm/typeguard/issues/372>`_)
