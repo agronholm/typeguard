@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.1.1** (2023-08-16)
 
 - Fixed ``suppress_type_checks()`` causing annotated variable assignments to always
   assign ``None`` (`#380 <https://github.com/agronholm/typeguard/issues/380>`_)
