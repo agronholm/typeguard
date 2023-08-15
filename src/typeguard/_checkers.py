@@ -777,7 +777,7 @@ def check_type_internal(
     if isclass(origin_type):
         if not isinstance(value, origin_type):
             raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
-    elif type(origin_type) is str:
+    elif type(origin_type) is str:  # noqa: E721
         warnings.warn(
             f"Skipping type check against {origin_type!r}; this looks like a "
             f"string-form forward reference imported from another module",
