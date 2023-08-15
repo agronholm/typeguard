@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pytest import FixtureRequest
 
-from typeguard import TypeCheckError, config, install_import_hook
+from typeguard import TypeCheckError, config, install_import_hook, suppress_type_checks
 from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
@@ -332,3 +332,13 @@ def test_literal_in_union(dummymodule):
 def test_typevar_forwardref(dummymodule):
     instance = dummymodule.typevar_forwardref(dummymodule.DummyClass)
     assert isinstance(instance, dummymodule.DummyClass)
+
+
+def test_suppress_annotated_assignment(dummymodule):
+    with suppress_type_checks():
+        assert dummymodule.literal_in_union("foo") == "foo"
+
+
+def test_suppress_annotated_multi_assignment(dummymodule):
+    with suppress_type_checks():
+        assert dummymodule.multi_assign_single_value() == (6, 6, 6)

@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``suppress_type_checks()`` causing annotated variable assignments to always
+  assign ``None`` (`#380 <https://github.com/agronholm/typeguard/issues/380>`_)
+
 **4.1.0** (2023-07-30)
 
 - Added support for passing a tuple as ``expected_type`` to ``check_type()``, making it
