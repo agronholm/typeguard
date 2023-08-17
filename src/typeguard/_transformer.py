@@ -349,15 +349,21 @@ class AnnotationTransformer(NodeTransformer):
     def __init__(self, transformer: TypeguardTransformer):
         self.transformer = transformer
         self._memo = transformer._memo
+        self._level = 0
 
     def visit(self, node: AST) -> Any:
+        self._level += 1
         new_node = super().visit(node)
+        self._level -= 1
+
         if isinstance(new_node, Expression) and not hasattr(new_node, "body"):
             return None
 
         # Return None if this new node matches a variation of typing.Any
-        if isinstance(new_node, expr) and self._memo.name_matches(
-            new_node, *anytype_names
+        if (
+            self._level == 0
+            and isinstance(new_node, expr)
+            and self._memo.name_matches(new_node, *anytype_names)
         ):
             return None
 
@@ -373,9 +379,11 @@ class AnnotationTransformer(NodeTransformer):
         self.generic_visit(node)
 
         if isinstance(node.op, BitOr):
-            # If either side of the operation resolved to None, return None
-            if not hasattr(node, "left") or not hasattr(node, "right"):
-                return None
+            # Return Any if either side is Any
+            if self._memo.name_matches(node.left, *anytype_names):
+                return node.left
+            elif self._memo.name_matches(node.right, *anytype_names):
+                return node.right
 
             if sys.version_info < (3, 10):
                 union_name = self.transformer._get_import("typing", "Union")

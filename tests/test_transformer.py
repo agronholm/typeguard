@@ -398,6 +398,35 @@ def test_any_in_pep_604_union() -> None:
     )
 
 
+def test_any_in_nested_dict() -> None:
+    # Regression test for #373
+    node = parse(
+        dedent(
+            """
+            from typing import Any
+
+            def foo(x: dict[str, dict[str, Any]]) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_argument_types
+            from typing import Any
+
+            def foo(x: dict[str, dict[str, Any]]) -> None:
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'x': (x, dict[str, dict[str, Any]])}, memo)
+            """
+        ).strip()
+    )
+
+
 def test_avoid_global_names() -> None:
     node = parse(
         dedent(
