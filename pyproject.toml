@@ -44,8 +44,7 @@ test = [
 ]
 doc = [
     "packaging",
-    "Sphinx < 7",
-    "sphinx_rtd_theme",
+    "Sphinx >= 7",
     "sphinx-autodoc-typehints >= 1.2.0",
 ]
 
