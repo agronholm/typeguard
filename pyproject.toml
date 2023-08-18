@@ -38,6 +38,7 @@ Documentation = "https://typeguard.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
 test = [
+    "coverage[toml] >= 7",
     "pytest >= 7",
     'mypy >= 1.2.0; python_implementation != "PyPy"',
 ]
@@ -101,9 +102,11 @@ minversion = 4.0
 
 [testenv]
 extras = test
-commands = python -m pytest {posargs}
+commands = coverage run -p -m pytest {posargs}
+package = editable
 
 [testenv:docs]
 extras = doc
+package = editable
 commands = sphinx-build -W -n docs build/sphinx
 """
