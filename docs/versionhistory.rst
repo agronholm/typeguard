@@ -3,6 +3,10 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Dropped Python 3.7 support
+
 **4.1.2** (2023-08-18)
 
 - Fixed ``Any`` being removed from a subscript that still contains other elements

@@ -339,11 +339,7 @@ def check_tuple(
     memo: TypeCheckMemo,
 ) -> None:
     # Specialized check for NamedTuples
-    field_types = getattr(origin_type, "__annotations__", None)
-    if field_types is None and sys.version_info < (3, 8):
-        field_types = getattr(origin_type, "_field_types", None)
-
-    if field_types:
+    if field_types := getattr(origin_type, "__annotations__", None):
         if not isinstance(value, origin_type):
             raise TypeCheckError(
                 f"is not a named tuple of type {qualified_name(origin_type)}"
@@ -361,7 +357,6 @@ def check_tuple(
         raise TypeCheckError("is not a tuple")
 
     if args:
-        # Python 3.6+
         use_ellipsis = args[-1] is Ellipsis
         tuple_params = args[: -1 if use_ellipsis else None]
     else:
@@ -444,7 +439,6 @@ def check_class(
     if not isclass(value):
         raise TypeCheckError("is not a class")
 
-    # Needed on Python 3.7+
     if not args:
         return
 
@@ -531,21 +525,15 @@ def check_typevar(
             )
 
 
-if sys.version_info >= (3, 8):
-    if typing_extensions is None:
+if typing_extensions is None:
 
-        def _is_literal_type(typ: object) -> bool:
-            return typ is typing.Literal
-
-    else:
-
-        def _is_literal_type(typ: object) -> bool:
-            return typ is typing.Literal or typ is typing_extensions.Literal
+    def _is_literal_type(typ: object) -> bool:
+        return typ is typing.Literal
 
 else:
 
     def _is_literal_type(typ: object) -> bool:
-        return typ is typing_extensions.Literal
+        return typ is typing.Literal or typ is typing_extensions.Literal
 
 
 def check_literal(
@@ -558,7 +546,6 @@ def check_literal(
         retval: list[Any] = []
         for arg in literal_args:
             if _is_literal_type(get_origin(arg)):
-                # The first check works on py3.6 and lower, the second one on py3.7+
                 retval.extend(get_literal_args(arg.__args__))
             elif arg is None or isinstance(arg, (int, str, bytes, bool, Enum)):
                 retval.append(arg)
@@ -801,6 +788,7 @@ origin_type_checkers = {
     IO: check_io,
     list: check_list,
     List: check_list,
+    typing.Literal: check_literal,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
@@ -818,8 +806,6 @@ origin_type_checkers = {
     Type: check_class,
     Union: check_union,
 }
-if sys.version_info >= (3, 8):
-    origin_type_checkers[typing.Literal] = check_literal
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
     origin_type_checkers[typing.TypeGuard] = check_typeguard

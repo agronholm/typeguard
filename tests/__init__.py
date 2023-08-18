@@ -1,4 +1,3 @@
-import sys
 from typing import (
     AbstractSet,
     Collection,
@@ -7,14 +6,11 @@ from typing import (
     List,
     NamedTuple,
     NewType,
+    Protocol,
     TypeVar,
     Union,
+    runtime_checkable,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol, runtime_checkable
-else:
-    from typing_extensions import Protocol, runtime_checkable
 
 T_Foo = TypeVar("T_Foo")
 

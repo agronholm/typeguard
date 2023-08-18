@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Generator,
     List,
+    Literal,
     Sequence,
     Tuple,
     Type,
@@ -19,22 +20,17 @@ from typing import (
     overload,
 )
 
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec
-else:
-    from typing_extensions import ParamSpec
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 from typeguard import (
     CollectionCheckStrategy,
     ForwardRefPolicy,
     typechecked,
     typeguard_ignore,
 )
+
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from nonexistent import Imaginary

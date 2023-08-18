@@ -5,7 +5,7 @@ import sys
 from importlib import import_module
 from inspect import currentframe
 from types import CodeType, FrameType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union, cast, final
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -45,12 +45,6 @@ else:
                 )
 
             raise
-
-
-if sys.version_info >= (3, 8):
-    from typing import final
-else:
-    from typing_extensions import final
 
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()

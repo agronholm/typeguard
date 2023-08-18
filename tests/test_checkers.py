@@ -18,6 +18,7 @@ from typing import (
     FrozenSet,
     Iterator,
     List,
+    Literal,
     Mapping,
     MutableMapping,
     Optional,
@@ -26,6 +27,7 @@ from typing import (
     TextIO,
     Tuple,
     Type,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -76,11 +78,6 @@ if sys.version_info >= (3, 9):
     from typing import Annotated
 else:
     from typing_extensions import Annotated
-
-if sys.version_info >= (3, 8):
-    from typing import Literal, TypedDict
-else:
-    from typing_extensions import Literal, TypedDict
 
 P = ParamSpec("P")
 

@@ -37,6 +37,7 @@ from ast import (
     Module,
     Mult,
     Name,
+    NamedExpr,
     NodeTransformer,
     NodeVisitor,
     Pass,
@@ -45,7 +46,6 @@ from ast import (
     RShift,
     Starred,
     Store,
-    Str,
     Sub,
     Subscript,
     Tuple,
@@ -64,9 +64,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, cast, overload
-
-if sys.version_info >= (3, 8):
-    from ast import NamedExpr
 
 generator_names = (
     "typing.Generator",
@@ -159,13 +156,12 @@ class TransformMemo:
                 if isinstance(child, ImportFrom) and child.module == "__future__":
                     # (module only) __future__ imports must come first
                     continue
-                elif isinstance(child, Expr):
-                    if isinstance(child.value, Constant) and isinstance(
-                        child.value.value, str
-                    ):
-                        continue  # docstring
-                    elif sys.version_info < (3, 8) and isinstance(child.value, Str):
-                        continue  # docstring
+                elif (
+                    isinstance(child, Expr)
+                    and isinstance(child.value, Constant)
+                    and isinstance(child.value.value, str)
+                ):
+                    continue  # docstring
 
                 self.code_inject_index = index
                 break
@@ -411,7 +407,7 @@ class AnnotationTransformer(NodeTransformer):
         # don't try to evaluate it as code
         if node.slice:
             if isinstance(node.slice, Index):
-                # Python 3.7 and 3.8
+                # Python 3.8
                 slice_value = node.slice.value  # type: ignore[attr-defined]
             else:
                 slice_value = node.slice
@@ -490,15 +486,6 @@ class AnnotationTransformer(NodeTransformer):
                 return None
 
         return node
-
-    def visit_Str(self, node: Str) -> Any:
-        # Only used on Python 3.7
-        expression = ast.parse(node.s, mode="eval")
-        new_node = self.visit(expression)
-        if new_node:
-            return copy_location(new_node.body, node)
-        else:
-            return None
 
 
 class TypeguardTransformer(NodeTransformer):
@@ -705,14 +692,12 @@ class TypeguardTransformer(NodeTransformer):
                 if self.target_lineno == first_lineno:
                     assert self.target_node is None
                     self.target_node = node
-                    if node.decorator_list and sys.version_info >= (3, 8):
+                    if node.decorator_list:
                         self.target_lineno = node.decorator_list[0].lineno
                     else:
                         self.target_lineno = node.lineno
 
-                all_args = node.args.args + node.args.kwonlyargs
-                if sys.version_info >= (3, 8):
-                    all_args.extend(node.args.posonlyargs)
+                all_args = node.args.args + node.args.kwonlyargs + node.args.posonlyargs
 
                 # Ensure that any type shadowed by the positional or keyword-only
                 # argument names are ignored in this function
