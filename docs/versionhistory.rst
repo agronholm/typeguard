@@ -9,6 +9,8 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
   when any block was left empty by the AST transformer (eg `if` or `try` / `except` blocks)
   (`#352 <https://github.com/agronholm/typeguard/issues/352>`_)
+- Fixed placement of injected typeguard imports with respect to ``__future__`` imports and module
+  docstrings (`#385 <https://github.com/agronholm/typeguard/issues/385>`_)
 
 **4.1.2** (2023-08-18)
 

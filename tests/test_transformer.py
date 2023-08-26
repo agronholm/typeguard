@@ -1624,3 +1624,34 @@ def test_respect_docstring() -> None:
             '''
         ).strip()
     )
+
+
+def test_respect_future_import() -> None:
+    # Regression test for #385
+    node = parse(
+        dedent(
+            '''
+            """module docstring"""
+            from __future__ import annotations
+
+            def foo() -> int:
+                return 1
+            '''
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            '''
+            """module docstring"""
+            from __future__ import annotations
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_return_type
+
+            def foo() -> int:
+                memo = TypeCheckMemo(globals(), locals())
+                return check_return_type('foo', 1, int, memo)
+            '''
+        ).strip()
+    )
