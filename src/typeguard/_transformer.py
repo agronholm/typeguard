@@ -55,6 +55,7 @@ from ast import (
     copy_location,
     expr,
     fix_missing_locations,
+    iter_fields,
     keyword,
     walk,
 )
@@ -64,6 +65,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, cast, overload
+from typing_extensions import override
 
 generator_names = (
     "typing.Generator",
@@ -365,6 +367,7 @@ class AnnotationTransformer(NodeTransformer):
 
         return new_node
 
+    @override
     def generic_visit(self, node: AST) -> AST:
         if isinstance(node, expr) and self._memo.name_matches(node, *literal_names):
             return node
@@ -497,6 +500,22 @@ class TypeguardTransformer(NodeTransformer):
         self.names_used_in_annotations: set[str] = set()
         self.target_node: FunctionDef | AsyncFunctionDef | None = None
         self.target_lineno = target_lineno
+
+    @override
+    def generic_visit(self, node: AST) -> AST:
+        non_empty_list_fields = []
+        for field_name, val in iter_fields(node):
+            if isinstance(val, list) and len(val) > 0:
+                non_empty_list_fields.append(field_name)
+
+        node = super().generic_visit(node)
+
+        # Add `pass` to list fields that were optimised away
+        for field_name in non_empty_list_fields:
+            if not hasattr(node, field_name) or not getattr(node, field_name):
+                setattr(node, field_name, [Pass()])
+
+        return node
 
     @contextmanager
     def _use_memo(
@@ -1174,11 +1193,6 @@ class TypeguardTransformer(NodeTransformer):
 
         """
         self.generic_visit(node)
-
-        # Fix empty node body (caused by removal of classes/functions not on the target
-        # path)
-        if not node.body:
-            node.body.append(Pass())
 
         if (
             self._memo is self._module_memo

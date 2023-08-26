@@ -1523,6 +1523,53 @@ def test_dont_leave_empty_ast_container_nodes() -> None:
     )
 
 
+def test_dont_leave_empty_ast_container_nodes_2() -> None:
+    # Regression test for #352
+    node = parse(
+        dedent(
+            """
+            try:
+
+                class A:
+                    ...
+
+                def func():
+                    ...
+
+            except:
+
+                class A:
+                    ...
+
+                def func():
+                    ...
+
+
+            def foo(x: str) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer(["foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            try:
+                pass
+            except:
+                pass
+
+            def foo(x: str) -> None:
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'x': (x, str)}, memo)
+            """
+        ).strip()
+    )
+
+
 def test_dont_parse_annotated_2nd_arg() -> None:
     # Regression test for #352
     node = parse(

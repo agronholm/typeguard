@@ -7,10 +7,14 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Dropped Python 3.7 support
 
+- Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
+  when any block was left empty by the AST transformer (eg `if` or `try` / `except` blocks)
+  (`#352 <https://github.com/agronholm/typeguard/issues/352>`_)
+
 **4.1.2** (2023-08-18)
 
 - Fixed ``Any`` being removed from a subscript that still contains other elements
-  (`#373 <https://github.com/agronholm/typeguard/issues/373>`_
+  (`#373 <https://github.com/agronholm/typeguard/issues/373>`_)
 
 **4.1.1** (2023-08-16)
 
@@ -21,7 +25,7 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Added support for passing a tuple as ``expected_type`` to ``check_type()``, making it
   more of a drop-in replacement for ``isinstance()``
-  (`#371 <https://github.com/agronholm/typeguard/issues/371>`_
+  (`#371 <https://github.com/agronholm/typeguard/issues/371>`_)
 - Fixed regression where ``Literal`` inside a ``Union`` had quotes stripped from its
   contents, thus typically causing ``NameError`` to be raised when run
   (`#372 <https://github.com/agronholm/typeguard/issues/372>`_)
