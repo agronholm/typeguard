@@ -57,6 +57,7 @@ from ast import (
     fix_missing_locations,
     iter_fields,
     keyword,
+    stmt,
     walk,
 )
 from collections import defaultdict
@@ -153,19 +154,9 @@ class TransformMemo:
 
         # Figure out where to insert instrumentation code
         if self.node:
-            for index, child in enumerate(self.node.body):
-                if isinstance(child, ImportFrom) and child.module == "__future__":
-                    # (module only) __future__ imports must come first
-                    continue
-                elif (
-                    isinstance(child, Expr)
-                    and isinstance(child.value, Constant)
-                    and isinstance(child.value.value, str)
-                ):
-                    continue  # docstring
-
-                self.code_inject_index = index
-                break
+            self.code_inject_index = TransformMemo._get_code_inject_index(
+                self.node.body
+            )
 
     def get_unused_name(self, name: str) -> str:
         memo: TransformMemo | None = self
@@ -232,7 +223,8 @@ class TransformMemo:
                 alias(orig_name, new_name.id if orig_name != new_name.id else None)
                 for orig_name, new_name in sorted(names.items())
             ]
-            node.body.insert(self.code_inject_index, ImportFrom(modulename, aliases, 0))
+            inject_index = TransformMemo._get_code_inject_index(node.body)
+            node.body.insert(inject_index, ImportFrom(modulename, aliases, 0))
 
     def name_matches(self, expression: expr | Expr | None, *names: str) -> bool:
         if expression is None:
@@ -279,6 +271,22 @@ class TransformMemo:
 
         overrides.update(self.configuration_overrides)
         return [keyword(key, value) for key, value in overrides.items()]
+
+    @staticmethod
+    def _get_code_inject_index(stmts: list[stmt]) -> int:
+        for index, child in enumerate(stmts):
+            if isinstance(child, ImportFrom) and child.module == "__future__":
+                # (module only) __future__ imports must come first
+                continue
+            elif (
+                isinstance(child, Expr)
+                and isinstance(child.value, Constant)
+                and isinstance(child.value.value, str)
+            ):
+                continue  # docstring
+
+            return index
+        return len(stmts)
 
 
 class NameCollector(NodeVisitor):

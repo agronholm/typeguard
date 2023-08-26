@@ -1487,6 +1487,35 @@ def test_local_named_expr_typename_conflicts() -> None:
     )
 
 
+def test_respect_future_import() -> None:
+    # Regression test for #385
+    node = parse(
+        dedent(
+            """
+            from __future__ import annotations
+
+            def foo() -> int:
+                return 1
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from __future__ import annotations
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_return_type
+
+            def foo() -> int:
+                memo = TypeCheckMemo(globals(), locals())
+                return check_return_type('foo', 1, int, memo)
+            """
+        ).strip()
+    )
+
+
 def test_dont_leave_empty_ast_container_nodes() -> None:
     # Regression test for #352
     node = parse(
