@@ -6,7 +6,6 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 **UNRELEASED**
 
 - Dropped Python 3.7 support
-
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
   when any block was left empty by the AST transformer (eg `if` or `try` / `except` blocks)
   (`#352 <https://github.com/agronholm/typeguard/issues/352>`_)
