@@ -66,8 +66,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, cast, overload
 
-from typing_extensions import override
-
 generator_names = (
     "typing.Generator",
     "collections.abc.Generator",
@@ -368,7 +366,6 @@ class AnnotationTransformer(NodeTransformer):
 
         return new_node
 
-    @override
     def generic_visit(self, node: AST) -> AST:
         if isinstance(node, expr) and self._memo.name_matches(node, *literal_names):
             return node
@@ -502,7 +499,6 @@ class TypeguardTransformer(NodeTransformer):
         self.target_node: FunctionDef | AsyncFunctionDef | None = None
         self.target_lineno = target_lineno
 
-    @override
     def generic_visit(self, node: AST) -> AST:
         non_empty_list_fields = []
         for field_name, val in iter_fields(node):
