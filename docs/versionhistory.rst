@@ -3,7 +3,7 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.1.3** (2023-08-27)
 
 - Dropped Python 3.7 support
 - Fixed ``@typechecked`` optimization causing compilation of instrumented code to fail
