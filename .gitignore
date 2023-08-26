@@ -3,7 +3,7 @@
 .idea
 .tox
 .coverage
-**/.coverage.*
+.coverage*
 .cache
 .eggs/
 *.egg-info/
