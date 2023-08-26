@@ -509,7 +509,7 @@ class TypeguardTransformer(NodeTransformer):
 
         # Add `pass` to list fields that were optimised away
         for field_name in non_empty_list_fields:
-            if not hasattr(node, field_name) or not getattr(node, field_name):
+            if not getattr(node, field_name, None):
                 setattr(node, field_name, [Pass()])
 
         return node
