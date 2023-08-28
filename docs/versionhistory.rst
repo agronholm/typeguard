@@ -3,6 +3,11 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**unreleased**
+
+- Fixed handling of `BinOp` nodes with missing branches in AnnotationTransformer
+  (`#384 <https://github.com/agronholm/typeguard/issues/384>`_)
+
 **4.1.3** (2023-08-27)
 
 - Dropped Python 3.7 support
