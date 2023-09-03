@@ -380,9 +380,9 @@ class AnnotationTransformer(NodeTransformer):
             # If this happens, treat the BinOp as just the other branch.
             if not hasattr(node, "left") and not hasattr(node, "right"):
                 return None
-            if not hasattr(node, "left"):
+            elif not hasattr(node, "left"):
                 return node.right
-            if not hasattr(node, "right"):
+            elif not hasattr(node, "right"):
                 return node.left
 
             # Return Any if either side is Any

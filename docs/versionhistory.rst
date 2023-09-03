@@ -3,9 +3,9 @@ Version history
 
 This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**unreleased**
+**UNRELEASED**
 
-- Fixed handling of `BinOp` nodes with missing branches in AnnotationTransformer
+- Fixed ``AttributeError`` where the transformer removed elements from a PEP 604 union
   (`#384 <https://github.com/agronholm/typeguard/issues/384>`_)
 
 **4.1.3** (2023-08-27)
