@@ -55,7 +55,6 @@ from ast import (
     copy_location,
     expr,
     fix_missing_locations,
-    iter_fields,
     keyword,
     walk,
 )
@@ -510,17 +509,20 @@ class TypeguardTransformer(NodeTransformer):
         self.target_lineno = target_lineno
 
     def generic_visit(self, node: AST) -> AST:
-        non_empty_list_fields = []
-        for field_name, val in iter_fields(node):
-            if isinstance(val, list) and len(val) > 0:
-                non_empty_list_fields.append(field_name)
+        has_non_empty_body_initially = bool(getattr(node, "body", None))
+        initial_type = type(node)
 
         node = super().generic_visit(node)
 
-        # Add `pass` to list fields that were optimised away
-        for field_name in non_empty_list_fields:
-            if not getattr(node, field_name, None):
-                setattr(node, field_name, [Pass()])
+        if (
+            type(node) is initial_type
+            and has_non_empty_body_initially
+            and hasattr(node, "body")
+            and not node.body
+        ):
+            # If we have still the same node type after transformation
+            # but we've optimised it's body away, we add a `pass` statement.
+            node.body = [Pass()]
 
         return node
 
