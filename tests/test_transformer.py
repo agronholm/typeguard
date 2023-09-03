@@ -1570,6 +1570,37 @@ def test_dont_leave_empty_ast_container_nodes_2() -> None:
     )
 
 
+def test_union_annotation_with_or_operator() -> None:
+    node = parse(
+        dedent(
+            """
+            from __future__ import annotations
+
+            class A:
+                ...
+
+            def foo(A: A | None) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer(["foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from __future__ import annotations
+
+            def foo(A: A | None) -> None:
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'A': (A, None)}, memo)
+            """
+        ).strip()
+    )
+
+
 def test_dont_parse_annotated_2nd_arg() -> None:
     # Regression test for #352
     node = parse(
