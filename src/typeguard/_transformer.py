@@ -428,13 +428,12 @@ class AnnotationTransformer(NodeTransformer):
                     # forward reference
                     items = cast(
                         typing.List[expr],
-                        [self.generic_visit(slice_value.elts[0])]
-                        + slice_value.elts[1:],
+                        [self.visit(slice_value.elts[0])] + slice_value.elts[1:],
                     )
                 else:
                     items = cast(
                         typing.List[expr],
-                        [self.generic_visit(item) for item in slice_value.elts],
+                        [self.visit(item) for item in slice_value.elts],
                     )
 
                 # If this is a Union and any of the items is Any, erase the entire

@@ -987,7 +987,6 @@ typing.Collection, Sequence]:
             dedent(
                 """
                 from typing import Any, Optional, TYPE_CHECKING
-                from collections.abc import Generator
                 if TYPE_CHECKING:
                     from typing import Hashable
 
@@ -1002,12 +1001,43 @@ typing.Collection, Sequence]:
             == dedent(
                 """
                 from typing import Any, Optional, TYPE_CHECKING
-                from collections.abc import Generator
                 if TYPE_CHECKING:
                     from typing import Hashable
 
                 def foo(x: Optional[Hashable]) -> Optional[Hashable]:
                     return x
+                """
+            ).strip()
+        )
+
+    def test_union(self) -> None:
+        # Regression test for #397
+        node = parse(
+            dedent(
+                """
+                from typing import Any, Iterable, Union, TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Union[Iterable[Hashable], str]) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                from typing import Any, Iterable, Union, TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Union[Iterable[Hashable], str]) -> None:
+                    memo = TypeCheckMemo(globals(), locals())
+                    check_argument_types('foo', {'x': (x, Union[Iterable, str])}, memo)
                 """
             ).strip()
         )

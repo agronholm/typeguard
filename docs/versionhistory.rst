@@ -7,6 +7,10 @@ This library adheres to `Semantic Versioning 2.0 <https://semver.org/#semantic-v
 
 - Fixed ``AttributeError`` where the transformer removed elements from a PEP 604 union
   (`#384 <https://github.com/agronholm/typeguard/issues/384>`_)
+- Fixed ``AttributeError: 'Subscript' object has no attribute 'slice'`` when
+  encountering an annotation with a subscript containing an ignored type (imported
+  within an ``if TYPE_CHECKING:`` block)
+  (`#397 <https://github.com/agronholm/typeguard/issues/397>`_)
 
 **4.1.3** (2023-08-27)
 
