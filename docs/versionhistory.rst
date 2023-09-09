@@ -12,6 +12,11 @@ This library adheres to
   encountering an annotation with a subscript containing an ignored type (imported
   within an ``if TYPE_CHECKING:`` block)
   (`#397 <https://github.com/agronholm/typeguard/issues/397>`_)
+- Fixed type checking not being skipped when the target is a union (PEP 604 or
+  ``typing.Union``) where one of the elements is an ignored type (shadowed by an
+  argument, variable assignment or an ``if TYPE_CHECKING`` import)
+  (`#394 <https://github.com/agronholm/typeguard/issues/394>`_,
+  `#395 <https://github.com/agronholm/typeguard/issues/395>`_)
 
 **4.1.3** (2023-08-27)
 

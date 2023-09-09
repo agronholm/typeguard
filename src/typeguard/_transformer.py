@@ -375,15 +375,11 @@ class AnnotationTransformer(NodeTransformer):
         self.generic_visit(node)
 
         if isinstance(node.op, BitOr):
-            # If either branch of the BinOp has been transformed to `None`
-            # then the `ast.generic_visit` will eliminate that branch completely.
-            # If this happens, treat the BinOp as just the other branch.
-            if not hasattr(node, "left") and not hasattr(node, "right"):
+            # If either branch of the BinOp has been transformed to `None`, it means
+            # that a type in the union was ignored, so the entire annotation should e
+            # ignored
+            if not hasattr(node, "left") or not hasattr(node, "right"):
                 return None
-            elif not hasattr(node, "left"):
-                return node.right
-            elif not hasattr(node, "right"):
-                return node.left
 
             # Return Any if either side is Any
             if self._memo.name_matches(node.left, *anytype_names):
@@ -439,8 +435,11 @@ class AnnotationTransformer(NodeTransformer):
                 # If this is a Union and any of the items is Any, erase the entire
                 # annotation
                 if self._memo.name_matches(node.value, "typing.Union") and any(
-                    isinstance(item, expr)
-                    and self._memo.name_matches(item, *anytype_names)
+                    item is None
+                    or (
+                        isinstance(item, expr)
+                        and self._memo.name_matches(item, *anytype_names)
+                    )
                     for item in items
                 ):
                     return None

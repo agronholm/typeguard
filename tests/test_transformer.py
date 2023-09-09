@@ -1010,7 +1010,7 @@ typing.Collection, Sequence]:
             ).strip()
         )
 
-    def test_union(self) -> None:
+    def test_subscript_within_union(self) -> None:
         # Regression test for #397
         node = parse(
             dedent(
@@ -1038,6 +1038,34 @@ typing.Collection, Sequence]:
                 def foo(x: Union[Iterable[Hashable], str]) -> None:
                     memo = TypeCheckMemo(globals(), locals())
                     check_argument_types('foo', {'x': (x, Union[Iterable, str])}, memo)
+                """
+            ).strip()
+        )
+
+    def test_pep604_union(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Hashable | str) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    from typing import Hashable
+
+                def foo(x: Hashable | str) -> None:
+                    pass
                 """
             ).strip()
         )
@@ -1600,35 +1628,64 @@ def test_dont_leave_empty_ast_container_nodes_2() -> None:
     )
 
 
-def test_union_annotation_with_or_operator() -> None:
-    node = parse(
-        dedent(
-            """
-            from __future__ import annotations
+class TestTypeShadowedByArgument:
+    def test_typing_union(self) -> None:
+        # Regression test for #394
+        node = parse(
+            dedent(
+                """
+                from __future__ import annotations
+                from typing import Union
 
-            class A:
-                ...
+                class A:
+                    ...
 
-            def foo(A: A | None) -> None:
-                pass
-            """
+                def foo(A: Union[A, None]) -> None:
+                    pass
+                """
+            )
         )
-    )
-    TypeguardTransformer(["foo"]).visit(node)
-    assert (
-        unparse(node)
-        == dedent(
-            """
-            from __future__ import annotations
+        TypeguardTransformer(["foo"]).visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from __future__ import annotations
+                from typing import Union
 
-            def foo(A: A | None) -> None:
-                from typeguard import TypeCheckMemo
-                from typeguard._functions import check_argument_types
-                memo = TypeCheckMemo(globals(), locals())
-                check_argument_types('foo', {'A': (A, None)}, memo)
-            """
-        ).strip()
-    )
+                def foo(A: Union[A, None]) -> None:
+                    pass
+                """
+            ).strip()
+        )
+
+    def test_pep604_union(self) -> None:
+        # Regression test for #395
+        node = parse(
+            dedent(
+                """
+                from __future__ import annotations
+
+                class A:
+                    ...
+
+                def foo(A: A | None) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer(["foo"]).visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from __future__ import annotations
+
+                def foo(A: A | None) -> None:
+                    pass
+                """
+            ).strip()
+        )
 
 
 def test_dont_parse_annotated_2nd_arg() -> None:
