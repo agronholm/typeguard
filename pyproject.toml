@@ -102,7 +102,7 @@ minversion = 4.0
 
 [testenv]
 extras = test
-commands = coverage run -p -m pytest {posargs}
+commands = coverage run -m pytest {posargs}
 package = editable
 
 [testenv:docs]
