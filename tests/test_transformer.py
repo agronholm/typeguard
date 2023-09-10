@@ -645,6 +645,7 @@ def test_new_with_self() -> None:
             class Foo:
 
                 def __new__(cls) -> Self:
+                    Foo = cls
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
                     return check_return_type('Foo.__new__', super().__new__(cls), \
 Self, memo)
@@ -661,8 +662,7 @@ def test_new_with_explicit_class_name() -> None:
             class A:
 
                 def __new__(cls) -> 'A':
-                    obj: A = object.__new__(cls)
-                    return obj
+                    return object.__new__(cls)
             """
         )
     )
@@ -672,17 +672,14 @@ def test_new_with_explicit_class_name() -> None:
         == dedent(
             """
             from typeguard import TypeCheckMemo
-            from typeguard._functions import check_return_type, \
-check_variable_assignment
+            from typeguard._functions import check_return_type
 
             class A:
 
                 def __new__(cls) -> 'A':
                     A = cls
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
-                    obj: A = check_variable_assignment(object.__new__(cls), 'obj', A, \
-memo)
-                    return check_return_type('A.__new__', obj, A, memo)
+                    return check_return_type('A.__new__', object.__new__(cls), A, memo)
             """
         ).strip()
     )

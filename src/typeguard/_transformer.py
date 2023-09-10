@@ -930,7 +930,6 @@ class TypeguardTransformer(NodeTransformer):
                     and self._memo.parent is not None
                     and isinstance(self._memo.parent.node, ClassDef)
                     and node.name == "__new__"
-                    and self._memo.parent.node.name in self._memo.local_names
                 ):
                     first_args_expr = Name(node.args.args[0].arg, ctx=Load())
                     cls_name = Name(self._memo.parent.node.name, ctx=Store())
