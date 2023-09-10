@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.1.4** (2023-09-10)
 
 - Fixed ``AttributeError`` where the transformer removed elements from a PEP 604 union
   (`#384 <https://github.com/agronholm/typeguard/issues/384>`_)
