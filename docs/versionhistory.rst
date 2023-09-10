@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``Callable`` erroneously rejecting a callable that has the requested amount of
+  positional arguments but they have defaults
+  (`#400 <https://github.com/agronholm/typeguard/issues/400>`_)
+
 **4.1.4** (2023-09-10)
 
 - Fixed ``AttributeError`` where the transformer removed elements from a PEP 604 union

@@ -180,8 +180,8 @@ class TestCallable:
         pytest.raises(
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(
-            r"has too many arguments in its declaration; expected 2 but 3 "
-            r"argument\(s\) declared"
+            r"has too many mandatory positional arguments in its declaration; expected "
+            r"2 but 3 mandatory positional argument\(s\) declared"
         )
 
     def test_mandatory_kwonlyargs(self):
@@ -263,6 +263,12 @@ class TestCallable:
     def test_concatenate(self):
         """Test that ``Concatenate`` in the arglist is ignored."""
         check_type([].append, Callable[Concatenate[object, P], Any])
+
+    def test_positional_only_arg_with_default(self):
+        def some_callable(x: int = 1, /) -> None:
+            pass
+
+        check_type(some_callable, Callable[[int], Any])
 
 
 class TestLiteral:
