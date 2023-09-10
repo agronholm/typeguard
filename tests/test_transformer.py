@@ -621,7 +621,7 @@ check_return_type
     )
 
 
-def test_new() -> None:
+def test_new_with_self() -> None:
     node = parse(
         dedent(
             """
@@ -648,6 +648,41 @@ def test_new() -> None:
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
                     return check_return_type('Foo.__new__', super().__new__(cls), \
 Self, memo)
+            """
+        ).strip()
+    )
+
+
+def test_new_with_explicit_class_name() -> None:
+    # Regression test for #398
+    node = parse(
+        dedent(
+            """
+            class A:
+
+                def __new__(cls) -> 'A':
+                    obj: A = object.__new__(cls)
+                    return obj
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_return_type, \
+check_variable_assignment
+
+            class A:
+
+                def __new__(cls) -> 'A':
+                    A = cls
+                    memo = TypeCheckMemo(globals(), locals(), self_type=cls)
+                    obj: A = check_variable_assignment(object.__new__(cls), 'obj', A, \
+memo)
+                    return check_return_type('A.__new__', obj, A, memo)
             """
         ).strip()
     )

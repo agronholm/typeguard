@@ -17,6 +17,9 @@ This library adheres to
   argument, variable assignment or an ``if TYPE_CHECKING`` import)
   (`#394 <https://github.com/agronholm/typeguard/issues/394>`_,
   `#395 <https://github.com/agronholm/typeguard/issues/395>`_)
+- Fixed type checking of class instances created in ``__new__()`` in cases such as enums
+  where this method is already invoked before the class has finished initializing
+  (`#398 <https://github.com/agronholm/typeguard/issues/398>`_)
 
 **4.1.3** (2023-08-27)
 

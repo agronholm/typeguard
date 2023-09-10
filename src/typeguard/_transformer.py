@@ -529,6 +529,9 @@ class TypeguardTransformer(NodeTransformer):
         self, node: ClassDef | FunctionDef | AsyncFunctionDef
     ) -> Generator[None, Any, None]:
         new_memo = TransformMemo(node, self._memo, self._memo.path + (node.name,))
+        old_memo = self._memo
+        self._memo = new_memo
+
         if isinstance(node, (FunctionDef, AsyncFunctionDef)):
             new_memo.should_instrument = (
                 self._target_path is None or new_memo.path == self._target_path
@@ -580,8 +583,6 @@ class TypeguardTransformer(NodeTransformer):
         if isinstance(node, AsyncFunctionDef):
             new_memo.is_async = True
 
-        old_memo = self._memo
-        self._memo = new_memo
         yield
         self._memo = old_memo
 
@@ -920,6 +921,23 @@ class TypeguardTransformer(NodeTransformer):
                 )
 
                 self._memo.insert_imports(node)
+
+                # Special case the __new__() method to create a local alias from the
+                # class name to the first argument (usually "cls")
+                if (
+                    isinstance(node, FunctionDef)
+                    and node.args
+                    and self._memo.parent is not None
+                    and isinstance(self._memo.parent.node, ClassDef)
+                    and node.name == "__new__"
+                    and self._memo.parent.node.name in self._memo.local_names
+                ):
+                    first_args_expr = Name(node.args.args[0].arg, ctx=Load())
+                    cls_name = Name(self._memo.parent.node.name, ctx=Store())
+                    node.body.insert(
+                        self._memo.code_inject_index,
+                        Assign([cls_name], first_args_expr),
+                    )
 
                 # Rmove any placeholder "pass" at the end
                 if isinstance(node.body[-1], Pass):
