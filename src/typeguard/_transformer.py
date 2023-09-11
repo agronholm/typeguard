@@ -348,6 +348,10 @@ class AnnotationTransformer(NodeTransformer):
         self._level = 0
 
     def visit(self, node: AST) -> Any:
+        # Don't process Literals
+        if isinstance(node, expr) and self._memo.name_matches(node, *literal_names):
+            return node
+
         self._level += 1
         new_node = super().visit(node)
         self._level -= 1
@@ -364,12 +368,6 @@ class AnnotationTransformer(NodeTransformer):
             return None
 
         return new_node
-
-    def generic_visit(self, node: AST) -> AST:
-        if isinstance(node, expr) and self._memo.name_matches(node, *literal_names):
-            return node
-
-        return super().generic_visit(node)
 
     def visit_BinOp(self, node: BinOp) -> Any:
         self.generic_visit(node)

@@ -1805,3 +1805,32 @@ def test_respect_future_import() -> None:
             '''
         ).strip()
     )
+
+
+def test_literal() -> None:
+    # Regression test for #399
+    node = parse(
+        dedent(
+            """
+            from typing import Literal
+
+            def foo(x: Literal['a', 'b']) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_argument_types
+            from typing import Literal
+
+            def foo(x: Literal['a', 'b']) -> None:
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types('foo', {'x': (x, Literal['a', 'b'])}, memo)
+            """
+        ).strip()
+    )

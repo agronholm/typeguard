@@ -9,6 +9,9 @@ This library adheres to
 - Fixed ``Callable`` erroneously rejecting a callable that has the requested amount of
   positional arguments but they have defaults
   (`#400 <https://github.com/agronholm/typeguard/issues/400>`_)
+- Fixed a regression introduced in v4.1.4 where the elements of ``Literal`` got quotes
+  removed from them by the AST transformer
+  (`#399 <https://github.com/agronholm/typeguard/issues/399>`_)
 
 **4.1.4** (2023-09-10)
 
