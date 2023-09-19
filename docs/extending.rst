@@ -7,7 +7,7 @@ Adding new type checkers
 ------------------------
 
 The range of types supported by Typeguard can be extended by writing a
-**type checker lookup funvtion** and one or more **type checker functions**. The former
+**type checker lookup function** and one or more **type checker functions**. The former
 will return one of the latter, or ``None`` if the given value does not match any of your
 custom type checker functions.
 
