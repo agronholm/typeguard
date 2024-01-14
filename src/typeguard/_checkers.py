@@ -406,9 +406,7 @@ def check_union(
         "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
     )
     del errors
-    raise TypeCheckError(
-        f"did not match any element in the union:\n{formatted_errors}"
-    )
+    raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 
 def check_uniontype(

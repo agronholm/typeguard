@@ -770,13 +770,14 @@ class TestUnion:
 
     def test_union_reference_leak(self):
         leaked = True
+
         class Leak:
             def __del__(self):
                 nonlocal leaked
                 leaked = False
 
         def inner():
-            leak = Leak()
+            leak = Leak()  # noqa: F841
             with pytest.raises(TypeCheckError, match="any element in the union:"):
                 check_type(1, Union[str, bytes])
 
