@@ -405,7 +405,7 @@ def check_union(
     formatted_errors = indent(
         "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
     )
-    del errors
+    del errors  # avoid creating ref cycle
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 
