@@ -768,6 +768,21 @@ class TestUnion:
             f"  int: is not an instance of int"
         )
 
+    def test_union_reference_leak(self):
+        leaked = True
+        class Leak:
+            def __del__(self):
+                nonlocal leaked
+                leaked = False
+
+        def inner():
+            leak = Leak()
+            with pytest.raises(TypeCheckError, match="any element in the union:"):
+                check_type(1, Union[str, bytes])
+
+        inner()
+        assert not leaked
+
 
 class TestTypevar:
     def test_bound(self):

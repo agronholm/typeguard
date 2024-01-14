@@ -405,12 +405,10 @@ def check_union(
     formatted_errors = indent(
         "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
     )
-    try:
-        raise TypeCheckError(
-            f"did not match any element in the union:\n{formatted_errors}"
-        )
-    finally:
-        del errors
+    del errors
+    raise TypeCheckError(
+        f"did not match any element in the union:\n{formatted_errors}"
+    )
 
 
 def check_uniontype(
