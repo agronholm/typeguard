@@ -768,6 +768,10 @@ class TestUnion:
             f"  int: is not an instance of int"
         )
 
+    @pytest.mark.skipif(
+        sys.implementation.name != "cpython",
+        reason="Test relies on CPython's reference counting behavior",
+    )
     def test_union_reference_leak(self):
         leaked = True
 
