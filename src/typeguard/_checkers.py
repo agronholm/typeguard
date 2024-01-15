@@ -395,17 +395,19 @@ def check_union(
     memo: TypeCheckMemo,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
-    for type_ in args:
-        try:
-            check_type_internal(value, type_, memo)
-            return
-        except TypeCheckError as exc:
-            errors[get_type_name(type_)] = exc
+    try:
+        for type_ in args:
+            try:
+                check_type_internal(value, type_, memo)
+                return
+            except TypeCheckError as exc:
+                errors[get_type_name(type_)] = exc
 
-    formatted_errors = indent(
-        "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-    )
-    del errors  # avoid creating ref cycle
+        formatted_errors = indent(
+            "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+        )
+    finally:
+        del errors  # avoid creating ref cycle
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 

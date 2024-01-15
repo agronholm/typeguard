@@ -780,12 +780,21 @@ class TestUnion:
                 nonlocal leaked
                 leaked = False
 
-        def inner():
+        def inner1():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", Union[str, bytes])
+
+        inner1()
+        assert not leaked
+
+        leaked = True
+
+        def inner2():
             leak = Leak()  # noqa: F841
             with pytest.raises(TypeCheckError, match="any element in the union:"):
                 check_type(1, Union[str, bytes])
 
-        inner()
+        inner2()
         assert not leaked
 
 

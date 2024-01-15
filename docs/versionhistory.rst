@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**Unreleased**
+
+- Avoid creating reference cycles when type checking unions
+  (`#408 <https://github.com/agronholm/typeguard/pull/408>`_)
+
 **4.1.5** (2023-09-11)
 
 - Fixed ``Callable`` erroneously rejecting a callable that has the requested amount of
