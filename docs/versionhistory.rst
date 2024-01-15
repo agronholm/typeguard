@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**Unreleased**
+**UNRELEASED**
 
 - Avoid creating reference cycles when type checking unions
   (`#408 <https://github.com/agronholm/typeguard/pull/408>`_)
