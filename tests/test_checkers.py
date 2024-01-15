@@ -768,6 +768,35 @@ class TestUnion:
             f"  int: is not an instance of int"
         )
 
+    @pytest.mark.skipif(
+        sys.implementation.name != "cpython",
+        reason="Test relies on CPython's reference counting behavior",
+    )
+    def test_union_reference_leak(self):
+        leaked = True
+
+        class Leak:
+            def __del__(self):
+                nonlocal leaked
+                leaked = False
+
+        def inner1():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", Union[str, bytes])
+
+        inner1()
+        assert not leaked
+
+        leaked = True
+
+        def inner2():
+            leak = Leak()  # noqa: F841
+            with pytest.raises(TypeCheckError, match="any element in the union:"):
+                check_type(1, Union[str, bytes])
+
+        inner2()
+        assert not leaked
+
 
 class TestTypevar:
     def test_bound(self):
