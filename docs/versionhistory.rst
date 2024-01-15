@@ -7,7 +7,6 @@ This library adheres to
 **UNRELEASED**
 
 - Avoid creating reference cycles when type checking unions
-  (`#408 <https://github.com/agronholm/typeguard/pull/408>`_)
 
 **4.1.5** (2023-09-11)
 
