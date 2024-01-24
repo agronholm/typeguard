@@ -437,7 +437,7 @@ def check_class(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if not isclass(value):
+    if not isclass(value) and not (sys.version_info >= (3, 11) and isinstance(value, types.GenericAlias)):
         raise TypeCheckError("is not a class")
 
     if not args:

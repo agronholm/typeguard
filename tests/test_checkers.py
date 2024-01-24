@@ -889,6 +889,10 @@ class TestType:
     def test_union_typevar(self):
         T = TypeVar("T", bound=Parent)
         check_type(Child, Type[T])
+    
+    def test_generic_aliase(self):
+        if sys.version_info >= (3, 9):
+            check_type(dict[str, str], type)
 
 
 class TestIO:
