@@ -20,13 +20,11 @@ type_checks_suppress_lock = Lock()
 
 
 @overload
-def suppress_type_checks(func: Callable[P, T]) -> Callable[P, T]:
-    ...
+def suppress_type_checks(func: Callable[P, T]) -> Callable[P, T]: ...
 
 
 @overload
-def suppress_type_checks() -> ContextManager[None]:
-    ...
+def suppress_type_checks() -> ContextManager[None]: ...
 
 
 def suppress_type_checks(
