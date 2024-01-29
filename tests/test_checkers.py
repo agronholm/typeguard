@@ -893,6 +893,8 @@ class TestType:
     def test_generic_aliase(self):
         if sys.version_info >= (3, 9):
             check_type(dict[str, str], type)
+        check_type(Dict, Type[Any])
+        check_type(Dict[str, str], Type[Any])
 
 
 class TestIO:

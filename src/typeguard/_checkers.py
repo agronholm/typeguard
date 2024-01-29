@@ -438,7 +438,8 @@ def check_class(
     memo: TypeCheckMemo,
 ) -> None:
     if not isclass(value) and not (
-        sys.version_info >= (3, 11) and isinstance(value, types.GenericAlias)
+        (sys.version_info >= (3, 11) and isinstance(value, types.GenericAlias)) or
+        isinstance(value, type(Type)) or isinstance(value, type(Type[Any]))
     ):
         raise TypeCheckError("is not a class")
 
