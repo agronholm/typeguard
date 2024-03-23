@@ -75,8 +75,11 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-select = [
-    "E", "F", "W",  # default flake-8
+src = ["src"]
+
+[tool.ruff.lint]
+extend-select = [
+    "W",            # pycodestyle warnings
     "I",            # isort
     "PGH",          # pygrep-hooks
     "UP",           # pyupgrade
@@ -86,7 +89,6 @@ ignore = [
     "PGH001",
     "B008",
 ]
-src = ["src"]
 
 [tool.mypy]
 python_version = "3.9"
