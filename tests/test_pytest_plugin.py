@@ -1,11 +1,19 @@
 from textwrap import dedent
 
-from pytest import Pytester
+import pytest
+from pytest import MonkeyPatch, Pytester
 
-from typeguard import CollectionCheckStrategy, ForwardRefPolicy, config
+from typeguard import CollectionCheckStrategy, ForwardRefPolicy, TypeCheckConfiguration
 
 
-def test_config_options(pytester: Pytester) -> None:
+@pytest.fixture
+def config(monkeypatch: MonkeyPatch) -> TypeCheckConfiguration:
+    config = TypeCheckConfiguration()
+    monkeypatch.setattr("typeguard._pytest_plugin.global_config", config)
+    return config
+
+
+def test_config_options(pytester: Pytester, config: TypeCheckConfiguration) -> None:
     pytester.makepyprojecttoml(
         '''
         [tool.pytest.ini_options]
@@ -39,7 +47,9 @@ def test_config_options(pytester: Pytester) -> None:
     assert config.collection_check_strategy is CollectionCheckStrategy.ALL_ITEMS
 
 
-def test_commandline_options(pytester: Pytester) -> None:
+def test_commandline_options(
+    pytester: Pytester, config: TypeCheckConfiguration
+) -> None:
     pytester.makepyfile(
         mypackage=(
             dedent(
@@ -54,7 +64,11 @@ def test_commandline_options(pytester: Pytester) -> None:
     pytester.plugins = ["typeguard"]
     pytester.syspathinsert()
     pytestconfig = pytester.parseconfigure(
-        "--typeguard-packages=mypackage,otherpackage"
+        "--typeguard-packages=mypackage,otherpackage",
+        "--typeguard-typecheck-fail-callback=mypackage:failcallback",
+        "--typeguard-debug-instrumentation",
+        "--typeguard-forward-ref-policy=ERROR",
+        "--typeguard-collection-check-strategy=ALL_ITEMS",
     )
     assert pytestconfig.getoption("typeguard_packages") == "mypackage,otherpackage"
     assert config.typecheck_fail_callback.__name__ == "failcallback"
