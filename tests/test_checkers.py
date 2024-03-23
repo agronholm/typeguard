@@ -492,6 +492,33 @@ class TestTypedDict:
             TypeCheckError, check_type, {"x": 1, "y": 2, b"z": 3}, DummyDict
         ).match(r'dict has unexpected extra key\(s\): "y", "b\'z\'"')
 
+    def test_notrequired_pass(self, typing_provider):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            x: int
+            y: "NotRequired[int]"
+
+        check_type({"x": 8}, DummyDict)
+
+    def test_notrequired_fail(self, typing_provider):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            x: int
+            y: "NotRequired[int]"
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
+        ):
+            check_type({"x": 1, "y": "foo"}, DummyDict)
+
 
 class TestList:
     def test_bad_type(self):

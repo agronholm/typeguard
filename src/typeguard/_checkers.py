@@ -51,20 +51,20 @@ else:
 if sys.version_info >= (3, 11):
     from typing import (
         Annotated,
+        NotRequired,
         TypeAlias,
         get_args,
         get_origin,
-        get_type_hints,
     )
 
     SubclassableAny = Any
 else:
     from typing_extensions import (
         Annotated,
+        NotRequired,
         TypeAlias,
         get_args,
         get_origin,
-        get_type_hints,
     )
     from typing_extensions import Any as SubclassableAny
 
@@ -251,22 +251,33 @@ def check_typed_dict(
 
     declared_keys = frozenset(origin_type.__annotations__)
     if hasattr(origin_type, "__required_keys__"):
-        required_keys = origin_type.__required_keys__
+        required_keys = set(origin_type.__required_keys__)
     else:  # py3.8 and lower
-        required_keys = declared_keys if origin_type.__total__ else frozenset()
+        required_keys = set(declared_keys) if origin_type.__total__ else set()
 
-    existing_keys = frozenset(value)
+    existing_keys = set(value)
     extra_keys = existing_keys - declared_keys
     if extra_keys:
         keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys, key=repr))
         raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
+
+    # Detect NotRequired fields which are hidden by get_type_hints()
+    type_hints: dict[str, type] = {}
+    for key, annotation in origin_type.__annotations__.items():
+        if isinstance(annotation, ForwardRef):
+            annotation = evaluate_forwardref(annotation, memo)
+            if get_origin(annotation) is NotRequired:
+                required_keys.discard(key)
+                annotation = get_args(annotation)[0]
+
+        type_hints[key] = annotation
 
     missing_keys = required_keys - existing_keys
     if missing_keys:
         keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys, key=repr))
         raise TypeCheckError(f"is missing required key(s): {keys_formatted}")
 
-    for key, argtype in get_type_hints(origin_type).items():
+    for key, argtype in type_hints.items():
         argvalue = value.get(key, _missing)
         if argvalue is not _missing:
             try:
