@@ -6,6 +6,8 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added support for specifying options for the pytest plugin via pytest config files
+  (`#440 <https://github.com/agronholm/typeguard/issues/440>`_)
 - Avoid creating reference cycles when type checking unions
 - Fixed ``Optional[...]`` being removed from the AST if it was located within a
   subscript (`#442 <https://github.com/agronholm/typeguard/issues/442>`_)

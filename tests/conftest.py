@@ -9,6 +9,7 @@ import pytest
 import typing_extensions
 
 version_re = re.compile(r"_py(\d)(\d)\.py$")
+pytest_plugins = ["pytester"]
 
 
 def pytest_ignore_collect(path, config):

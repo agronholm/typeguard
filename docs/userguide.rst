@@ -157,7 +157,24 @@ previous section). To use it, run ``pytest`` with the appropriate
 
     pytest --typeguard-packages=foo.bar,xyz
 
-There is currently no support for specifying a customized module finder.
+It is also possible to set option for the pytest plugin using pytest's own
+configuration. For example, here's how you might specify several options in
+``pyproject.toml``:
+
+.. code-block:: toml
+
+    [tool.pytest.ini_options]
+    typeguard-packages = """
+    foo.bar
+    xyz"""
+    typeguard-debug-instrumentation = true
+    typeguard-typecheck-fail-callback = "mypackage:failcallback"
+    typeguard-forward-ref-policy = "ERROR"
+    typeguard-collection-check-strategy = "ALL_ITEMS"
+
+See the next section for details on how the individual options work.
+
+.. note:: There is currently no support for specifying a customized module finder.
 
 Setting configuration options
 -----------------------------
