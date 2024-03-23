@@ -43,6 +43,11 @@ from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
+if sys.version_info >= (3, 13):
+    from typing import is_typeddict
+else:
+    from typing_extensions import is_typeddict
+
 if sys.version_info >= (3, 11):
     from typing import (
         Annotated,
@@ -50,7 +55,6 @@ if sys.version_info >= (3, 11):
         get_args,
         get_origin,
         get_type_hints,
-        is_typeddict,
     )
 
     SubclassableAny = Any
@@ -61,7 +65,6 @@ else:
         get_args,
         get_origin,
         get_type_hints,
-        is_typeddict,
     )
     from typing_extensions import Any as SubclassableAny
 
