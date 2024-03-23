@@ -47,13 +47,11 @@ class Child(Parent):
 
 
 class StaticProtocol(Protocol):
-    def meth(self) -> None:
-        ...
+    def meth(self) -> None: ...
 
 
 @runtime_checkable
 class RuntimeProtocol(Protocol):
     member: int
 
-    def meth(self) -> None:
-        ...
+    def meth(self) -> None: ...

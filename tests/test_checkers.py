@@ -27,7 +27,6 @@ from typing import (
     TextIO,
     Tuple,
     Type,
-    TypedDict,
     TypeVar,
     Union,
 )
@@ -473,8 +472,10 @@ class TestTypedDict:
             ),
         ],
     )
-    def test_typed_dict(self, value, total: bool, error_re: Optional[str]):
-        class DummyDict(TypedDict, total=total):
+    def test_typed_dict(
+        self, value, total: bool, error_re: Optional[str], typing_provider
+    ):
+        class DummyDict(typing_provider.TypedDict, total=total):
             x: int
             y: str
 
@@ -483,8 +484,8 @@ class TestTypedDict:
         else:
             check_type(value, DummyDict)
 
-    def test_inconsistent_keys_invalid(self):
-        class DummyDict(TypedDict):
+    def test_inconsistent_keys_invalid(self, typing_provider):
+        class DummyDict(typing_provider.TypedDict):
             x: int
 
         pytest.raises(

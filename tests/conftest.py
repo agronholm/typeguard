@@ -2,9 +2,11 @@ import random
 import re
 import string
 import sys
+import typing
 from itertools import count
 
 import pytest
+import typing_extensions
 
 version_re = re.compile(r"_py(\d)(\d)\.py$")
 
@@ -25,3 +27,13 @@ def sample_set() -> set:
         dummy_set = {letter, num}
         if next(iter(dummy_set)) == letter:
             return dummy_set
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(typing, id="typing"),
+        pytest.param(typing_extensions, id="typing_extensions"),
+    ]
+)
+def typing_provider(request):
+    return request.param

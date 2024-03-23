@@ -7,6 +7,10 @@ This library adheres to
 **UNRELEASED**
 
 - Avoid creating reference cycles when type checking unions
+- Fixed ``Optional[...]`` being removed from the AST if it was located within a
+  subscript (`#442 <https://github.com/agronholm/typeguard/issues/442>`_)
+- Fixed ``TypedDict`` from ``typing_extensions`` not being recognized as one
+  (`#443 <https://github.com/agronholm/typeguard/issues/443>`_)
 
 **4.1.5** (2023-09-11)
 

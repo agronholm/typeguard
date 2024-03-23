@@ -1,4 +1,5 @@
 """Module docstring."""
+
 import sys
 from contextlib import contextmanager
 from typing import (
@@ -132,13 +133,11 @@ def dummy_context_manager() -> Generator[int, None, None]:
 
 
 @overload
-def overloaded_func(a: int) -> int:
-    ...
+def overloaded_func(a: int) -> int: ...
 
 
 @overload
-def overloaded_func(a: str) -> str:
-    ...
+def overloaded_func(a: str) -> str: ...
 
 
 @typechecked

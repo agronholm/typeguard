@@ -457,9 +457,11 @@ class AnnotationTransformer(NodeTransformer):
                 # If the transformer erased the slice entirely, just return the node
                 # value without the subscript (unless it's Optional, in which case erase
                 # the node entirely
-                if self._memo.name_matches(node.value, "typing.Optional"):
+                if self._memo.name_matches(
+                    node.value, "typing.Optional"
+                ) and not hasattr(node, "slice"):
                     return None
-                elif sys.version_info >= (3, 9) and not hasattr(node, "slice"):
+                if sys.version_info >= (3, 9) and not hasattr(node, "slice"):
                     return node.value
                 elif sys.version_info < (3, 9) and not hasattr(node.slice, "value"):
                     return node.value
@@ -589,12 +591,10 @@ class TypeguardTransformer(NodeTransformer):
         return memo.get_import(module, name)
 
     @overload
-    def _convert_annotation(self, annotation: None) -> None:
-        ...
+    def _convert_annotation(self, annotation: None) -> None: ...
 
     @overload
-    def _convert_annotation(self, annotation: expr) -> expr:
-        ...
+    def _convert_annotation(self, annotation: expr) -> expr: ...
 
     def _convert_annotation(self, annotation: expr | None) -> expr | None:
         if annotation is None:

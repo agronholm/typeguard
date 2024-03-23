@@ -1042,6 +1042,33 @@ typing.Collection, Sequence]:
             ).strip()
         )
 
+    def test_optional_nested(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import Any, List, Optional
+
+                def foo(x: List[Optional[int]]) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types
+                from typing import Any, List, Optional
+
+                def foo(x: List[Optional[int]]) -> None:
+                    memo = TypeCheckMemo(globals(), locals())
+                    check_argument_types('foo', {'x': (x, List[Optional[int]])}, memo)
+                """
+            ).strip()
+        )
+
     def test_subscript_within_union(self) -> None:
         # Regression test for #397
         node = parse(
