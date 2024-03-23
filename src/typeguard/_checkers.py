@@ -83,6 +83,9 @@ TypeCheckLookupCallback: TypeAlias = Callable[
 ]
 
 checker_lookup_functions: list[TypeCheckLookupCallback] = []
+generic_alias_types: tuple[type, ...] = (type(List), type(List[Any]))
+if sys.version_info >= (3, 9):
+    generic_alias_types += (types.GenericAlias,)
 
 
 # Sentinel
@@ -440,11 +443,7 @@ def check_class(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if not isclass(value) and not (
-        (sys.version_info >= (3, 11) and isinstance(value, types.GenericAlias))
-        or isinstance(value, type(Type))
-        or isinstance(value, type(Type[Any]))
-    ):
+    if not isclass(value) and not isinstance(value, generic_alias_types):
         raise TypeCheckError("is not a class")
 
     if not args:
@@ -479,7 +478,7 @@ def check_class(
             raise TypeCheckError(
                 f"did not match any element in the union:\n{formatted_errors}"
             )
-    elif not issubclass(value, expected_class):
+    elif not issubclass(value, expected_class):  # type: ignore[arg-type]
         raise TypeCheckError(f"is not a subclass of {qualified_name(expected_class)}")
 
 

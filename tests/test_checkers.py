@@ -891,11 +891,13 @@ class TestType:
         T = TypeVar("T", bound=Parent)
         check_type(Child, Type[T])
 
-    def test_generic_aliase(self):
+    @pytest.mark.parametrize("check_against", [type, Type[Any]])
+    def test_generic_aliase(self, check_against):
         if sys.version_info >= (3, 9):
-            check_type(dict[str, str], type)
-        check_type(Dict, Type[Any])
-        check_type(Dict[str, str], Type[Any])
+            check_type(dict[str, str], check_against)
+
+        check_type(Dict, check_against)
+        check_type(Dict[str, str], check_against)
 
 
 class TestIO:

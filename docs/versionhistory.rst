@@ -11,6 +11,9 @@ This library adheres to
   subscript (`#442 <https://github.com/agronholm/typeguard/issues/442>`_)
 - Fixed ``TypedDict`` from ``typing_extensions`` not being recognized as one
   (`#443 <https://github.com/agronholm/typeguard/issues/443>`_)
+- Fixed parametrized types (``dict[str, int]``, ``List[str]``, etc.) not passing checks
+  against ``type`` or ``Type``
+  (`#432 <https://github.com/agronholm/typeguard/issues/432>`_, PR by Yongxin Wang)
 
 **4.1.5** (2023-09-11)
 
