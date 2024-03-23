@@ -433,6 +433,14 @@ class TestDict:
             collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("value of key 'y' of dict is not an instance of int")
 
+    def test_custom_dict_generator_items(self):
+        class CustomDict(dict):
+            def items(self):
+                for key in self:
+                    yield key, self[key]
+
+        check_type(CustomDict(a=1), Dict[str, int])
+
 
 class TestTypedDict:
     @pytest.mark.parametrize(

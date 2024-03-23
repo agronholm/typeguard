@@ -16,6 +16,8 @@ This library adheres to
   (`#432 <https://github.com/agronholm/typeguard/issues/432>`_, PR by Yongxin Wang)
 - Fixed detection of optional fields (``NotRequired[...]``) in ``TypedDict`` when using
   forward references (`#424 <https://github.com/agronholm/typeguard/issues/424>`_)
+- Fixed mapping checks against Django's ``MultiValueDict``
+  (`#419 <https://github.com/agronholm/typeguard/issues/419>`_)
 
 **4.1.5** (2023-09-11)
 
