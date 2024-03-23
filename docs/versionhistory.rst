@@ -4,11 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.2.0** (2023-03-23)
 
 - Added support for specifying options for the pytest plugin via pytest config files
   (`#440 <https://github.com/agronholm/typeguard/issues/440>`_)
-- Avoid creating reference cycles when type checking unions
+- Avoid creating reference cycles when type checking unions (PR by Shantanu)
 - Fixed ``Optional[...]`` being removed from the AST if it was located within a
   subscript (`#442 <https://github.com/agronholm/typeguard/issues/442>`_)
 - Fixed ``TypedDict`` from ``typing_extensions`` not being recognized as one
