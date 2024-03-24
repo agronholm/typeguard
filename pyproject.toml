@@ -98,7 +98,7 @@ pretty = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = pypy3, py38, py39, py310, py311, py312
+envlist = pypy3, py38, py39, py310, py311, py312, py313
 skip_missing_interpreters = true
 minversion = 4.0
 

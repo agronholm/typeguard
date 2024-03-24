@@ -40,9 +40,17 @@ T = TypeVar("T", bound="DummyClass")
 P = ParamSpec("P")
 
 
-@no_type_check_decorator
-def dummy_decorator(func):
-    return func
+if sys.version_info <= (3, 13):
+
+    @no_type_check_decorator
+    def dummy_decorator(func):
+        return func
+
+    @dummy_decorator
+    def non_type_checked_decorated_func(x: int, y: str) -> 6:
+        # This is to ensure that we avoid using a local variable that's already in use
+        _call_memo = "foo"  # noqa: F841
+        return "foo"
 
 
 @typechecked
@@ -52,13 +60,6 @@ def type_checked_func(x: int, y: int) -> int:
 
 @no_type_check
 def non_type_checked_func(x: int, y: str) -> 6:
-    return "foo"
-
-
-@dummy_decorator
-def non_type_checked_decorated_func(x: int, y: str) -> 6:
-    # This is to ensure that we avoid using a local variable that's already in use
-    _call_memo = "foo"  # noqa: F841
     return "foo"
 
 
