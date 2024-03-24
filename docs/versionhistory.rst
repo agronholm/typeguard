@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed missing ``typing_extensions`` dependency for Python 3.12
+  (`#444 <https://github.com/agronholm/typeguard/issues/444>`_)
+
 **4.2.0** (2023-03-23)
 
 - Added support for specifying options for the pytest plugin via pytest config files
