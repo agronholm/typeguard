@@ -8,6 +8,8 @@ This library adheres to
 
 - Fixed missing ``typing_extensions`` dependency for Python 3.12
   (`#444 <https://github.com/agronholm/typeguard/issues/444>`_)
+- Fixed deprecation warning in the test suite on Python 3.13
+  (`#444 <https://github.com/agronholm/typeguard/issues/444>`_)
 
 **4.2.0** (2023-03-23)
 
