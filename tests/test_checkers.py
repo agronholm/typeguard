@@ -81,6 +81,9 @@ else:
 P = ParamSpec("P")
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 13), reason="AnyStr is deprecated on Python 3.13"
+)
 class TestAnyStr:
     @pytest.mark.parametrize(
         "value", [pytest.param("bar", id="str"), pytest.param(b"bar", id="bytes")]
