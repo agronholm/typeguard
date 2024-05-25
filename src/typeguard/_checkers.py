@@ -43,10 +43,11 @@ from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
-if sys.version_info >= (3, 14):
-    from typing import is_typeddict
-else:
-    from typing_extensions import is_typeddict
+# Must use this because typing.is_typeddict does not recognize
+# TypedDict from typing_extensions, and as of version 4.12.0
+# typing_extensions.TypedDict is different from typing.TypedDict
+# on all versions.
+from typing_extensions import is_typeddict
 
 if sys.version_info >= (3, 11):
     from typing import (
