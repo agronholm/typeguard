@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed test suite incompatibility with pytest 8.2
+  (`#461 <https://github.com/agronholm/typeguard/issues/461>`_)
+
 **4.2.1** (2023-03-24)
 
 - Fixed missing ``typing_extensions`` dependency for Python 3.12
