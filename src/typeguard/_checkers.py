@@ -43,7 +43,7 @@ from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
-if sys.version_info >= (3, 13):
+if sys.version_info >= (3, 14):
     from typing import is_typeddict
 else:
     from typing_extensions import is_typeddict

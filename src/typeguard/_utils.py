@@ -15,7 +15,7 @@ if sys.version_info >= (3, 10):
     from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(memo.globals, memo.locals, frozenset())
+        return forwardref._evaluate(memo.globals, memo.locals, recursive_guard=frozenset())
 
 else:
     from typing_extensions import get_args, get_origin
