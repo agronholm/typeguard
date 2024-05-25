@@ -43,6 +43,7 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
+from typeguard._checkers import is_typeddict
 from typeguard._utils import qualified_name
 
 from . import (
@@ -529,6 +530,14 @@ class TestTypedDict:
             TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
         ):
             check_type({"x": 1, "y": "foo"}, DummyDict)
+
+    def test_is_typeddict(self, typing_provider):
+        # Ensure both typing.TypedDict and typing_extensions.TypedDict are recognized
+        class DummyDict(typing_provider.TypedDict):
+            x: int
+
+        assert is_typeddict(DummyDict)
+        assert not is_typeddict(dict)
 
 
 class TestList:
