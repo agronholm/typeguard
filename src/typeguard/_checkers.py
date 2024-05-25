@@ -38,16 +38,16 @@ try:
 except ImportError:
     typing_extensions = None  # type: ignore[assignment]
 
-from ._config import ForwardRefPolicy
-from ._exceptions import TypeCheckError, TypeHintWarning
-from ._memo import TypeCheckMemo
-from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
-
 # Must use this because typing.is_typeddict does not recognize
 # TypedDict from typing_extensions, and as of version 4.12.0
 # typing_extensions.TypedDict is different from typing.TypedDict
 # on all versions.
 from typing_extensions import is_typeddict
+
+from ._config import ForwardRefPolicy
+from ._exceptions import TypeCheckError, TypeHintWarning
+from ._memo import TypeCheckMemo
+from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import (
