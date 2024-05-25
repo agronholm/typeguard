@@ -60,7 +60,7 @@ version_scheme = "post-release"
 local_scheme = "dirty-tag"
 
 [tool.pytest.ini_options]
-addopts = "-rsx --tb=short"
+addopts = "--tb=short"
 testpaths = "tests"
 xfail_strict = true
 filterwarnings = ["error"]
