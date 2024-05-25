@@ -87,7 +87,7 @@ extend-select = [
     "B0",           # flake8-bugbear
 ]
 ignore = [
-    "PGH001",
+    "S307",
     "B008",
 ]
 
