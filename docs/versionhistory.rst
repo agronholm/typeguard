@@ -11,6 +11,8 @@ This library adheres to
   (`#460 <https://github.com/agronholm/typeguard/issues/460>`_; PR by @JelleZijlstra)
 - Fixed test suite incompatibility with pytest 8.2
   (`#461 <https://github.com/agronholm/typeguard/issues/461>`_)
+- Fixed pytest plugin crashing on pytest version older than v7.0.0 (even if it's just
+  present) (`#343 <https://github.com/agronholm/typeguard/issues/343>`_)
 
 **4.2.1** (2023-03-24)
 

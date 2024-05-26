@@ -148,8 +148,8 @@ functions with :data:`~typing.Any`.
 Using the pytest plugin
 -----------------------
 
-Typeguard comes with a pytest plugin that installs the import hook (explained in the
-previous section). To use it, run ``pytest`` with the appropriate
+Typeguard comes with a plugin for pytest (v7.0 or newer) that installs the import hook
+(explained in the previous section). To use it, run ``pytest`` with the appropriate
 ``--typeguard-packages`` option. For example, if you wanted to instrument the
 ``foo.bar`` and ``xyz`` packages for type checking, you can do the following:
 
