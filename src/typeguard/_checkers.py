@@ -32,6 +32,7 @@ from typing import (
     Union,
 )
 from unittest.mock import Mock
+from weakref import WeakKeyDictionary
 
 try:
     import typing_extensions
@@ -88,6 +89,9 @@ generic_alias_types: tuple[type, ...] = (type(List), type(List[Any]))
 if sys.version_info >= (3, 9):
     generic_alias_types += (types.GenericAlias,)
 
+protocol_check_cache: WeakKeyDictionary[
+    type[Any], dict[type[Any], TypeCheckError | None]
+] = WeakKeyDictionary()
 
 # Sentinel
 _missing = object()
@@ -650,19 +654,96 @@ def check_protocol(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    # TODO: implement proper compatibility checking and support non-runtime protocols
-    if getattr(origin_type, "_is_runtime_protocol", False):
-        if not isinstance(value, origin_type):
-            raise TypeCheckError(
-                f"is not compatible with the {origin_type.__qualname__} protocol"
+    subject: type[Any] = value if isclass(value) else type(value)
+
+    if subject in protocol_check_cache:
+        result_map = protocol_check_cache[subject]
+        if origin_type in result_map:
+            if exc := result_map[origin_type]:
+                raise exc
+            else:
+                return
+
+    # Collect a set of methods and non-method attributes present in the protocol
+    ignored_attrs = set(dir(typing.Protocol)) | {
+        "__annotations__",
+        "__non_callable_proto_members__",
+    }
+    expected_methods: dict[str, tuple[Any, Any]] = {}
+    expected_noncallable_members: dict[str, Any] = {}
+    for attrname in dir(origin_type):
+        # Skip attributes present in typing.Protocol
+        if attrname in ignored_attrs:
+            continue
+
+        member = getattr(origin_type, attrname)
+        if callable(member):
+            signature = inspect.signature(member)
+            argtypes = [
+                (p.annotation if p.annotation is not Parameter.empty else Any)
+                for p in signature.parameters.values()
+                if p.kind is not Parameter.KEYWORD_ONLY
+            ] or Ellipsis
+            return_annotation = (
+                signature.return_annotation
+                if signature.return_annotation is not Parameter.empty
+                else Any
             )
+            expected_methods[attrname] = argtypes, return_annotation
+        else:
+            expected_noncallable_members[attrname] = member
+
+    for attrname, annotation in typing.get_type_hints(origin_type).items():
+        expected_noncallable_members[attrname] = annotation
+
+    subject_annotations = typing.get_type_hints(subject)
+
+    # Check that all required methods are present and their signatures are compatible
+    result_map = protocol_check_cache.setdefault(subject, {})
+    try:
+        for attrname, callable_args in expected_methods.items():
+            try:
+                method = getattr(subject, attrname)
+            except AttributeError:
+                if attrname in subject_annotations:
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} protocol "
+                        f"because its {attrname!r} attribute is not a method"
+                    ) from None
+                else:
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} protocol "
+                        f"because it has no method named {attrname!r}"
+                    ) from None
+
+            if not callable(method):
+                raise TypeCheckError(
+                    f"is not compatible with the {origin_type.__qualname__} protocol "
+                    f"because its {attrname!r} attribute is not a callable"
+                )
+
+            # TODO: raise exception on added keyword-only arguments without defaults
+            try:
+                check_callable(method, Callable, callable_args, memo)
+            except TypeCheckError as exc:
+                raise TypeCheckError(
+                    f"is not compatible with the {origin_type.__qualname__} protocol "
+                    f"because its {attrname!r} method {exc}"
+                ) from None
+
+        # Check that all required non-callable members are present
+        for attrname in expected_noncallable_members:
+            # TODO: implement assignability checks for non-callable members
+            if attrname not in subject_annotations and not hasattr(subject, attrname):
+                raise TypeCheckError(
+                    f"is not compatible with the {origin_type.__qualname__} protocol "
+                    f"because it has no attribute named {attrname!r}"
+                )
+    except TypeCheckError as exc:
+        result_map[origin_type] = exc
+        raise
     else:
-        warnings.warn(
-            f"Typeguard cannot check the {origin_type.__qualname__} protocol because "
-            f"it is a non-runtime protocol. If you would like to type check this "
-            f"protocol, please use @typing.runtime_checkable",
-            stacklevel=get_stacklevel(),
-        )
+        result_map[origin_type] = None
 
 
 def check_byteslike(

@@ -995,66 +995,119 @@ class TestIO:
             check_type(f, TextIO)
 
 
+@pytest.mark.parametrize(
+    "instantiate, annotation",
+    [
+        pytest.param(True, RuntimeProtocol, id="instance_runtime"),
+        pytest.param(False, Type[RuntimeProtocol], id="class_runtime"),
+        pytest.param(True, StaticProtocol, id="instance_static"),
+        pytest.param(False, Type[StaticProtocol], id="class_static"),
+    ],
+)
 class TestProtocol:
-    def test_protocol(self):
+    def test_member_defaultval(self, instantiate, annotation):
         class Foo:
             member = 1
 
-            def meth(self) -> None:
+            def meth(self, x: str) -> None:
                 pass
 
-        check_type(Foo(), RuntimeProtocol)
-        check_type(Foo, Type[RuntimeProtocol])
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):  # Makes sure that the cache is also exercised
+            check_type(subject, annotation)
 
-    def test_protocol_warns_on_static(self):
+    def test_member_annotation(self, instantiate, annotation):
         class Foo:
-            member = 1
+            member: int
 
-            def meth(self) -> None:
+            def meth(self, x: str) -> None:
                 pass
 
-        with pytest.warns(
-            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
-        ) as warning:
-            check_type(Foo(), StaticProtocol)
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            check_type(subject, annotation)
 
-        assert warning.list[0].filename == __file__
-
-        with pytest.warns(
-            UserWarning, match=r"Typeguard cannot check the StaticProtocol protocol.*"
-        ) as warning:
-            check_type(Foo, Type[StaticProtocol])
-
-        assert warning.list[0].filename == __file__
-
-    def test_fail_non_method_members(self):
+    def test_attribute_missing(self, instantiate, annotation):
         class Foo:
             val = 1
 
-            def meth(self) -> None:
+            def meth(self, x: str) -> None:
                 pass
 
-        clsname = f"{__name__}.TestProtocol.test_fail_non_method_members.<locals>.Foo"
-        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(
-            f"{clsname} is not compatible with the RuntimeProtocol protocol"
-        )
-        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
-            f"class {clsname} is not compatible with the RuntimeProtocol protocol"
-        )
+        clsname = f"{__name__}.TestProtocol.test_attribute_missing.<locals>.Foo"
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+                f"{clsname} is not compatible with the (Runtime|Static)Protocol "
+                f"protocol because it has no attribute named 'member'"
+            )
 
-    def test_fail(self):
+    def test_method_missing(self, instantiate, annotation):
         class Foo:
-            def meth2(self) -> None:
+            member: int
+
+        pattern = (
+            f"{__name__}.TestProtocol.test_method_missing.<locals>.Foo is not "
+            f"compatible with the (Runtime|Static)Protocol protocol because it has no "
+            f"method named 'meth'"
+        )
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+                pattern
+            )
+
+    def test_attribute_is_not_method_1(self, instantiate, annotation):
+        class Foo:
+            member: int
+            meth: str
+
+        pattern = (
+            f"{__name__}.TestProtocol.test_attribute_is_not_method_1.<locals>.Foo is "
+            f"not compatible with the (Runtime|Static)Protocol protocol because its "
+            f"'meth' attribute is not a method"
+        )
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+                pattern
+            )
+
+    def test_attribute_is_not_method_2(self, instantiate, annotation):
+        class Foo:
+            member: int
+            meth = "foo"
+
+        pattern = (
+            f"{__name__}.TestProtocol.test_attribute_is_not_method_2.<locals>.Foo is "
+            f"not compatible with the (Runtime|Static)Protocol protocol because its "
+            f"'meth' attribute is not a callable"
+        )
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+                pattern
+            )
+
+    def test_method_signature_mismatch(self, instantiate, annotation):
+        class Foo:
+            member: int
+
+            def meth(self, x: str, y: int) -> None:
                 pass
 
         pattern = (
-            f"{__name__}.TestProtocol.test_fail.<locals>.Foo is not compatible with "
-            f"the RuntimeProtocol protocol"
+            rf"(class )?{__name__}.TestProtocol.test_method_signature_mismatch."
+            rf"<locals>.Foo is not compatible with the (Runtime|Static)Protocol "
+            rf"protocol because its 'meth' method has too many mandatory positional "
+            rf"arguments in its declaration; expected 2 but 3 mandatory positional "
+            rf"argument\(s\) declared"
         )
-        pytest.raises(TypeCheckError, check_type, Foo(), RuntimeProtocol).match(pattern)
-        pytest.raises(TypeCheckError, check_type, Foo, Type[RuntimeProtocol]).match(
-            pattern
-        )
+        subject = Foo() if instantiate else Foo
+        for _ in range(2):
+            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+                pattern
+            )
 
 
 class TestRecursiveType:

@@ -6,6 +6,7 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added support for checking against static protocols
 - Fixed some compatibility problems when running on Python 3.13
   (`#460 <https://github.com/agronholm/typeguard/issues/460>`_; PR by @JelleZijlstra)
 - Fixed test suite incompatibility with pytest 8.2

@@ -23,7 +23,7 @@ The following type checks are not yet supported in Typeguard:
 * Types of values assigned to global or nonlocal variables
 * Stubs defined with :func:`@overload <typing.overload>` (the implementation is checked
   if instrumented)
-* ``yield_from`` statements in generator functions
+* ``yield from`` statements in generator functions
 * ``ParamSpec`` and ``Concatenate`` are currently ignored
 * Types where they are shadowed by arguments with the same name (e.g.
   ``def foo(x: type, type: str): ...``)
@@ -57,6 +57,20 @@ that wraps the original function. It has no way of telling that other decorator 
 target function should be switched to a new one. To work around this limitation, either
 place :func:`@typechecked <typechecked>` at the bottom of the decorator stack, or use
 the import hook instead.
+
+Protocol checking
++++++++++++++++++
+
+As of version 4.3.0, Typeguard can check instances and classes against Protocols,
+regardless of whether they were annotated with :decorator:`typing.runtime_checkable`.
+
+There are several limitations on the checks performed, however:
+
+* For non-callable members, only presence is checked for; no type compatibility checks
+  are performed
+* For methods, only the number of positional arguments are checked against, so any added
+  keyword-only arguments without defaults don't currently trip the checker
+* Likewise, argument types are not checked for compatibility
 
 Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------
