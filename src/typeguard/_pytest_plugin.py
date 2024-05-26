@@ -16,7 +16,7 @@ def pytest_addoption(parser: Parser) -> None:
     def add_ini_option(
         opt_type: (
             Literal["string", "paths", "pathlist", "args", "linelist", "bool"] | None
-        )
+        ),
     ) -> None:
         parser.addini(
             group.options[-1].names()[0][2:],
