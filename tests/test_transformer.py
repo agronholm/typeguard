@@ -1854,7 +1854,6 @@ def test_respect_future_import_carriage_return() -> None:
         == dedent(
             '''
             """module docstring"""
-
             from __future__ import annotations
             from typeguard import TypeCheckMemo
             from typeguard._functions import check_return_type
