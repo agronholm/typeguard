@@ -1,7 +1,8 @@
 [build-system]
 requires = [
     "setuptools >= 64",
-    "setuptools_scm[toml] >= 6.4"
+    "setuptools_scm[toml] >= 6.4",
+    "typing-extensions >= 4.6"
 ]
 build-backend = "setuptools.build_meta"
 
