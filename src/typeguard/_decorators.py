@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import os
 import sys
 from collections.abc import Sequence
 from functools import partial
@@ -160,8 +161,9 @@ def typechecked(
     :func:`@staticmethod <staticmethod>`,  and :class:`@property <property>` decorated
     methods in the class.
 
-    .. note:: When Python is run in optimized mode (``-O`` or ``-OO``, this decorator
-        is a no-op). This is a feature meant for selectively introducing type checking
+    .. note:: When Python is run in optimized mode (``-O`` or ``-OO``, or when the
+        environment variable `TYPEGUARD_DISABLE` is set, this decorator is a no-op).
+        This is a feature meant for selectively introducing type checking
         into a code base where the checks aren't meant to be run in production.
 
     :param target: the function or class to enable type checking for
@@ -184,7 +186,7 @@ def typechecked(
             debug_instrumentation=debug_instrumentation,
         )
 
-    if not __debug__:
+    if not __debug__ or "TYPEGUARD_DISABLE" in os.environ:
         return target
 
     if isclass(target):
