@@ -863,8 +863,9 @@ class TypeguardTransformer(NodeTransformer):
                             isinstance(decorator, Name)
                             and decorator.id == "classmethod"
                         ):
+                            arglist = node.args.args or node.args.posonlyargs
                             memo_kwargs["self_type"] = Name(
-                                id=node.args.args[0].arg, ctx=Load()
+                                id=arglist[0].arg, ctx=Load()
                             )
                             break
                     else:
