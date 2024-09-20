@@ -64,5 +64,6 @@ def test_debug_instrumentation(monkeypatch, capsys):
     monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
     import_dummymodule()
     out, err = capsys.readouterr()
-    assert f"Source code of '{dummy_module_path}' after instrumentation:" in err
+    path_str = str(dummy_module_path)
+    assert f"Source code of {path_str!r} after instrumentation:" in err
     assert "class DummyClass" in err
