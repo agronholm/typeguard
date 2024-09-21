@@ -16,14 +16,17 @@ from typing import (
     Dict,
     ForwardRef,
     FrozenSet,
+    Iterable,
     Iterator,
     List,
     Literal,
     Mapping,
     MutableMapping,
     Optional,
+    Protocol,
     Sequence,
     Set,
+    Sized,
     TextIO,
     Tuple,
     Type,
@@ -993,6 +996,86 @@ class TestIO:
     def test_text_real_file(self, tmp_path: Path):
         with tmp_path.joinpath("testfile").open("w") as f:
             check_type(f, TextIO)
+
+
+class TestIntersectingProtocol:
+    SIT = TypeVar("SIT", covariant=True)
+
+    class SizedIterable(
+        Sized,
+        Iterable[SIT],
+        Protocol[SIT],
+    ): ...
+
+    @pytest.mark.parametrize(
+        "subject, predicate_type",
+        (
+            pytest.param(
+                (),
+                SizedIterable,
+                id="empty_tuple_unspecialized",
+            ),
+            pytest.param(
+                range(2),
+                SizedIterable,
+                id="range",
+            ),
+            pytest.param(
+                (),
+                SizedIterable[int],
+                id="empty_tuple_int_specialized",
+            ),
+            pytest.param(
+                (1, 2, 3),
+                SizedIterable[int],
+                id="tuple_int_specialized",
+            ),
+            pytest.param(
+                ("1", "2", "3"),
+                SizedIterable[str],
+                id="tuple_str_specialized",
+            ),
+        ),
+    )
+    def test_valid_member_passes(self, subject: object, predicate_type: type) -> None:
+        for _ in range(2):  # Makes sure that the cache is also exercised
+            check_type(subject, predicate_type)
+
+    xfail_nested_protocol_checks = pytest.mark.xfail(
+        reason="false negative due to missing support for nested protocol checks",
+    )
+
+    @pytest.mark.parametrize(
+        "subject, predicate_type",
+        (
+            pytest.param(
+                (1 for _ in ()),
+                SizedIterable,
+                id="generator",
+            ),
+            pytest.param(
+                range(2),
+                SizedIterable[str],
+                marks=xfail_nested_protocol_checks,
+                id="range_str_specialized",
+            ),
+            pytest.param(
+                (1, 2, 3),
+                SizedIterable[str],
+                marks=xfail_nested_protocol_checks,
+                id="int_tuple_str_specialized",
+            ),
+            pytest.param(
+                ("1", "2", "3"),
+                SizedIterable[int],
+                marks=xfail_nested_protocol_checks,
+                id="str_tuple_int_specialized",
+            ),
+        ),
+    )
+    def test_raises_for_non_member(self, subject: object, predicate_type: type) -> None:
+        with pytest.raises(TypeCheckError):
+            check_type(subject, predicate_type)
 
 
 @pytest.mark.parametrize(
