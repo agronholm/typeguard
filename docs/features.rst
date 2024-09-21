@@ -62,7 +62,8 @@ Protocol checking
 +++++++++++++++++
 
 As of version 4.3.0, Typeguard can check instances and classes against Protocols,
-regardless of whether they were annotated with :decorator:`typing.runtime_checkable`.
+regardless of whether they were annotated with
+:func:`@runtime_checkable <typing.runtime_checkable>`.
 
 There are several limitations on the checks performed, however:
 

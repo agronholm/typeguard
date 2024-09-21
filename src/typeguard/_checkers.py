@@ -34,10 +34,7 @@ from typing import (
 from unittest.mock import Mock
 from weakref import WeakKeyDictionary
 
-try:
-    import typing_extensions
-except ImportError:
-    typing_extensions = None  # type: ignore[assignment]
+import typing_extensions
 
 # Must use this because typing.is_typeddict does not recognize
 # TypedDict from typing_extensions, and as of version 4.12.0
@@ -548,15 +545,8 @@ def check_typevar(
             )
 
 
-if typing_extensions is None:
-
-    def _is_literal_type(typ: object) -> bool:
-        return typ is typing.Literal
-
-else:
-
-    def _is_literal_type(typ: object) -> bool:
-        return typ is typing.Literal or typ is typing_extensions.Literal
+def _is_literal_type(typ: object) -> bool:
+    return typ is typing.Literal or typ is typing_extensions.Literal
 
 
 def check_literal(
@@ -905,6 +895,13 @@ origin_type_checkers = {
     type: check_class,
     Type: check_class,
     Union: check_union,
+    # On some versions of Python, these may simply be re-exports from "typing",
+    # but exactly which Python versions is subject to change.
+    # It's best to err on the safe side and just always specify these.
+    typing_extensions.Literal: check_literal,
+    typing_extensions.LiteralString: check_literal_string,
+    typing_extensions.Self: check_self,
+    typing_extensions.TypeGuard: check_typeguard,
 }
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
@@ -913,16 +910,6 @@ if sys.version_info >= (3, 11):
     origin_type_checkers.update(
         {typing.LiteralString: check_literal_string, typing.Self: check_self}
     )
-if typing_extensions is not None:
-    # On some Python versions, these may simply be re-exports from typing,
-    # but exactly which Python versions is subject to change,
-    # so it's best to err on the safe side
-    # and update the dictionary on all Python versions
-    # if typing_extensions is installed
-    origin_type_checkers[typing_extensions.Literal] = check_literal
-    origin_type_checkers[typing_extensions.LiteralString] = check_literal_string
-    origin_type_checkers[typing_extensions.Self] = check_self
-    origin_type_checkers[typing_extensions.TypeGuard] = check_typeguard
 
 
 def builtin_checker_lookup(
