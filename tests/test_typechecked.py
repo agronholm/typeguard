@@ -619,9 +619,8 @@ def test_typechecked_disabled_in_optimized_mode(
     )
     assert process.returncode == expected_return_code
     if process.returncode == 1:
-        assert process.stderr.endswith(
-            b'typeguard.TypeCheckError: argument "x" (str) is not an instance of '
-            b"int\n"
+        assert process.stderr.strip().endswith(
+            b'typeguard.TypeCheckError: argument "x" (str) is not an instance of int'
         )
 
 
