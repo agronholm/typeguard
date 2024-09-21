@@ -590,6 +590,37 @@ check_return_type
     )
 
 
+def test_classmethod_with_posonly_args() -> None:
+    node = parse(
+        dedent(
+            """
+            class Foo:
+                @classmethod
+                def foo(cls, x: int, /) -> int:
+                    return x
+            """
+        )
+    )
+    TypeguardTransformer(["Foo", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            class Foo:
+
+                @classmethod
+                def foo(cls, x: int, /) -> int:
+                    from typeguard import TypeCheckMemo
+                    from typeguard._functions import check_argument_types, \
+check_return_type
+                    memo = TypeCheckMemo(globals(), locals(), self_type=cls)
+                    check_argument_types('Foo.foo', {'x': (x, int)}, memo)
+                    return check_return_type('Foo.foo', x, int, memo)
+            """
+        ).strip()
+    )
+
+
 def test_staticmethod() -> None:
     node = parse(
         dedent(
