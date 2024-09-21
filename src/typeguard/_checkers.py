@@ -654,19 +654,13 @@ def check_protocol(
             else:
                 return
 
-    # Collect a set of methods and non-method attributes present in the protocol
-    ignored_attrs = set(dir(typing.Protocol)) | {
-        "__annotations__",
-        "__non_callable_proto_members__",
-    }
     expected_methods: dict[str, tuple[Any, Any]] = {}
     expected_noncallable_members: dict[str, Any] = {}
-    for attrname in dir(origin_type):
-        # Skip attributes present in typing.Protocol
-        if attrname in ignored_attrs:
-            continue
+    origin_annotations = typing.get_type_hints(origin_type)
 
-        member = getattr(origin_type, attrname)
+    for attrname in typing_extensions.get_protocol_members(origin_type):
+        member = getattr(origin_type, attrname, None)
+
         if callable(member):
             signature = inspect.signature(member)
             argtypes = [
@@ -681,10 +675,10 @@ def check_protocol(
             )
             expected_methods[attrname] = argtypes, return_annotation
         else:
-            expected_noncallable_members[attrname] = member
-
-    for attrname, annotation in typing.get_type_hints(origin_type).items():
-        expected_noncallable_members[attrname] = annotation
+            try:
+                expected_noncallable_members[attrname] = origin_annotations[attrname]
+            except KeyError:
+                expected_noncallable_members[attrname] = member
 
     subject_annotations = typing.get_type_hints(subject)
 

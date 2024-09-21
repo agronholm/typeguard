@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed basic support for intersection protocols
+  (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
+
 **4.3.0** (2024-05-27)
 
 - Added support for checking against static protocols
