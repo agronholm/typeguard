@@ -57,3 +57,12 @@ class RuntimeProtocol(Protocol):
     member: int
 
     def meth(self, x: str) -> None: ...
+
+
+class EmptyStaticProtocol(Protocol):
+    pass
+
+
+@runtime_checkable
+class EmptyRuntimeProtocol(Protocol):
+    pass

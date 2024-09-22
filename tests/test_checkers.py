@@ -52,6 +52,8 @@ from typeguard._utils import qualified_name
 from . import (
     Child,
     Employee,
+    EmptyRuntimeProtocol,
+    EmptyStaticProtocol,
     JSONType,
     Parent,
     RuntimeProtocol,
@@ -1191,6 +1193,22 @@ class TestProtocol:
             pytest.raises(TypeCheckError, check_type, subject, annotation).match(
                 pattern
             )
+
+
+@pytest.mark.parametrize(
+    "instantiate, annotation",
+    [
+        pytest.param(True, EmptyRuntimeProtocol, id="instance_runtime"),
+        pytest.param(False, Type[EmptyRuntimeProtocol], id="class_runtime"),
+        pytest.param(True, EmptyStaticProtocol, id="instance_static"),
+        pytest.param(False, Type[EmptyStaticProtocol], id="class_static"),
+    ],
+)
+@pytest.mark.parametrize("instance_type", [object, str, Parent])
+class TestEmptyProtocol:
+    def test_empty_protocol(self, instantiate, annotation, instance_type):
+        subject = instance_type() if instantiate else instance_type
+        check_type(subject, annotation)
 
 
 class TestRecursiveType:
