@@ -591,15 +591,19 @@ def test_existing_method_decorator():
 
 
 @pytest.mark.parametrize(
-    "flags, expected_return_code",
+    "flags, envs, expected_return_code",
     [
-        pytest.param([], 1, id="debug"),
-        pytest.param(["-O"], 0, id="O"),
-        pytest.param(["-OO"], 0, id="OO"),
+        pytest.param([], {}, 1, id="debug"),
+        pytest.param([], {"TYPEGUARD_DISABLE": "1"}, 0, id="TYPEGUARD_DISABLE"),
+        pytest.param(["-O"], {}, 0, id="O"),
+        pytest.param(
+            ["-O"], {"TYPEGUARD_DISABLE": "1"}, 0, id="TYPEGUARD_DISABLE and -O"
+        ),
+        pytest.param(["-OO"], {}, 0, id="OO"),
     ],
 )
 def test_typechecked_disabled_in_optimized_mode(
-    tmp_path: Path, flags: List[str], expected_return_code: int
+    tmp_path: Path, flags: List[str], envs: dict[str, str], expected_return_code: int
 ):
     code = dedent(
         """
@@ -615,7 +619,7 @@ def test_typechecked_disabled_in_optimized_mode(
     script_path = tmp_path / "code.py"
     script_path.write_text(code)
     process = subprocess.run(
-        [sys.executable, *flags, str(script_path)], capture_output=True
+        [sys.executable, *flags, str(script_path)], env=envs, capture_output=True
     )
     assert process.returncode == expected_return_code
     if process.returncode == 1:
