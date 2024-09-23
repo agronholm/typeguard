@@ -8,6 +8,8 @@ This library adheres to
 
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
+- Fix display of module name for forward references
+  (`#492 <https://github.com/agronholm/typeguard/pull/492>`_; PR by @JelleZijlstra)
 
 **4.3.0** (2024-05-27)
 
