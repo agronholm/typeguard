@@ -857,10 +857,8 @@ class TestUnion:
     @pytest.mark.skipif(
         sys.implementation.name != "cpython",
         reason="Test relies on CPython's reference counting behavior",
-        )
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10), reason="UnionType requires 3.10"
     )
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
     def test_uniontype_reference_leak(self):
         class Leak:
             def __del__(self):
@@ -891,6 +889,7 @@ class TestUnion:
         leaked = True
         inner3()
         assert not leaked
+
 
 class TestTypevar:
     def test_bound(self):

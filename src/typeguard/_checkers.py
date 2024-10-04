@@ -479,22 +479,22 @@ def check_class(
     elif get_origin(expected_class) is Union:
         errors: dict[str, TypeCheckError] = {}
         try:
-          for arg in get_args(expected_class):
-              if arg is Any:
-                  return
+            for arg in get_args(expected_class):
+                if arg is Any:
+                    return
 
-              try:
-                  check_class(value, type, (arg,), memo)
-                  return
-              except TypeCheckError as exc:
-                  errors[get_type_name(arg)] = exc
-          else:
-              formatted_errors = indent(
-                  "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-              )
-              raise TypeCheckError(
-                  f"did not match any element in the union:\n{formatted_errors}"
-              )
+                try:
+                    check_class(value, type, (arg,), memo)
+                    return
+                except TypeCheckError as exc:
+                    errors[get_type_name(arg)] = exc
+            else:
+                formatted_errors = indent(
+                    "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+                )
+                raise TypeCheckError(
+                    f"did not match any element in the union:\n{formatted_errors}"
+                )
         finally:
             del errors  # avoid creating ref cycle
     elif not issubclass(value, expected_class):  # type: ignore[arg-type]
