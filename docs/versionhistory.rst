@@ -8,6 +8,7 @@ This library adheres to
 
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
+- Avoid creating reference cycles when type checking uniontypes and classes
 
 **4.3.0** (2024-05-27)
 
