@@ -437,16 +437,19 @@ def check_uniontype(
     memo: TypeCheckMemo,
 ) -> None:
     errors: dict[str, TypeCheckError] = {}
-    for type_ in args:
-        try:
-            check_type_internal(value, type_, memo)
-            return
-        except TypeCheckError as exc:
-            errors[get_type_name(type_)] = exc
+    try:
+        for type_ in args:
+            try:
+                check_type_internal(value, type_, memo)
+                return
+            except TypeCheckError as exc:
+                errors[get_type_name(type_)] = exc
 
-    formatted_errors = indent(
-        "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-    )
+        formatted_errors = indent(
+            "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+        )
+    finally:
+        del errors  # avoid creating ref cycle
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 
@@ -475,22 +478,25 @@ def check_class(
         check_typevar(value, expected_class, (), memo, subclass_check=True)
     elif get_origin(expected_class) is Union:
         errors: dict[str, TypeCheckError] = {}
-        for arg in get_args(expected_class):
-            if arg is Any:
-                return
+        try:
+          for arg in get_args(expected_class):
+              if arg is Any:
+                  return
 
-            try:
-                check_class(value, type, (arg,), memo)
-                return
-            except TypeCheckError as exc:
-                errors[get_type_name(arg)] = exc
-        else:
-            formatted_errors = indent(
-                "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-            )
-            raise TypeCheckError(
-                f"did not match any element in the union:\n{formatted_errors}"
-            )
+              try:
+                  check_class(value, type, (arg,), memo)
+                  return
+              except TypeCheckError as exc:
+                  errors[get_type_name(arg)] = exc
+          else:
+              formatted_errors = indent(
+                  "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+              )
+              raise TypeCheckError(
+                  f"did not match any element in the union:\n{formatted_errors}"
+              )
+        finally:
+            del errors  # avoid creating ref cycle
     elif not issubclass(value, expected_class):  # type: ignore[arg-type]
         raise TypeCheckError(f"is not a subclass of {qualified_name(expected_class)}")
 
