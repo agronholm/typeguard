@@ -6,10 +6,8 @@ from typing import (
     List,
     NamedTuple,
     NewType,
-    Protocol,
     TypeVar,
     Union,
-    runtime_checkable,
 )
 
 T_Foo = TypeVar("T_Foo")
@@ -44,16 +42,3 @@ class Parent:
 class Child(Parent):
     def method(self, a: int) -> None:
         pass
-
-
-class StaticProtocol(Protocol):
-    member: int
-
-    def meth(self, x: str) -> None: ...
-
-
-@runtime_checkable
-class RuntimeProtocol(Protocol):
-    member: int
-
-    def meth(self, x: str) -> None: ...

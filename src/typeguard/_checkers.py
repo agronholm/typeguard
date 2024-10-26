@@ -9,6 +9,7 @@ import warnings
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
+from itertools import zip_longest
 from textwrap import indent
 from typing import (
     IO,
@@ -87,7 +88,7 @@ if sys.version_info >= (3, 9):
     generic_alias_types += (types.GenericAlias,)
 
 protocol_check_cache: WeakKeyDictionary[
-    type[Any], dict[type[Any], TypeCheckError | None]
+    type[Any], dict[type[Any], tuple[Any, ...] | None]
 ] = WeakKeyDictionary()
 
 # Sentinel
@@ -638,6 +639,124 @@ def check_io(
         raise TypeCheckError("is not an I/O object")
 
 
+def check_signature_compatible(
+    subject_callable: Callable[..., Any], protocol: type, attrname: str
+) -> None:
+    subject_sig = inspect.signature(subject_callable)
+    protocol_sig = inspect.signature(getattr(protocol, attrname))
+
+    expected_varargs = any(
+        param
+        for param in protocol_sig.parameters.values()
+        if param.kind is Parameter.VAR_POSITIONAL
+    )
+    has_varargs = any(
+        param
+        for param in subject_sig.parameters.values()
+        if param.kind is Parameter.VAR_POSITIONAL
+    )
+    if expected_varargs and not has_varargs:
+        raise TypeCheckError("should accept variable positional arguments but doesn't")
+
+    protocol_has_varkwargs = any(
+        param
+        for param in protocol_sig.parameters.values()
+        if param.kind is Parameter.VAR_KEYWORD
+    )
+    subject_has_varkwargs = any(
+        param
+        for param in subject_sig.parameters.values()
+        if param.kind is Parameter.VAR_KEYWORD
+    )
+    if protocol_has_varkwargs and not subject_has_varkwargs:
+        raise TypeCheckError("should accept variable keyword arguments but doesn't")
+
+    # Check that the callable has at least the expect amount of positional-only
+    # arguments (and no extra positional-only arguments without default values)
+    if not has_varargs:
+        protocol_args = [
+            param
+            for param in protocol_sig.parameters.values()
+            if param.kind
+            in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        subject_args = [
+            param
+            for param in subject_sig.parameters.values()
+            if param.kind
+            in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+
+        # Remove the "self" parameter from methods
+        if inspect.ismethod(subject_callable) or inspect.ismethoddescriptor(
+            subject_callable
+        ):
+            protocol_args.pop(0)
+            subject_args.pop(0)
+
+        for protocol_arg, subject_arg in zip_longest(protocol_args, subject_args):
+            if protocol_arg is None:
+                if subject_arg.default is Parameter.empty:
+                    raise TypeCheckError("has too many mandatory positional arguments")
+
+                break
+
+            if subject_arg is None:
+                raise TypeCheckError("has too few positional arguments")
+
+            if (
+                protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+                and subject_arg.kind is Parameter.POSITIONAL_ONLY
+            ):
+                raise TypeCheckError(
+                    f"has an argument ({subject_arg.name}) that should not be "
+                    f"positional-only"
+                )
+
+            if (
+                protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+                and protocol_arg.name != subject_arg.name
+            ):
+                raise TypeCheckError(
+                    f"has a positional argument ({subject_arg.name}) that should be "
+                    f"named {protocol_arg.name!r} at this position"
+                )
+
+    protocol_kwonlyargs = {
+        param.name: param
+        for param in protocol_sig.parameters.values()
+        if param.kind is Parameter.KEYWORD_ONLY
+    }
+    subject_kwonlyargs = {
+        param.name: param
+        for param in subject_sig.parameters.values()
+        if param.kind is Parameter.KEYWORD_ONLY
+    }
+    if not subject_has_varkwargs:
+        # Check that the signature has at least the required keyword-only arguments, and
+        # no extra mandatory keyword-only arguments
+        if missing_kwonlyargs := [
+            param.name
+            for param in protocol_kwonlyargs.values()
+            if param.name not in subject_kwonlyargs
+        ]:
+            raise TypeCheckError(
+                "is missing keyword-only arguments: " + ", ".join(missing_kwonlyargs)
+            )
+
+    if not protocol_has_varkwargs:
+        if extra_kwonlyargs := [
+            param.name
+            for param in subject_kwonlyargs.values()
+            if param.default is Parameter.empty
+            and param.name not in protocol_kwonlyargs
+        ]:
+            raise TypeCheckError(
+                "has mandatory keyword-only arguments not present in the protocol: "
+                + ", ".join(extra_kwonlyargs)
+            )
+
+
 def check_protocol(
     value: Any,
     origin_type: Any,
@@ -649,82 +768,57 @@ def check_protocol(
     if subject in protocol_check_cache:
         result_map = protocol_check_cache[subject]
         if origin_type in result_map:
-            if exc := result_map[origin_type]:
-                raise exc
+            if exc_args := result_map[origin_type]:
+                raise TypeCheckError(*exc_args)
             else:
                 return
 
-    expected_methods: dict[str, tuple[Any, Any]] = {}
-    expected_noncallable_members: dict[str, Any] = {}
     origin_annotations = typing.get_type_hints(origin_type)
-
-    for attrname in typing_extensions.get_protocol_members(origin_type):
-        member = getattr(origin_type, attrname, None)
-
-        if callable(member):
-            signature = inspect.signature(member)
-            argtypes = [
-                (p.annotation if p.annotation is not Parameter.empty else Any)
-                for p in signature.parameters.values()
-                if p.kind is not Parameter.KEYWORD_ONLY
-            ] or Ellipsis
-            return_annotation = (
-                signature.return_annotation
-                if signature.return_annotation is not Parameter.empty
-                else Any
-            )
-            expected_methods[attrname] = argtypes, return_annotation
-        else:
-            try:
-                expected_noncallable_members[attrname] = origin_annotations[attrname]
-            except KeyError:
-                expected_noncallable_members[attrname] = member
-
-    subject_annotations = typing.get_type_hints(subject)
-
-    # Check that all required methods are present and their signatures are compatible
     result_map = protocol_check_cache.setdefault(subject, {})
     try:
-        for attrname, callable_args in expected_methods.items():
-            try:
-                method = getattr(subject, attrname)
-            except AttributeError:
-                if attrname in subject_annotations:
+        for attrname in sorted(typing_extensions.get_protocol_members(origin_type)):
+            if (annotation := origin_annotations.get(attrname)) is not None:
+                try:
+                    subject_member = getattr(subject, attrname)
+                except AttributeError:
                     raise TypeCheckError(
-                        f"is not compatible with the {origin_type.__qualname__} protocol "
-                        f"because its {attrname!r} attribute is not a method"
-                    ) from None
-                else:
-                    raise TypeCheckError(
-                        f"is not compatible with the {origin_type.__qualname__} protocol "
-                        f"because it has no method named {attrname!r}"
+                        f"is not compatible with the {origin_type.__qualname__} "
+                        f"protocol because it has no attribute named {attrname!r}"
                     ) from None
 
-            if not callable(method):
-                raise TypeCheckError(
-                    f"is not compatible with the {origin_type.__qualname__} protocol "
-                    f"because its {attrname!r} attribute is not a callable"
-                )
+                try:
+                    check_type_internal(subject_member, annotation, memo)
+                except TypeCheckError as exc:
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} "
+                        f"protocol because its {attrname!r} attribute {exc}"
+                    ) from None
+            elif callable(getattr(origin_type, attrname)):
+                try:
+                    subject_member = getattr(subject, attrname)
+                except AttributeError:
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} "
+                        f"protocol because it has no method named {attrname!r}"
+                    ) from None
 
-            # TODO: raise exception on added keyword-only arguments without defaults
-            try:
-                check_callable(method, Callable, callable_args, memo)
-            except TypeCheckError as exc:
-                raise TypeCheckError(
-                    f"is not compatible with the {origin_type.__qualname__} protocol "
-                    f"because its {attrname!r} method {exc}"
-                ) from None
+                if not callable(subject_member):
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} "
+                        f"protocol because its {attrname!r} attribute is not a callable"
+                    )
 
-        # Check that all required non-callable members are present
-        for attrname in expected_noncallable_members:
-            # TODO: implement assignability checks for non-callable members
-            if attrname not in subject_annotations and not hasattr(subject, attrname):
-                raise TypeCheckError(
-                    f"is not compatible with the {origin_type.__qualname__} protocol "
-                    f"because it has no attribute named {attrname!r}"
-                )
+                # TODO: implement assignability checks for parameter and return value
+                #  annotations
+                try:
+                    check_signature_compatible(subject_member, origin_type, attrname)
+                except TypeCheckError as exc:
+                    raise TypeCheckError(
+                        f"is not compatible with the {origin_type.__qualname__} "
+                        f"protocol because its {attrname!r} method {exc}"
+                    ) from None
     except TypeCheckError as exc:
-        result_map[origin_type] = exc
+        result_map[origin_type] = exc.args
         raise
     else:
         result_map[origin_type] = None

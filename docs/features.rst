@@ -65,13 +65,8 @@ As of version 4.3.0, Typeguard can check instances and classes against Protocols
 regardless of whether they were annotated with
 :func:`@runtime_checkable <typing.runtime_checkable>`.
 
-There are several limitations on the checks performed, however:
-
-* For non-callable members, only presence is checked for; no type compatibility checks
-  are performed
-* For methods, only the number of positional arguments are checked against, so any added
-  keyword-only arguments without defaults don't currently trip the checker
-* Likewise, argument types are not checked for compatibility
+The only current limitation is that argument annotations are not checked for
+compatibility, however this should be covered by static type checkers pretty well.
 
 Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------
