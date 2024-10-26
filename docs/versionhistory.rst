@@ -6,6 +6,8 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added proper checking for method signatures in protocol checks
+  (`#465 <https://github.com/agronholm/typeguard/pull/465>`_)
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
 
