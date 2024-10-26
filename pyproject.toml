@@ -98,19 +98,15 @@ strict = true
 pretty = true
 
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = pypy3, py38, py39, py310, py311, py312, py313
+env_list = ["py38", "py39", "py310", "py311", "py312", "py313"]
 skip_missing_interpreters = true
-minversion = 4.0
 
-[testenv]
-extras = test
-commands = coverage run -m pytest {posargs}
-package = editable
+[tool.tox.env_run_base]
+commands = [["coverage", "run", "-m", "pytest", { replace = "posargs", extend = true }]]
+package = "editable"
+extras = ["test"]
 
-[testenv:docs]
-extras = doc
-package = editable
-commands = sphinx-build -W -n docs build/sphinx
-"""
+[tool.tox.env.docs]
+depends = []
+extras = ["doc"]
+commands = [["sphinx-build", "-W", "-n", "docs", "build/sphinx"]]
