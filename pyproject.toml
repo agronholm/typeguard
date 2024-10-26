@@ -81,11 +81,11 @@ src = ["src"]
 
 [tool.ruff.lint]
 extend-select = [
-    "W",            # pycodestyle warnings
+    "B0",           # flake8-bugbear
     "I",            # isort
     "PGH",          # pygrep-hooks
     "UP",           # pyupgrade
-    "B0",           # flake8-bugbear
+    "W",            # pycodestyle warnings
 ]
 ignore = [
     "S307",
