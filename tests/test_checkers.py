@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import (
     IO,
     AbstractSet,
+    Annotated,
     Any,
     AnyStr,
     BinaryIO,
@@ -74,11 +75,6 @@ if sys.version_info >= (3, 10):
     from typing import Concatenate, ParamSpec, TypeGuard
 else:
     from typing_extensions import Concatenate, ParamSpec, TypeGuard
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
 
 P = ParamSpec("P")
 
@@ -941,9 +937,7 @@ class TestType:
 
     @pytest.mark.parametrize("check_against", [type, Type[Any]])
     def test_generic_aliase(self, check_against):
-        if sys.version_info >= (3, 9):
-            check_type(dict[str, str], check_against)
-
+        check_type(dict[str, str], check_against)
         check_type(Dict, check_against)
         check_type(Dict[str, str], check_against)
 

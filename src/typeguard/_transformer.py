@@ -472,12 +472,6 @@ class AnnotationTransformer(NodeTransformer):
         if self._memo.is_ignored_name(node):
             return None
 
-        if sys.version_info < (3, 9):
-            for typename, substitute in self.type_substitutions.items():
-                if self._memo.name_matches(node, typename):
-                    new_node = self.transformer._get_import(*substitute)
-                    return copy_location(new_node, node)
-
         return node
 
     def visit_Call(self, node: Call) -> Any:
@@ -748,11 +742,7 @@ class TypeguardTransformer(NodeTransformer):
                 if node.args.vararg:
                     annotation_ = self._convert_annotation(node.args.vararg.annotation)
                     if annotation_:
-                        if sys.version_info >= (3, 9):
-                            container = Name("tuple", ctx=Load())
-                        else:
-                            container = self._get_import("typing", "Tuple")
-
+                        container = Name("tuple", ctx=Load())
                         subscript_slice: Tuple | Index = Tuple(
                             [
                                 annotation_,
@@ -760,9 +750,6 @@ class TypeguardTransformer(NodeTransformer):
                             ],
                             ctx=Load(),
                         )
-                        if sys.version_info < (3, 9):
-                            subscript_slice = Index(subscript_slice, ctx=Load())
-
                         arg_annotations[node.args.vararg.arg] = Subscript(
                             container, subscript_slice, ctx=Load()
                         )
@@ -770,11 +757,7 @@ class TypeguardTransformer(NodeTransformer):
                 if node.args.kwarg:
                     annotation_ = self._convert_annotation(node.args.kwarg.annotation)
                     if annotation_:
-                        if sys.version_info >= (3, 9):
-                            container = Name("dict", ctx=Load())
-                        else:
-                            container = self._get_import("typing", "Dict")
-
+                        container = Name("dict", ctx=Load())
                         subscript_slice = Tuple(
                             [
                                 Name("str", ctx=Load()),
@@ -782,9 +765,6 @@ class TypeguardTransformer(NodeTransformer):
                             ],
                             ctx=Load(),
                         )
-                        if sys.version_info < (3, 9):
-                            subscript_slice = Index(subscript_slice, ctx=Load())
-
                         arg_annotations[node.args.kwarg.arg] = Subscript(
                             container, subscript_slice, ctx=Load()
                         )

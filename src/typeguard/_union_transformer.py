@@ -18,16 +18,7 @@ from ast import (
 )
 from ast import Tuple as ASTTuple
 from types import CodeType
-from typing import Any, Dict, FrozenSet, List, Set, Tuple, Union
-
-type_substitutions = {
-    "dict": Dict,
-    "list": List,
-    "tuple": Tuple,
-    "set": Set,
-    "frozenset": FrozenSet,
-    "Union": Union,
-}
+from typing import Any
 
 
 class UnionTransformer(NodeTransformer):

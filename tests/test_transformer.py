@@ -1,15 +1,10 @@
 import sys
-from ast import parse
+from ast import parse, unparse
 from textwrap import dedent
 
 import pytest
 
 from typeguard._transformer import TypeguardTransformer
-
-if sys.version_info >= (3, 9):
-    from ast import unparse
-else:
-    pytest.skip("Requires Python 3.9 or newer", allow_module_level=True)
 
 
 def test_arguments_only() -> None:
@@ -1166,27 +1161,20 @@ class TestAssign:
         )
         TypeguardTransformer().visit(node)
 
-        if sys.version_info < (3, 9):
-            extra_import = "from typing import Tuple\n"
-            tuple_type = "Tuple"
-        else:
-            extra_import = ""
-            tuple_type = "tuple"
-
         assert (
             unparse(node)
             == dedent(
-                f"""
+                """
                 from typeguard import TypeCheckMemo
                 from typeguard._functions import check_argument_types, \
 check_variable_assignment
-                {extra_import}
+
                 def foo(*args: int) -> None:
                     memo = TypeCheckMemo(globals(), locals())
-                    check_argument_types('foo', {{'args': (args, \
-{tuple_type}[int, ...])}}, memo)
+                    check_argument_types('foo', {'args': (args, \
+tuple[int, ...])}, memo)
                     args = check_variable_assignment((5,), 'args', \
-{tuple_type}[int, ...], memo)
+tuple[int, ...], memo)
                 """
             ).strip()
         )
@@ -1202,27 +1190,20 @@ check_variable_assignment
         )
         TypeguardTransformer().visit(node)
 
-        if sys.version_info < (3, 9):
-            extra_import = "from typing import Dict\n"
-            dict_type = "Dict"
-        else:
-            extra_import = ""
-            dict_type = "dict"
-
         assert (
             unparse(node)
             == dedent(
-                f"""
+                """
                 from typeguard import TypeCheckMemo
                 from typeguard._functions import check_argument_types, \
 check_variable_assignment
-                {extra_import}
+
                 def foo(**kwargs: int) -> None:
                     memo = TypeCheckMemo(globals(), locals())
-                    check_argument_types('foo', {{'kwargs': (kwargs, \
-{dict_type}[str, int])}}, memo)
-                    kwargs = check_variable_assignment({{'a': 5}}, 'kwargs', \
-{dict_type}[str, int], memo)
+                    check_argument_types('foo', {'kwargs': (kwargs, \
+dict[str, int])}, memo)
+                    kwargs = check_variable_assignment({'a': 5}, 'kwargs', \
+dict[str, int], memo)
                 """
             ).strip()
         )

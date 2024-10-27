@@ -6,6 +6,7 @@ import sys
 import types
 import typing
 import warnings
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
@@ -14,17 +15,15 @@ from textwrap import indent
 from typing import (
     IO,
     AbstractSet,
+    Annotated,
     Any,
     BinaryIO,
     Callable,
     Dict,
     ForwardRef,
     List,
-    Mapping,
-    MutableMapping,
     NewType,
     Optional,
-    Sequence,
     Set,
     TextIO,
     Tuple,
@@ -49,7 +48,6 @@ from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualifie
 
 if sys.version_info >= (3, 11):
     from typing import (
-        Annotated,
         NotRequired,
         TypeAlias,
         get_args,
@@ -58,14 +56,13 @@ if sys.version_info >= (3, 11):
 
     SubclassableAny = Any
 else:
+    from typing_extensions import Any as SubclassableAny
     from typing_extensions import (
-        Annotated,
         NotRequired,
         TypeAlias,
         get_args,
         get_origin,
     )
-    from typing_extensions import Any as SubclassableAny
 
 if sys.version_info >= (3, 10):
     from importlib.metadata import entry_points
@@ -82,9 +79,11 @@ TypeCheckLookupCallback: TypeAlias = Callable[
 ]
 
 checker_lookup_functions: list[TypeCheckLookupCallback] = []
-generic_alias_types: tuple[type, ...] = (type(List), type(List[Any]))
-if sys.version_info >= (3, 9):
-    generic_alias_types += (types.GenericAlias,)
+generic_alias_types: tuple[type, ...] = (
+    type(List),
+    type(List[Any]),
+    types.GenericAlias,
+)
 
 # Sentinel
 _missing = object()
