@@ -1137,20 +1137,23 @@ class TestProtocol:
             def my_class_method(x: int, y: str) -> None:
                 pass
 
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            check_type(Foo(), MyProtocol)
+        check_type(Foo(), MyProtocol)
 
-    def test_missing_member(self) -> None:
+    @pytest.mark.parametrize("has_member", [True, False])
+    def test_member_checks(self, has_member: bool) -> None:
         class MyProtocol(Protocol):
             member: int
 
         class Foo:
-            pass
+            def __init__(self, member: int):
+                if member:
+                    self.member = member
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, obj, MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
+        if has_member:
+            check_type(Foo(1), MyProtocol)
+        else:
+            pytest.raises(TypeCheckError, check_type, Foo(0), MyProtocol).match(
+                f"^{qualified_name(Foo)} is not compatible with the "
                 f"{MyProtocol.__qualname__} protocol because it has no attribute named "
                 f"'member'"
             )
@@ -1163,12 +1166,11 @@ class TestProtocol:
         class Foo:
             pass
 
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(Foo)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because it has no method named "
-                f"'meth'"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because it has no method named "
+            f"'meth'"
+        )
 
     def test_too_many_posargs(self) -> None:
         class MyProtocol(Protocol):
@@ -1179,13 +1181,11 @@ class TestProtocol:
             def meth(self, x: str) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
-                f"many mandatory positional arguments"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
+            f"many mandatory positional arguments"
+        )
 
     def test_wrong_posarg_name(self) -> None:
         class MyProtocol(Protocol):
@@ -1196,13 +1196,11 @@ class TestProtocol:
             def meth(self, y: str) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                rf"^{qualified_name(obj)} is not compatible with the "
-                rf"{MyProtocol.__qualname__} protocol because its 'meth' method has a "
-                rf"positional argument \(y\) that should be named 'x' at this position"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            rf"^{qualified_name(Foo)} is not compatible with the "
+            rf"{MyProtocol.__qualname__} protocol because its 'meth' method has a "
+            rf"positional argument \(y\) that should be named 'x' at this position"
+        )
 
     def test_too_few_posargs(self) -> None:
         class MyProtocol(Protocol):
@@ -1213,13 +1211,11 @@ class TestProtocol:
             def meth(self) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
-                f"few positional arguments"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
+            f"few positional arguments"
+        )
 
     def test_no_varargs(self) -> None:
         class MyProtocol(Protocol):
@@ -1230,13 +1226,11 @@ class TestProtocol:
             def meth(self) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
-                f"accept variable positional arguments but doesn't"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"accept variable positional arguments but doesn't"
+        )
 
     def test_no_kwargs(self) -> None:
         class MyProtocol(Protocol):
@@ -1247,13 +1241,11 @@ class TestProtocol:
             def meth(self) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
-                f"accept variable keyword arguments but doesn't"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"accept variable keyword arguments but doesn't"
+        )
 
     def test_missing_kwarg(self) -> None:
         class MyProtocol(Protocol):
@@ -1264,13 +1256,11 @@ class TestProtocol:
             def meth(self) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method is "
-                f"missing keyword-only arguments: x"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method is "
+            f"missing keyword-only arguments: x"
+        )
 
     def test_extra_kwarg(self) -> None:
         class MyProtocol(Protocol):
@@ -1281,13 +1271,43 @@ class TestProtocol:
             def meth(self, *, x: str) -> None:
                 pass
 
-        obj = Foo()
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
-                f"^{qualified_name(obj)} is not compatible with the "
-                f"{MyProtocol.__qualname__} protocol because its 'meth' method has "
-                f"mandatory keyword-only arguments not present in the protocol: x"
-            )
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has "
+            f"mandatory keyword-only arguments not present in the protocol: x"
+        )
+
+    def test_instance_staticmethod_mismatch(self) -> None:
+        class MyProtocol(Protocol):
+            @staticmethod
+            def meth() -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"be a static method but it's an instance method"
+        )
+
+    def test_instance_classmethod_mismatch(self) -> None:
+        class MyProtocol(Protocol):
+            @classmethod
+            def meth(cls) -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"be a class method but it's an instance method"
+        )
 
 
 class TestRecursiveType:

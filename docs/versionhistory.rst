@@ -10,6 +10,8 @@ This library adheres to
   (`#465 <https://github.com/agronholm/typeguard/pull/465>`_)
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
+- Fixed protocol checks running against the class of an instance and not the instance
+  itself (this produced wrong results for non-method member checks)
 
 **4.3.0** (2024-05-27)
 
