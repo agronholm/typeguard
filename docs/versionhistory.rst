@@ -4,6 +4,9 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+- Changed the signature of ``typeguard_ignore()`` to be compatible with
+  ``typing.no_type_check()`` (PR by @jolaf)
+
 **4.4.0** (2024-10-27)
 
 - Added proper checking for method signatures in protocol checks
