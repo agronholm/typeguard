@@ -216,7 +216,7 @@ def typechecked(
     ) = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
-        target = target.__func__
+        target = target.__func__  # type: ignore[assignment]
 
     retval = instrument(target)
     if isinstance(retval, str):
