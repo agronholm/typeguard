@@ -9,6 +9,8 @@ This library adheres to
 - Dropped Python 3.8 support
 - Changed the signature of ``typeguard_ignore()`` to be compatible with
   ``typing.no_type_check()`` (PR by @jolaf)
+- Fixed checking of variable assignments involving tuple unpacking
+  (`#486 <https://github.com/agronholm/typeguard/pull/486>`_)
 
 **4.4.0** (2024-10-27)
 

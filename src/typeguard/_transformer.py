@@ -28,7 +28,6 @@ from ast import (
     If,
     Import,
     ImportFrom,
-    Index,
     List,
     Load,
     LShift,
@@ -389,9 +388,7 @@ class AnnotationTransformer(NodeTransformer):
                 union_name = self.transformer._get_import("typing", "Union")
                 return Subscript(
                     value=union_name,
-                    slice=Index(
-                        Tuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
-                    ),
+                    slice=Tuple(elts=[node.left, node.right], ctx=Load()),
                     ctx=Load(),
                 )
 
@@ -410,24 +407,18 @@ class AnnotationTransformer(NodeTransformer):
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
         # don't try to evaluate it as code
         if node.slice:
-            if isinstance(node.slice, Index):
-                # Python 3.8
-                slice_value = node.slice.value  # type: ignore[attr-defined]
-            else:
-                slice_value = node.slice
-
-            if isinstance(slice_value, Tuple):
+            if isinstance(node.slice, Tuple):
                 if self._memo.name_matches(node.value, *annotated_names):
                     # Only treat the first argument to typing.Annotated as a potential
                     # forward reference
                     items = cast(
                         typing.List[expr],
-                        [self.visit(slice_value.elts[0])] + slice_value.elts[1:],
+                        [self.visit(node.slice.elts[0])] + node.slice.elts[1:],
                     )
                 else:
                     items = cast(
                         typing.List[expr],
-                        [self.visit(item) for item in slice_value.elts],
+                        [self.visit(item) for item in node.slice.elts],
                     )
 
                 # If this is a Union and any of the items is Any, erase the entire
@@ -450,7 +441,7 @@ class AnnotationTransformer(NodeTransformer):
                     if item is None:
                         items[index] = self.transformer._get_import("typing", "Any")
 
-                slice_value.elts = items
+                node.slice.elts = items
             else:
                 self.generic_visit(node)
 
@@ -542,18 +533,10 @@ class TypeguardTransformer(NodeTransformer):
                     return_annotation, *generator_names
                 ):
                     if isinstance(return_annotation, Subscript):
-                        annotation_slice = return_annotation.slice
-
-                        # Python < 3.9
-                        if isinstance(annotation_slice, Index):
-                            annotation_slice = (
-                                annotation_slice.value  # type: ignore[attr-defined]
-                            )
-
-                        if isinstance(annotation_slice, Tuple):
-                            items = annotation_slice.elts
+                        if isinstance(return_annotation.slice, Tuple):
+                            items = return_annotation.slice.elts
                         else:
-                            items = [annotation_slice]
+                            items = [return_annotation.slice]
 
                         if len(items) > 0:
                             new_memo.yield_annotation = self._convert_annotation(
@@ -743,7 +726,7 @@ class TypeguardTransformer(NodeTransformer):
                     annotation_ = self._convert_annotation(node.args.vararg.annotation)
                     if annotation_:
                         container = Name("tuple", ctx=Load())
-                        subscript_slice: Tuple | Index = Tuple(
+                        subscript_slice = Tuple(
                             [
                                 annotation_,
                                 Constant(Ellipsis),
@@ -1024,12 +1007,25 @@ class TypeguardTransformer(NodeTransformer):
                     func_name = self._get_import(
                         "typeguard._functions", "check_variable_assignment"
                     )
+                    targets_arg = List(
+                        [
+                            List(
+                                [
+                                    Tuple(
+                                        [Constant(node.target.id), annotation],
+                                        ctx=Load(),
+                                    )
+                                ],
+                                ctx=Load(),
+                            )
+                        ],
+                        ctx=Load(),
+                    )
                     node.value = Call(
                         func_name,
                         [
                             node.value,
-                            Constant(node.target.id),
-                            annotation,
+                            targets_arg,
                             self._memo.get_memo_name(),
                         ],
                         [],
@@ -1047,7 +1043,7 @@ class TypeguardTransformer(NodeTransformer):
 
         # Only instrument function-local assignments
         if isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
-            targets: list[dict[Constant, expr | None]] = []
+            preliminary_targets: list[list[tuple[Constant, expr | None]]] = []
             check_required = False
             for target in node.targets:
                 elts: Sequence[expr]
@@ -1058,63 +1054,63 @@ class TypeguardTransformer(NodeTransformer):
                 else:
                     continue
 
-                annotations_: dict[Constant, expr | None] = {}
+                annotations_: list[tuple[Constant, expr | None]] = []
                 for exp in elts:
                     prefix = ""
                     if isinstance(exp, Starred):
                         exp = exp.value
                         prefix = "*"
 
+                    path: list[str] = []
+                    while isinstance(exp, Attribute):
+                        path.insert(0, exp.attr)
+                        exp = exp.value
+
                     if isinstance(exp, Name):
-                        self._memo.ignored_names.add(exp.id)
-                        name = prefix + exp.id
+                        if not path:
+                            self._memo.ignored_names.add(exp.id)
+
+                        path.insert(0, exp.id)
+                        name = prefix + ".".join(path)
                         annotation = self._memo.variable_annotations.get(exp.id)
                         if annotation:
-                            annotations_[Constant(name)] = annotation
+                            annotations_.append((Constant(name), annotation))
                             check_required = True
                         else:
-                            annotations_[Constant(name)] = None
+                            annotations_.append((Constant(name), None))
 
-                targets.append(annotations_)
+                preliminary_targets.append(annotations_)
 
             if check_required:
                 # Replace missing annotations with typing.Any
-                for item in targets:
-                    for key, expression in item.items():
+                targets: list[list[tuple[Constant, expr]]] = []
+                for items in preliminary_targets:
+                    target_list: list[tuple[Constant, expr]] = []
+                    targets.append(target_list)
+                    for key, expression in items:
                         if expression is None:
-                            item[key] = self._get_import("typing", "Any")
+                            target_list.append((key, self._get_import("typing", "Any")))
+                        else:
+                            target_list.append((key, expression))
 
-                if len(targets) == 1 and len(targets[0]) == 1:
-                    func_name = self._get_import(
-                        "typeguard._functions", "check_variable_assignment"
-                    )
-                    target_varname = next(iter(targets[0]))
-                    node.value = Call(
-                        func_name,
-                        [
-                            node.value,
-                            target_varname,
-                            targets[0][target_varname],
-                            self._memo.get_memo_name(),
-                        ],
-                        [],
-                    )
-                elif targets:
-                    func_name = self._get_import(
-                        "typeguard._functions", "check_multi_variable_assignment"
-                    )
-                    targets_arg = List(
-                        [
-                            Dict(keys=list(target), values=list(target.values()))
-                            for target in targets
-                        ],
-                        ctx=Load(),
-                    )
-                    node.value = Call(
-                        func_name,
-                        [node.value, targets_arg, self._memo.get_memo_name()],
-                        [],
-                    )
+                func_name = self._get_import(
+                    "typeguard._functions", "check_variable_assignment"
+                )
+                targets_arg = List(
+                    [
+                        List(
+                            [Tuple([name, ann], ctx=Load()) for name, ann in target],
+                            ctx=Load(),
+                        )
+                        for target in targets
+                    ],
+                    ctx=Load(),
+                )
+                node.value = Call(
+                    func_name,
+                    [node.value, targets_arg, self._memo.get_memo_name()],
+                    [],
+                )
 
         return node
 
@@ -1175,12 +1171,20 @@ class TypeguardTransformer(NodeTransformer):
             operator_call = Call(
                 operator_func, [Name(node.target.id, ctx=Load()), node.value], []
             )
+            targets_arg = List(
+                [
+                    List(
+                        [Tuple([Constant(node.target.id), annotation], ctx=Load())],
+                        ctx=Load(),
+                    )
+                ],
+                ctx=Load(),
+            )
             check_call = Call(
                 self._get_import("typeguard._functions", "check_variable_assignment"),
                 [
                     operator_call,
-                    Constant(node.target.id),
-                    annotation,
+                    targets_arg,
                     self._memo.get_memo_name(),
                 ],
                 [],
