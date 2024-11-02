@@ -36,6 +36,7 @@ from typing import (
 )
 
 import pytest
+from typing_extensions import LiteralString
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -64,12 +65,9 @@ from . import (
 )
 
 if sys.version_info >= (3, 11):
-    from typing import LiteralString
-
     SubclassableAny = Any
 else:
     from typing_extensions import Any as SubclassableAny
-    from typing_extensions import LiteralString
 
 if sys.version_info >= (3, 10):
     from typing import Concatenate, ParamSpec, TypeGuard

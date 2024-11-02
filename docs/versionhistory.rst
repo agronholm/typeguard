@@ -11,6 +11,8 @@ This library adheres to
   ``typing.no_type_check()`` (PR by @jolaf)
 - Fixed checking of variable assignments involving tuple unpacking
   (`#486 <https://github.com/agronholm/typeguard/pull/486>`_)
+- Fixed ``TypeError`` when checking a class against ``type[Self]``
+  (`#481 <https://github.com/agronholm/typeguard/pull/481>`_)
 
 **4.4.0** (2024-10-27)
 

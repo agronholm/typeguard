@@ -464,6 +464,8 @@ def check_class(
 
     if expected_class is Any:
         return
+    elif expected_class is typing_extensions.Self:
+        check_self(value, get_origin(expected_class), get_args(expected_class), memo)
     elif getattr(expected_class, "_is_protocol", False):
         check_protocol(value, expected_class, (), memo)
     elif isinstance(expected_class, TypeVar):
@@ -847,8 +849,7 @@ def check_self(
     if isclass(value):
         if not issubclass(value, memo.self_type):
             raise TypeCheckError(
-                f"is not an instance of the self type "
-                f"({qualified_name(memo.self_type)})"
+                f"is not a subclass of the self type ({qualified_name(memo.self_type)})"
             )
     elif not isinstance(value, memo.self_type):
         raise TypeCheckError(
