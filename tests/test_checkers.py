@@ -508,7 +508,8 @@ class TestTypedDict:
 
         class DummyDict(typing_provider.TypedDict):
             x: int
-            y: "NotRequired[int]"
+            y: NotRequired[int]
+            z: "NotRequired[int]"
 
         check_type({"x": 8}, DummyDict)
 
@@ -520,12 +521,18 @@ class TestTypedDict:
 
         class DummyDict(typing_provider.TypedDict):
             x: int
-            y: "NotRequired[int]"
+            y: NotRequired[int]
+            z: "NotRequired[int]"
 
         with pytest.raises(
             TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
         ):
             check_type({"x": 1, "y": "foo"}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'z' of dict is not an instance of int"
+        ):
+            check_type({"x": 1, "y": 6, "z": "foo"}, DummyDict)
 
     def test_is_typeddict(self, typing_provider):
         # Ensure both typing.TypedDict and typing_extensions.TypedDict are recognized

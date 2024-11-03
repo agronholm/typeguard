@@ -19,6 +19,9 @@ This library adheres to
 - Fixed ``Self`` checks in instance/class methods that have positional-only arguments
 - Fixed explicit checks of PEP 604 unions against ``types.UnionType``
   (`#467 <https://github.com/agronholm/typeguard/issues/467>`_)
+- Fixed checks against annotations wrapped in ``NotRequired`` not being run unless the
+  ``NotRequired`` is a forward reference
+  (`#454 <https://github.com/agronholm/typeguard/issues/454>`_)
 
 **4.4.0** (2024-10-27)
 

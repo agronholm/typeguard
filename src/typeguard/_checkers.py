@@ -263,9 +263,10 @@ def check_typed_dict(
     for key, annotation in origin_type.__annotations__.items():
         if isinstance(annotation, ForwardRef):
             annotation = evaluate_forwardref(annotation, memo)
-            if get_origin(annotation) is NotRequired:
-                required_keys.discard(key)
-                annotation = get_args(annotation)[0]
+
+        if get_origin(annotation) is NotRequired:
+            required_keys.discard(key)
+            annotation = get_args(annotation)[0]
 
         type_hints[key] = annotation
 
