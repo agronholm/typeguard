@@ -22,6 +22,9 @@ This library adheres to
 - Fixed checks against annotations wrapped in ``NotRequired`` not being run unless the
   ``NotRequired`` is a forward reference
   (`#454 <https://github.com/agronholm/typeguard/issues/454>`_)
+- Fixed the ``pytest_ignore_collect`` hook in the pytest plugin blocking default pytest
+  collection ignoring behavior by returning ``None`` instead of ``False``
+  (PR by @mgorny)
 
 **4.4.0** (2024-10-27)
 
