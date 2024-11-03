@@ -1069,7 +1069,11 @@ class TestIntersectingProtocol:
 
 
 class TestProtocol:
-    def test_success(self, typing_provider: Any) -> None:
+    @pytest.mark.parametrize(
+        "instantiate",
+        [pytest.param(True, id="instance"), pytest.param(False, id="class")],
+    )
+    def test_success(self, typing_provider: Any, instantiate: bool) -> None:
         class MyProtocol(Protocol):
             member: int
 
@@ -1129,7 +1133,10 @@ class TestProtocol:
             def my_class_method(x: int, y: str) -> None:
                 pass
 
-        check_type(Foo(), MyProtocol)
+        if instantiate:
+            check_type(Foo(), MyProtocol)
+        else:
+            check_type(Foo, type[MyProtocol])
 
     @pytest.mark.parametrize("has_member", [True, False])
     def test_member_checks(self, has_member: bool) -> None:

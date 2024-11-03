@@ -13,6 +13,8 @@ This library adheres to
   (`#486 <https://github.com/agronholm/typeguard/pull/486>`_)
 - Fixed ``TypeError`` when checking a class against ``type[Self]``
   (`#481 <https://github.com/agronholm/typeguard/pull/481>`_)
+- Fixed checking of protocols on the class level (against ``type[SomeProtocol]``)
+  (`#498 <https://github.com/agronholm/typeguard/pull/498>`_)
 
 **4.4.0** (2024-10-27)
 

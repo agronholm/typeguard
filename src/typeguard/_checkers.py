@@ -635,10 +635,8 @@ def check_io(
         raise TypeCheckError("is not an I/O object")
 
 
-def check_signature_compatible(
-    subject_callable: Callable[..., Any], protocol: type, attrname: str
-) -> None:
-    subject_sig = inspect.signature(subject_callable)
+def check_signature_compatible(subject: type, protocol: type, attrname: str) -> None:
+    subject_sig = inspect.signature(getattr(subject, attrname))
     protocol_sig = inspect.signature(getattr(protocol, attrname))
     protocol_type: typing.Literal["instance", "class", "static"] = "instance"
     subject_type: typing.Literal["instance", "class", "static"] = "instance"
@@ -652,12 +650,12 @@ def check_signature_compatible(
             protocol_type = "class"
 
     # Check if the subject-side method is a class method or static method
-    if inspect.ismethod(subject_callable) and inspect.isclass(
-        subject_callable.__self__
-    ):
-        subject_type = "class"
-    elif not hasattr(subject_callable, "__self__"):
-        subject_type = "static"
+    if attrname in subject.__dict__:
+        descriptor = subject.__dict__[attrname]
+        if isinstance(descriptor, staticmethod):
+            subject_type = "static"
+        elif isinstance(descriptor, classmethod):
+            subject_type = "class"
 
     if protocol_type == "instance" and subject_type != "instance":
         raise TypeCheckError(
@@ -713,6 +711,10 @@ def check_signature_compatible(
         # Remove the "self" parameter from the protocol arguments to match
         if protocol_type == "instance":
             protocol_args.pop(0)
+
+        # Remove the "self" parameter from the subject arguments to match
+        if subject_type == "instance":
+            subject_args.pop(0)
 
         for protocol_arg, subject_arg in zip_longest(protocol_args, subject_args):
             if protocol_arg is None:
@@ -818,8 +820,9 @@ def check_protocol(
 
             # TODO: implement assignability checks for parameter and return value
             #  annotations
+            subject = value if isclass(value) else value.__class__
             try:
-                check_signature_compatible(subject_member, origin_type, attrname)
+                check_signature_compatible(subject, origin_type, attrname)
             except TypeCheckError as exc:
                 raise TypeCheckError(
                     f"is not compatible with the {origin_type.__qualname__} "
