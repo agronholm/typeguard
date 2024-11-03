@@ -445,6 +445,7 @@ def check_uniontype(
         )
     finally:
         del errors  # avoid creating ref cycle
+
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 
