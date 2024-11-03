@@ -700,7 +700,7 @@ class TypeguardTransformer(NodeTransformer):
                     else:
                         self.target_lineno = node.lineno
 
-                all_args = node.args.args + node.args.kwonlyargs + node.args.posonlyargs
+                all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
 
                 # Ensure that any type shadowed by the positional or keyword-only
                 # argument names are ignored in this function
@@ -826,19 +826,20 @@ class TypeguardTransformer(NodeTransformer):
                             isinstance(decorator, Name)
                             and decorator.id == "classmethod"
                         ):
+                            arglist = node.args.posonlyargs or node.args.args
                             memo_kwargs["self_type"] = Name(
-                                id=node.args.args[0].arg, ctx=Load()
+                                id=arglist[0].arg, ctx=Load()
                             )
                             break
                     else:
-                        if node.args.args:
+                        if arglist := node.args.posonlyargs or node.args.args:
                             if node.name == "__new__":
                                 memo_kwargs["self_type"] = Name(
-                                    id=node.args.args[0].arg, ctx=Load()
+                                    id=arglist[0].arg, ctx=Load()
                                 )
                             else:
                                 memo_kwargs["self_type"] = Attribute(
-                                    Name(id=node.args.args[0].arg, ctx=Load()),
+                                    Name(id=arglist[0].arg, ctx=Load()),
                                     "__class__",
                                     ctx=Load(),
                                 )

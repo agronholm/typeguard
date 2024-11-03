@@ -554,6 +554,35 @@ check_return_type
     )
 
 
+def test_method_posonlyargs() -> None:
+    node = parse(
+        dedent(
+            """
+            class Foo:
+                def foo(self, x: int, /, y: str) -> int:
+                    return x
+            """
+        )
+    )
+    TypeguardTransformer(["Foo", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            class Foo:
+
+                def foo(self, x: int, /, y: str) -> int:
+                    from typeguard import TypeCheckMemo
+                    from typeguard._functions import check_argument_types, \
+check_return_type
+                    memo = TypeCheckMemo(globals(), locals(), self_type=self.__class__)
+                    check_argument_types('Foo.foo', {'x': (x, int), 'y': (y, str)}, memo)
+                    return check_return_type('Foo.foo', x, int, memo)
+            """
+        ).strip()
+    )
+
+
 def test_classmethod() -> None:
     node = parse(
         dedent(
@@ -579,6 +608,38 @@ def test_classmethod() -> None:
 check_return_type
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
                     check_argument_types('Foo.foo', {'x': (x, int)}, memo)
+                    return check_return_type('Foo.foo', x, int, memo)
+            """
+        ).strip()
+    )
+
+
+def test_classmethod_posonlyargs() -> None:
+    node = parse(
+        dedent(
+            """
+            class Foo:
+                @classmethod
+                def foo(cls, x: int, /, y: str) -> int:
+                    return x
+            """
+        )
+    )
+    TypeguardTransformer(["Foo", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            class Foo:
+
+                @classmethod
+                def foo(cls, x: int, /, y: str) -> int:
+                    from typeguard import TypeCheckMemo
+                    from typeguard._functions import check_argument_types, \
+check_return_type
+                    memo = TypeCheckMemo(globals(), locals(), self_type=cls)
+                    check_argument_types('Foo.foo', {'x': (x, int), 'y': (y, str)}, \
+memo)
                     return check_return_type('Foo.foo', x, int, memo)
             """
         ).strip()
