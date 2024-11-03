@@ -11,14 +11,14 @@ This library adheres to
   ``typing.no_type_check()`` (PR by @jolaf)
 - Avoid creating reference cycles when type checking uniontypes and classes
 - Fixed checking of variable assignments involving tuple unpacking
-  (`#486 <https://github.com/agronholm/typeguard/pull/486>`_)
+  (`#486 <https://github.com/agronholm/typeguard/issues/486>`_)
 - Fixed ``TypeError`` when checking a class against ``type[Self]``
-  (`#481 <https://github.com/agronholm/typeguard/pull/481>`_)
+  (`#481 <https://github.com/agronholm/typeguard/issues/481>`_)
 - Fixed checking of protocols on the class level (against ``type[SomeProtocol]``)
-  (`#498 <https://github.com/agronholm/typeguard/pull/498>`_)
+  (`#498 <https://github.com/agronholm/typeguard/issues/498>`_)
 - Fixed ``Self`` checks in instance/class methods that have positional-only arguments
 - Fixed explicit checks of PEP 604 unions against ``types.UnionType``
-  (`#467 <https://github.com/agronholm/typeguard/pull/467>`_)
+  (`#467 <https://github.com/agronholm/typeguard/issues/467>`_)
 
 **4.4.0** (2024-10-27)
 
