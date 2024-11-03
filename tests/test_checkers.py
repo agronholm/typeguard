@@ -897,7 +897,7 @@ class TestUnion:
     @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
     def test_raw_uniontype_fail(self):
         with pytest.raises(
-            TypeCheckError, match="class str is not an instance of types.UnionType"
+            TypeCheckError, match=r"class str is not an instance of \w+\.UnionType$"
         ):
             check_type(str, types.UnionType)
 
