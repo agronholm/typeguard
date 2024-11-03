@@ -1199,6 +1199,20 @@ class TestProtocol:
         else:
             check_type(Foo, type[MyProtocol])
 
+    @pytest.mark.parametrize(
+        "instantiate",
+        [pytest.param(True, id="instance"), pytest.param(False, id="class")],
+    )
+    @pytest.mark.parametrize("subject_class", [object, str, Parent])
+    def test_empty_protocol(self, instantiate: bool, subject_class: type[Any]):
+        class EmptyProtocol(Protocol):
+            pass
+
+        if instantiate:
+            check_type(subject_class(), EmptyProtocol)
+        else:
+            check_type(subject_class, type[EmptyProtocol])
+
     @pytest.mark.parametrize("has_member", [True, False])
     def test_member_checks(self, has_member: bool) -> None:
         class MyProtocol(Protocol):
