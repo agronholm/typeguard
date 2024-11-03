@@ -816,8 +816,6 @@ class TestUnion:
         reason="Test relies on CPython's reference counting behavior",
     )
     def test_union_reference_leak(self):
-        leaked = True
-
         class Leak:
             def __del__(self):
                 nonlocal leaked
@@ -827,17 +825,61 @@ class TestUnion:
             leak = Leak()  # noqa: F841
             check_type(b"asdf", Union[str, bytes])
 
+        leaked = True
         inner1()
         assert not leaked
 
-        leaked = True
-
         def inner2():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", Union[bytes, str])
+
+        leaked = True
+        inner2()
+        assert not leaked
+
+        def inner3():
             leak = Leak()  # noqa: F841
             with pytest.raises(TypeCheckError, match="any element in the union:"):
                 check_type(1, Union[str, bytes])
 
+        leaked = True
+        inner3()
+        assert not leaked
+
+    @pytest.mark.skipif(
+        sys.implementation.name != "cpython",
+        reason="Test relies on CPython's reference counting behavior",
+    )
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_uniontype_reference_leak(self):
+        class Leak:
+            def __del__(self):
+                nonlocal leaked
+                leaked = False
+
+        def inner1():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", str | bytes)
+
+        leaked = True
+        inner1()
+        assert not leaked
+
+        def inner2():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", bytes | str)
+
+        leaked = True
         inner2()
+        assert not leaked
+
+        def inner3():
+            leak = Leak()  # noqa: F841
+            with pytest.raises(TypeCheckError, match="any element in the union:"):
+                check_type(1, Union[str, bytes])
+
+        leaked = True
+        inner3()
         assert not leaked
 
 
