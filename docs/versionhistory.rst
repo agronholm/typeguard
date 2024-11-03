@@ -4,6 +4,34 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Dropped Python 3.8 support
+- Changed the signature of ``typeguard_ignore()`` to be compatible with
+  ``typing.no_type_check()`` (PR by @jolaf)
+- Avoid creating reference cycles when type checking uniontypes and classes
+- Fixed checking of variable assignments involving tuple unpacking
+  (`#486 <https://github.com/agronholm/typeguard/issues/486>`_)
+- Fixed ``TypeError`` when checking a class against ``type[Self]``
+  (`#481 <https://github.com/agronholm/typeguard/issues/481>`_)
+- Fixed checking of protocols on the class level (against ``type[SomeProtocol]``)
+  (`#498 <https://github.com/agronholm/typeguard/issues/498>`_)
+- Fixed ``Self`` checks in instance/class methods that have positional-only arguments
+- Fixed explicit checks of PEP 604 unions against ``types.UnionType``
+  (`#467 <https://github.com/agronholm/typeguard/issues/467>`_)
+- Fixed checks against annotations wrapped in ``NotRequired`` not being run unless the
+  ``NotRequired`` is a forward reference
+  (`#454 <https://github.com/agronholm/typeguard/issues/454>`_)
+
+**4.4.0** (2024-10-27)
+
+- Added proper checking for method signatures in protocol checks
+  (`#465 <https://github.com/agronholm/typeguard/pull/465>`_)
+- Fixed basic support for intersection protocols
+  (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
+- Fixed protocol checks running against the class of an instance and not the instance
+  itself (this produced wrong results for non-method member checks)
+
 **4.3.0** (2024-05-27)
 
 - Added support for checking against static protocols

@@ -8,26 +8,16 @@ from __future__ import annotations
 from ast import (
     BinOp,
     BitOr,
-    Index,
     Load,
     Name,
     NodeTransformer,
     Subscript,
+    Tuple,
     fix_missing_locations,
     parse,
 )
-from ast import Tuple as ASTTuple
 from types import CodeType
-from typing import Any, Dict, FrozenSet, List, Set, Tuple, Union
-
-type_substitutions = {
-    "dict": Dict,
-    "list": List,
-    "tuple": Tuple,
-    "set": Set,
-    "frozenset": FrozenSet,
-    "Union": Union,
-}
+from typing import Any
 
 
 class UnionTransformer(NodeTransformer):
@@ -39,9 +29,7 @@ class UnionTransformer(NodeTransformer):
         if isinstance(node.op, BitOr):
             return Subscript(
                 value=self.union_name,
-                slice=Index(
-                    ASTTuple(elts=[node.left, node.right], ctx=Load()), ctx=Load()
-                ),
+                slice=Tuple(elts=[node.left, node.right], ctx=Load()),
                 ctx=Load(),
             )
 
