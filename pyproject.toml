@@ -17,13 +17,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 dependencies = [
     "importlib_metadata >= 3.6; python_version < '3.10'",
     "typing_extensions >= 4.10.0",
@@ -80,36 +80,34 @@ src = ["src"]
 
 [tool.ruff.lint]
 extend-select = [
-    "W",            # pycodestyle warnings
+    "B0",           # flake8-bugbear
     "I",            # isort
     "PGH",          # pygrep-hooks
     "UP",           # pyupgrade
-    "B0",           # flake8-bugbear
+    "W",            # pycodestyle warnings
 ]
 ignore = [
     "S307",
     "B008",
+    "UP006",
+    "UP035",
 ]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 strict = true
 pretty = true
 
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = pypy3, py38, py39, py310, py311, py312, py313
+env_list = ["py39", "py310", "py311", "py312", "py313"]
 skip_missing_interpreters = true
-minversion = 4.0
 
-[testenv]
-extras = test
-commands = coverage run -m pytest {posargs}
-package = editable
+[tool.tox.env_run_base]
+commands = [["coverage", "run", "-m", "pytest", { replace = "posargs", extend = true }]]
+package = "editable"
+extras = ["test"]
 
-[testenv:docs]
-extras = doc
-package = editable
-commands = sphinx-build -W -n docs build/sphinx
-"""
+[tool.tox.env.docs]
+depends = []
+extras = ["doc"]
+commands = [["sphinx-build", "-W", "-n", "docs", "build/sphinx"]]

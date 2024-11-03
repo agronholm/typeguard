@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import warnings
+from collections.abc import Sequence
 from typing import Any, Callable, NoReturn, TypeVar, Union, overload
 
 from . import _suppression
@@ -242,59 +243,53 @@ def check_yield_type(
 
 
 def check_variable_assignment(
-    value: object, varname: str, annotation: Any, memo: TypeCheckMemo
+    value: Any, targets: Sequence[list[tuple[str, Any]]], memo: TypeCheckMemo
 ) -> Any:
     if _suppression.type_checks_suppressed:
         return value
 
-    try:
-        check_type_internal(value, annotation, memo)
-    except TypeCheckError as exc:
-        qualname = qualified_name(value, add_class_prefix=True)
-        exc.append_path_element(f"value assigned to {varname} ({qualname})")
-        if memo.config.typecheck_fail_callback:
-            memo.config.typecheck_fail_callback(exc, memo)
-        else:
-            raise
-
-    return value
-
-
-def check_multi_variable_assignment(
-    value: Any, targets: list[dict[str, Any]], memo: TypeCheckMemo
-) -> Any:
-    if max(len(target) for target in targets) == 1:
-        iterated_values = [value]
-    else:
-        iterated_values = list(value)
-
-    if not _suppression.type_checks_suppressed:
-        for expected_types in targets:
-            value_index = 0
-            for ann_index, (varname, expected_type) in enumerate(
-                expected_types.items()
-            ):
-                if varname.startswith("*"):
-                    varname = varname[1:]
-                    keys_left = len(expected_types) - 1 - ann_index
-                    next_value_index = len(iterated_values) - keys_left
-                    obj: object = iterated_values[value_index:next_value_index]
-                    value_index = next_value_index
-                else:
-                    obj = iterated_values[value_index]
-                    value_index += 1
-
+    value_to_return = value
+    for target in targets:
+        star_variable_index = next(
+            (i for i, (varname, _) in enumerate(target) if varname.startswith("*")),
+            None,
+        )
+        if star_variable_index is not None:
+            value_to_return = list(value)
+            remaining_vars = len(target) - 1 - star_variable_index
+            end_index = len(value_to_return) - remaining_vars
+            values_to_check = (
+                value_to_return[:star_variable_index]
+                + [value_to_return[star_variable_index:end_index]]
+                + value_to_return[end_index:]
+            )
+        elif len(target) > 1:
+            values_to_check = value_to_return = []
+            iterator = iter(value)
+            for _ in target:
                 try:
-                    check_type_internal(obj, expected_type, memo)
-                except TypeCheckError as exc:
-                    qualname = qualified_name(obj, add_class_prefix=True)
-                    exc.append_path_element(f"value assigned to {varname} ({qualname})")
-                    if memo.config.typecheck_fail_callback:
-                        memo.config.typecheck_fail_callback(exc, memo)
-                    else:
-                        raise
+                    values_to_check.append(next(iterator))
+                except StopIteration:
+                    raise ValueError(
+                        f"not enough values to unpack (expected {len(target)}, got "
+                        f"{len(values_to_check)})"
+                    ) from None
 
-    return iterated_values[0] if len(iterated_values) == 1 else iterated_values
+        else:
+            values_to_check = [value]
+
+        for val, (varname, annotation) in zip(values_to_check, target):
+            try:
+                check_type_internal(val, annotation, memo)
+            except TypeCheckError as exc:
+                qualname = qualified_name(val, add_class_prefix=True)
+                exc.append_path_element(f"value assigned to {varname} ({qualname})")
+                if memo.config.typecheck_fail_callback:
+                    memo.config.typecheck_fail_callback(exc, memo)
+                else:
+                    raise
+
+    return value_to_return
 
 
 def warn_on_error(exc: TypeCheckError, memo: TypeCheckMemo) -> None:

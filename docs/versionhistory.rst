@@ -6,9 +6,25 @@ This library adheres to
 
 **UNRELEASED**
 
+- Dropped Python 3.8 support
+- Changed the signature of ``typeguard_ignore()`` to be compatible with
+  ``typing.no_type_check()`` (PR by @jolaf)
+- Avoid creating reference cycles when type checking uniontypes and classes
+- Fixed checking of variable assignments involving tuple unpacking
+  (`#486 <https://github.com/agronholm/typeguard/pull/486>`_)
+- Fixed ``TypeError`` when checking a class against ``type[Self]``
+  (`#481 <https://github.com/agronholm/typeguard/pull/481>`_)
+- Fixed checking of protocols on the class level (against ``type[SomeProtocol]``)
+  (`#498 <https://github.com/agronholm/typeguard/pull/498>`_)
+
+**4.4.0** (2024-10-27)
+
+- Added proper checking for method signatures in protocol checks
+  (`#465 <https://github.com/agronholm/typeguard/pull/465>`_)
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
-- Avoid creating reference cycles when type checking uniontypes and classes
+- Fixed protocol checks running against the class of an instance and not the instance
+  itself (this produced wrong results for non-method member checks)
 
 **4.3.0** (2024-05-27)
 
