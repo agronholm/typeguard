@@ -17,6 +17,8 @@ This library adheres to
 - Fixed checking of protocols on the class level (against ``type[SomeProtocol]``)
   (`#498 <https://github.com/agronholm/typeguard/pull/498>`_)
 - Fixed ``Self`` checks in instance/class methods that have positional-only arguments
+- Fixed explicit checks of PEP 604 unions against ``types.UnionType``
+  (`#467 <https://github.com/agronholm/typeguard/pull/467>`_)
 
 **4.4.0** (2024-10-27)
 

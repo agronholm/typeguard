@@ -1,5 +1,6 @@
 import collections.abc
 import sys
+import types
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO, StringIO
@@ -881,6 +882,17 @@ class TestUnion:
         leaked = True
         inner3()
         assert not leaked
+
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_raw_uniontype_success(self):
+        check_type(str | int, types.UnionType)
+
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_raw_uniontype_fail(self):
+        with pytest.raises(
+            TypeCheckError, match="class str is not an instance of types.UnionType"
+        ):
+            check_type(str, types.UnionType)
 
 
 class TestTypevar:

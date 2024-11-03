@@ -422,6 +422,7 @@ def check_union(
         )
     finally:
         del errors  # avoid creating ref cycle
+
     raise TypeCheckError(f"did not match any element in the union:\n{formatted_errors}")
 
 
@@ -431,6 +432,9 @@ def check_uniontype(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
+    if not args:
+        return check_instance(value, types.UnionType, (), memo)
+
     errors: dict[str, TypeCheckError] = {}
     try:
         for type_ in args:
@@ -874,16 +878,6 @@ def check_paramspec(
     memo: TypeCheckMemo,
 ) -> None:
     pass  # No-op for now
-
-
-def check_instanceof(
-    value: Any,
-    origin_type: Any,
-    args: tuple[Any, ...],
-    memo: TypeCheckMemo,
-) -> None:
-    if not isinstance(value, origin_type):
-        raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
 
 
 def check_type_internal(
