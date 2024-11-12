@@ -1,5 +1,6 @@
 import collections.abc
 import sys
+import types
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO, StringIO
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import (
     IO,
     AbstractSet,
+    Annotated,
     Any,
     AnyStr,
     BinaryIO,
@@ -16,14 +18,17 @@ from typing import (
     Dict,
     ForwardRef,
     FrozenSet,
+    Iterable,
     Iterator,
     List,
     Literal,
     Mapping,
     MutableMapping,
     Optional,
+    Protocol,
     Sequence,
     Set,
+    Sized,
     TextIO,
     Tuple,
     Type,
@@ -32,6 +37,7 @@ from typing import (
 )
 
 import pytest
+from typing_extensions import LiteralString
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -51,8 +57,6 @@ from . import (
     Employee,
     JSONType,
     Parent,
-    RuntimeProtocol,
-    StaticProtocol,
     TChild,
     TIntStr,
     TParent,
@@ -62,22 +66,14 @@ from . import (
 )
 
 if sys.version_info >= (3, 11):
-    from typing import LiteralString
-
     SubclassableAny = Any
 else:
     from typing_extensions import Any as SubclassableAny
-    from typing_extensions import LiteralString
 
 if sys.version_info >= (3, 10):
     from typing import Concatenate, ParamSpec, TypeGuard
 else:
     from typing_extensions import Concatenate, ParamSpec, TypeGuard
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
 
 P = ParamSpec("P")
 
@@ -512,7 +508,8 @@ class TestTypedDict:
 
         class DummyDict(typing_provider.TypedDict):
             x: int
-            y: "NotRequired[int]"
+            y: NotRequired[int]
+            z: "NotRequired[int]"
 
         check_type({"x": 8}, DummyDict)
 
@@ -524,12 +521,18 @@ class TestTypedDict:
 
         class DummyDict(typing_provider.TypedDict):
             x: int
-            y: "NotRequired[int]"
+            y: NotRequired[int]
+            z: "NotRequired[int]"
 
         with pytest.raises(
             TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
         ):
             check_type({"x": 1, "y": "foo"}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'z' of dict is not an instance of int"
+        ):
+            check_type({"x": 1, "y": 6, "z": "foo"}, DummyDict)
 
     def test_is_typeddict(self, typing_provider):
         # Ensure both typing.TypedDict and typing_extensions.TypedDict are recognized
@@ -821,8 +824,6 @@ class TestUnion:
         reason="Test relies on CPython's reference counting behavior",
     )
     def test_union_reference_leak(self):
-        leaked = True
-
         class Leak:
             def __del__(self):
                 nonlocal leaked
@@ -832,18 +833,73 @@ class TestUnion:
             leak = Leak()  # noqa: F841
             check_type(b"asdf", Union[str, bytes])
 
+        leaked = True
         inner1()
         assert not leaked
 
-        leaked = True
-
         def inner2():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", Union[bytes, str])
+
+        leaked = True
+        inner2()
+        assert not leaked
+
+        def inner3():
             leak = Leak()  # noqa: F841
             with pytest.raises(TypeCheckError, match="any element in the union:"):
                 check_type(1, Union[str, bytes])
 
+        leaked = True
+        inner3()
+        assert not leaked
+
+    @pytest.mark.skipif(
+        sys.implementation.name != "cpython",
+        reason="Test relies on CPython's reference counting behavior",
+    )
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_uniontype_reference_leak(self):
+        class Leak:
+            def __del__(self):
+                nonlocal leaked
+                leaked = False
+
+        def inner1():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", str | bytes)
+
+        leaked = True
+        inner1()
+        assert not leaked
+
+        def inner2():
+            leak = Leak()  # noqa: F841
+            check_type(b"asdf", bytes | str)
+
+        leaked = True
         inner2()
         assert not leaked
+
+        def inner3():
+            leak = Leak()  # noqa: F841
+            with pytest.raises(TypeCheckError, match="any element in the union:"):
+                check_type(1, Union[str, bytes])
+
+        leaked = True
+        inner3()
+        assert not leaked
+
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_raw_uniontype_success(self):
+        check_type(str | int, types.UnionType)
+
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
+    def test_raw_uniontype_fail(self):
+        with pytest.raises(
+            TypeCheckError, match=r"class str is not an instance of \w+\.UnionType$"
+        ):
+            check_type(str, types.UnionType)
 
 
 class TestTypevar:
@@ -940,9 +996,7 @@ class TestType:
 
     @pytest.mark.parametrize("check_against", [type, Type[Any]])
     def test_generic_aliase(self, check_against):
-        if sys.version_info >= (3, 9):
-            check_type(dict[str, str], check_against)
-
+        check_type(dict[str, str], check_against)
         check_type(Dict, check_against)
         check_type(Dict[str, str], check_against)
 
@@ -995,119 +1049,339 @@ class TestIO:
             check_type(f, TextIO)
 
 
-@pytest.mark.parametrize(
-    "instantiate, annotation",
-    [
-        pytest.param(True, RuntimeProtocol, id="instance_runtime"),
-        pytest.param(False, Type[RuntimeProtocol], id="class_runtime"),
-        pytest.param(True, StaticProtocol, id="instance_static"),
-        pytest.param(False, Type[StaticProtocol], id="class_static"),
-    ],
-)
+class TestIntersectingProtocol:
+    SIT = TypeVar("SIT", covariant=True)
+
+    class SizedIterable(
+        Sized,
+        Iterable[SIT],
+        Protocol[SIT],
+    ): ...
+
+    @pytest.mark.parametrize(
+        "subject, predicate_type",
+        (
+            pytest.param(
+                (),
+                SizedIterable,
+                id="empty_tuple_unspecialized",
+            ),
+            pytest.param(
+                range(2),
+                SizedIterable,
+                id="range",
+            ),
+            pytest.param(
+                (),
+                SizedIterable[int],
+                id="empty_tuple_int_specialized",
+            ),
+            pytest.param(
+                (1, 2, 3),
+                SizedIterable[int],
+                id="tuple_int_specialized",
+            ),
+            pytest.param(
+                ("1", "2", "3"),
+                SizedIterable[str],
+                id="tuple_str_specialized",
+            ),
+        ),
+    )
+    def test_valid_member_passes(self, subject: object, predicate_type: type) -> None:
+        for _ in range(2):  # Makes sure that the cache is also exercised
+            check_type(subject, predicate_type)
+
+    xfail_nested_protocol_checks = pytest.mark.xfail(
+        reason="false negative due to missing support for nested protocol checks",
+    )
+
+    @pytest.mark.parametrize(
+        "subject, predicate_type",
+        (
+            pytest.param(
+                (1 for _ in ()),
+                SizedIterable,
+                id="generator",
+            ),
+            pytest.param(
+                range(2),
+                SizedIterable[str],
+                marks=xfail_nested_protocol_checks,
+                id="range_str_specialized",
+            ),
+            pytest.param(
+                (1, 2, 3),
+                SizedIterable[str],
+                marks=xfail_nested_protocol_checks,
+                id="int_tuple_str_specialized",
+            ),
+            pytest.param(
+                ("1", "2", "3"),
+                SizedIterable[int],
+                marks=xfail_nested_protocol_checks,
+                id="str_tuple_int_specialized",
+            ),
+        ),
+    )
+    def test_raises_for_non_member(self, subject: object, predicate_type: type) -> None:
+        with pytest.raises(TypeCheckError):
+            check_type(subject, predicate_type)
+
+
 class TestProtocol:
-    def test_member_defaultval(self, instantiate, annotation):
+    @pytest.mark.parametrize(
+        "instantiate",
+        [pytest.param(True, id="instance"), pytest.param(False, id="class")],
+    )
+    def test_success(self, typing_provider: Any, instantiate: bool) -> None:
+        class MyProtocol(Protocol):
+            member: int
+
+            def noargs(self) -> None:
+                pass
+
+            def posonlyargs(self, a: int, b: str, /) -> None:
+                pass
+
+            def posargs(self, a: int, b: str, c: float = 2.0) -> None:
+                pass
+
+            def varargs(self, *args: Any) -> None:
+                pass
+
+            def varkwargs(self, **kwargs: Any) -> None:
+                pass
+
+            def varbothargs(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            @staticmethod
+            def my_static_method(x: int, y: str) -> None:
+                pass
+
+            @classmethod
+            def my_class_method(cls, x: int, y: str) -> None:
+                pass
+
         class Foo:
             member = 1
 
+            def noargs(self, x: int = 1) -> None:
+                pass
+
+            def posonlyargs(self, a: int, b: str, c: float = 2.0, /) -> None:
+                pass
+
+            def posargs(self, *args: Any) -> None:
+                pass
+
+            def varargs(self, *args: Any, kwarg: str = "foo") -> None:
+                pass
+
+            def varkwargs(self, **kwargs: Any) -> None:
+                pass
+
+            def varbothargs(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            # These were intentionally reversed, as this is OK for mypy
+            @classmethod
+            def my_static_method(cls, x: int, y: str) -> None:
+                pass
+
+            @staticmethod
+            def my_class_method(x: int, y: str) -> None:
+                pass
+
+        if instantiate:
+            check_type(Foo(), MyProtocol)
+        else:
+            check_type(Foo, type[MyProtocol])
+
+    @pytest.mark.parametrize(
+        "instantiate",
+        [pytest.param(True, id="instance"), pytest.param(False, id="class")],
+    )
+    @pytest.mark.parametrize("subject_class", [object, str, Parent])
+    def test_empty_protocol(self, instantiate: bool, subject_class: type[Any]):
+        class EmptyProtocol(Protocol):
+            pass
+
+        if instantiate:
+            check_type(subject_class(), EmptyProtocol)
+        else:
+            check_type(subject_class, type[EmptyProtocol])
+
+    @pytest.mark.parametrize("has_member", [True, False])
+    def test_member_checks(self, has_member: bool) -> None:
+        class MyProtocol(Protocol):
+            member: int
+
+        class Foo:
+            def __init__(self, member: int):
+                if member:
+                    self.member = member
+
+        if has_member:
+            check_type(Foo(1), MyProtocol)
+        else:
+            pytest.raises(TypeCheckError, check_type, Foo(0), MyProtocol).match(
+                f"^{qualified_name(Foo)} is not compatible with the "
+                f"{MyProtocol.__qualname__} protocol because it has no attribute named "
+                f"'member'"
+            )
+
+    def test_missing_method(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self) -> None:
+                pass
+
+        class Foo:
+            pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because it has no method named "
+            f"'meth'"
+        )
+
+    def test_too_many_posargs(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self) -> None:
+                pass
+
+        class Foo:
             def meth(self, x: str) -> None:
                 pass
 
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):  # Makes sure that the cache is also exercised
-            check_type(subject, annotation)
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
+            f"many mandatory positional arguments"
+        )
 
-    def test_member_annotation(self, instantiate, annotation):
-        class Foo:
-            member: int
-
+    def test_wrong_posarg_name(self) -> None:
+        class MyProtocol(Protocol):
             def meth(self, x: str) -> None:
                 pass
 
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            check_type(subject, annotation)
-
-    def test_attribute_missing(self, instantiate, annotation):
         class Foo:
-            val = 1
+            def meth(self, y: str) -> None:
+                pass
 
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            rf"^{qualified_name(Foo)} is not compatible with the "
+            rf"{MyProtocol.__qualname__} protocol because its 'meth' method has a "
+            rf"positional argument \(y\) that should be named 'x' at this position"
+        )
+
+    def test_too_few_posargs(self) -> None:
+        class MyProtocol(Protocol):
             def meth(self, x: str) -> None:
                 pass
 
-        clsname = f"{__name__}.TestProtocol.test_attribute_missing.<locals>.Foo"
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
-                f"{clsname} is not compatible with the (Runtime|Static)Protocol "
-                f"protocol because it has no attribute named 'member'"
-            )
-
-    def test_method_missing(self, instantiate, annotation):
         class Foo:
-            member: int
-
-        pattern = (
-            f"{__name__}.TestProtocol.test_method_missing.<locals>.Foo is not "
-            f"compatible with the (Runtime|Static)Protocol protocol because it has no "
-            f"method named 'meth'"
-        )
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
-                pattern
-            )
-
-    def test_attribute_is_not_method_1(self, instantiate, annotation):
-        class Foo:
-            member: int
-            meth: str
-
-        pattern = (
-            f"{__name__}.TestProtocol.test_attribute_is_not_method_1.<locals>.Foo is "
-            f"not compatible with the (Runtime|Static)Protocol protocol because its "
-            f"'meth' attribute is not a method"
-        )
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
-                pattern
-            )
-
-    def test_attribute_is_not_method_2(self, instantiate, annotation):
-        class Foo:
-            member: int
-            meth = "foo"
-
-        pattern = (
-            f"{__name__}.TestProtocol.test_attribute_is_not_method_2.<locals>.Foo is "
-            f"not compatible with the (Runtime|Static)Protocol protocol because its "
-            f"'meth' attribute is not a callable"
-        )
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
-                pattern
-            )
-
-    def test_method_signature_mismatch(self, instantiate, annotation):
-        class Foo:
-            member: int
-
-            def meth(self, x: str, y: int) -> None:
+            def meth(self) -> None:
                 pass
 
-        pattern = (
-            rf"(class )?{__name__}.TestProtocol.test_method_signature_mismatch."
-            rf"<locals>.Foo is not compatible with the (Runtime|Static)Protocol "
-            rf"protocol because its 'meth' method has too many mandatory positional "
-            rf"arguments in its declaration; expected 2 but 3 mandatory positional "
-            rf"argument\(s\) declared"
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has too "
+            f"few positional arguments"
         )
-        subject = Foo() if instantiate else Foo
-        for _ in range(2):
-            pytest.raises(TypeCheckError, check_type, subject, annotation).match(
-                pattern
-            )
+
+    def test_no_varargs(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self, *args: Any) -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"accept variable positional arguments but doesn't"
+        )
+
+    def test_no_kwargs(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self, **kwargs: Any) -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"accept variable keyword arguments but doesn't"
+        )
+
+    def test_missing_kwarg(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self, *, x: str) -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method is "
+            f"missing keyword-only arguments: x"
+        )
+
+    def test_extra_kwarg(self) -> None:
+        class MyProtocol(Protocol):
+            def meth(self) -> None:
+                pass
+
+        class Foo:
+            def meth(self, *, x: str) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method has "
+            f"mandatory keyword-only arguments not present in the protocol: x"
+        )
+
+    def test_instance_staticmethod_mismatch(self) -> None:
+        class MyProtocol(Protocol):
+            @staticmethod
+            def meth() -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"be a static method but it's an instance method"
+        )
+
+    def test_instance_classmethod_mismatch(self) -> None:
+        class MyProtocol(Protocol):
+            @classmethod
+            def meth(cls) -> None:
+                pass
+
+        class Foo:
+            def meth(self) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
+            f"^{qualified_name(Foo)} is not compatible with the "
+            f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
+            f"be a class method but it's an instance method"
+        )
 
 
 class TestRecursiveType:

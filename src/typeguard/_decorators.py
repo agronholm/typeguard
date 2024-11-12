@@ -17,19 +17,17 @@ from ._functions import TypeCheckFailCallback
 from ._transformer import TypeguardTransformer
 from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
 
+T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
+
 if TYPE_CHECKING:
     from typeshed.stdlib.types import _Cell
 
-    _F = TypeVar("_F")
-
-    def typeguard_ignore(f: _F) -> _F:
+    def typeguard_ignore(arg: T_CallableOrType) -> T_CallableOrType:
         """This decorator is a noop during static type-checking."""
-        return f
+        return arg
 
 else:
     from typing import no_type_check as typeguard_ignore  # noqa: F401
-
-T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 
 def make_cell(value: object) -> _Cell:
@@ -220,7 +218,7 @@ def typechecked(
     ) = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
-        target = target.__func__
+        target = target.__func__  # type: ignore[assignment]
 
     retval = instrument(target)
     if isinstance(retval, str):

@@ -456,6 +456,29 @@ class TestSelf:
             rf"test_classmethod_arg_invalid\.<locals>\.Foo\)"
         )
 
+    def test_self_type_valid(self):
+        class Foo:
+            @typechecked
+            def method(cls, subclass: type[Self]) -> None:
+                pass
+
+        class Bar(Foo):
+            pass
+
+        Foo().method(Bar)
+
+    def test_self_type_invalid(self):
+        class Foo:
+            @typechecked
+            def method(cls, subclass: type[Self]) -> None:
+                pass
+
+        pytest.raises(TypeCheckError, Foo().method, int).match(
+            rf'argument "subclass" \(class int\) is not a subclass of the self type '
+            rf"\({__name__}\.{self.__class__.__name__}\."
+            rf"test_self_type_invalid\.<locals>\.Foo\)"
+        )
+
 
 class TestMock:
     def test_mock_argument(self):
@@ -623,9 +646,8 @@ def test_typechecked_disabled_in_optimized_mode(
     )
     assert process.returncode == expected_return_code
     if process.returncode == 1:
-        assert process.stderr.endswith(
-            b'typeguard.TypeCheckError: argument "x" (str) is not an instance of '
-            b"int\n"
+        assert process.stderr.strip().endswith(
+            b'typeguard.TypeCheckError: argument "x" (str) is not an instance of int'
         )
 
 

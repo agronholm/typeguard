@@ -1,13 +1,17 @@
 import typing
-from typing import Callable
+from typing import Callable, Union
 
 import pytest
 from typing_extensions import Literal
 
-from typeguard._union_transformer import compile_type_hint, type_substitutions
+from typeguard._union_transformer import compile_type_hint
 
-eval_globals = {"Callable": Callable, "Literal": Literal, "typing": typing}
-eval_globals.update(type_substitutions)
+eval_globals = {
+    "Callable": Callable,
+    "Literal": Literal,
+    "typing": typing,
+    "Union": Union,
+}
 
 
 @pytest.mark.parametrize(
@@ -15,12 +19,12 @@ eval_globals.update(type_substitutions)
     [
         ["str | int", "Union[str, int]"],
         ["str | int | bytes", "Union[str, int, bytes]"],
-        ["str | Union[int | bytes, set]", "Union[str, int, bytes, Set]"],
+        ["str | Union[int | bytes, set]", "Union[str, int, bytes, set]"],
         ["str | int | Callable[..., bytes]", "Union[str, int, Callable[..., bytes]]"],
         ["str | int | Callable[[], bytes]", "Union[str, int, Callable[[], bytes]]"],
         [
             "str | int | Callable[[], bytes | set]",
-            "Union[str, int, Callable[[], Union[bytes, Set]]]",
+            "Union[str, int, Callable[[], Union[bytes, set]]]",
         ],
         ["str | int | Literal['foo']", "Union[str, int, Literal['foo']]"],
         ["str | int | Literal[-1]", "Union[str, int, Literal[-1]]"],
@@ -29,11 +33,6 @@ eval_globals.update(type_substitutions)
             'str | int | Literal["It\'s a string \'\\""]',
             "Union[str, int, Literal['It\\'s a string \\'\"']]",
         ],
-        [
-            "typing.Tuple | typing.List | Literal[-1]",
-            "Union[Tuple, List, Literal[-1]]",
-        ],
-        ["tuple[int, ...]", "Tuple[int, ...]"],
     ],
 )
 def test_union_transformer(inputval: str, expected: str) -> None:
