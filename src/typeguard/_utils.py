@@ -11,7 +11,15 @@ from weakref import WeakValueDictionary
 if TYPE_CHECKING:
     from ._memo import TypeCheckMemo
 
-if sys.version_info >= (3, 13):
+if sys.version_info >= (3, 14):
+    from typing import get_args, get_origin
+
+    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
+        return forwardref.evaluate(
+            globals=memo.globals, locals=memo.locals, type_params=()
+        )
+
+elif sys.version_info >= (3, 13):
     from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
@@ -85,7 +93,11 @@ def get_type_name(type_: Any) -> str:
 
         name += f"[{formatted_args}]"
 
-    module = getattr(type_, "__module__", None)
+    # For ForwardRefs, use the module stored on the object if available
+    if hasattr(type_, "__forward_module__"):
+        module = type_.__forward_module__
+    else:
+        module = getattr(type_, "__module__", None)
     if module and module not in (None, "typing", "typing_extensions", "builtins"):
         name = module + "." + name
 

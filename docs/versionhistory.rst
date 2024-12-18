@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fix display of module name for forward references
+  (`#492 <https://github.com/agronholm/typeguard/pull/492>`_; PR by @JelleZijlstra)
+
 **4.4.1** (2024-11-03)
 
 - Dropped Python 3.8 support
@@ -29,8 +34,6 @@ This library adheres to
   (`#465 <https://github.com/agronholm/typeguard/pull/465>`_)
 - Fixed basic support for intersection protocols
   (`#490 <https://github.com/agronholm/typeguard/pull/490>`_; PR by @antonagestam)
-- Fixed protocol checks running against the class of an instance and not the instance
-  itself (this produced wrong results for non-method member checks)
 
 **4.3.0** (2024-05-27)
 
