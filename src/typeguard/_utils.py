@@ -43,7 +43,7 @@ else:
     )
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        from ._union_transformer import compile_type_hint, type_substitutions
+        from ._union_transformer import compile_type_hint
 
         if not forwardref.__forward_evaluated__:
             forwardref.__forward_code__ = compile_type_hint(forwardref.__forward_arg__)
@@ -55,8 +55,6 @@ else:
                 # Try again, with the type substitutions (list -> List etc.) in place
                 new_globals = memo.globals.copy()
                 new_globals.setdefault("Union", Union)
-                if sys.version_info < (3, 9):
-                    new_globals.update(type_substitutions)
 
                 return forwardref._evaluate(
                     new_globals, memo.locals or new_globals, *evaluate_extra_args
