@@ -1048,7 +1048,7 @@ class TypeguardTransformer(NodeTransformer):
             check_required = False
             for target in node.targets:
                 elts: Sequence[expr]
-                if isinstance(target, Name):
+                if isinstance(target, (Name, Attribute)):
                     elts = [target]
                 elif isinstance(target, Tuple):
                     elts = target.elts
@@ -1073,7 +1073,7 @@ class TypeguardTransformer(NodeTransformer):
 
                         path.insert(0, exp.id)
                         name = prefix + ".".join(path)
-                        annotation = self._memo.variable_annotations.get(exp.id)
+                        annotation = self._memo.variable_annotations.get(name)
                         if annotation:
                             annotations_.append((Constant(name), annotation))
                             check_required = True

@@ -257,6 +257,18 @@ def test_unpacking_assign_star_no_annotation_fail(dummymodule):
         dummymodule.unpacking_assign_star_no_annotation((1, b"abc", b"bah", b"foo"))
 
 
+def test_attribute_assign_separate(dummymodule):
+    assert dummymodule.attribute_assign_separate(dummymodule.Foo()) == dummymodule.Foo(
+        "barbar", 123123
+    )
+
+
+def test_attribute_assign_unpacking(dummymodule):
+    assert dummymodule.attribute_assign_unpacking(dummymodule.Foo()) == dummymodule.Foo(
+        "barbar", 123123
+    )
+
+
 class TestOptionsOverride:
     def test_forward_ref_policy(self, dummymodule):
         with pytest.raises(NameError, match="name 'NonexistentType' is not defined"):

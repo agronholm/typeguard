@@ -2,6 +2,7 @@
 
 import sys
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -268,6 +269,25 @@ def unpacking_assign_star_no_annotation(value: Any) -> Tuple[int, List[bytes], s
     z: str
     x, *y, z = value
     return x, y, z
+
+
+@dataclass
+class Foo:
+    bar: str = "bar"
+    baz: int = 123
+
+
+@typechecked
+def attribute_assign_separate(obj: Foo) -> Foo:
+    obj.bar = "barbar"
+    obj.baz = 123123
+    return obj
+
+
+@typechecked
+def attribute_assign_unpacking(obj: Foo) -> Foo:
+    obj.bar, obj.baz = ("barbar", 123123)
+    return obj
 
 
 @typechecked(forward_ref_policy=ForwardRefPolicy.ERROR)
