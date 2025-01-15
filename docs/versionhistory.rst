@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+* Fixed ``TypeCheckError`` when tuple unpacking to properties of method parameter
+  (`#506 <https://github.com/agronholm/typeguard/issues/506>`_) (PR by @fefe982)
+
 **4.4.1** (2024-11-03)
 
 - Dropped Python 3.8 support
