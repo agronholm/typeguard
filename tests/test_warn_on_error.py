@@ -1,4 +1,5 @@
 from typing import List
+import os
 
 import pytest
 
@@ -10,7 +11,12 @@ def test_check_type(recwarn):
         check_type(1, str, typecheck_fail_callback=warn_on_error)
 
     assert len(warning.list) == 1
-    assert warning.list[0].filename == __file__
+    if (
+        os.name == "nt"
+    ):  # file path name (and drive letter) is case insensitive on windows
+        assert warning.list[0].filename.lower() == __file__.lower()
+    else:
+        assert warning.list[0].filename == __file__
     assert warning.list[0].lineno == test_check_type.__code__.co_firstlineno + 2
 
 
@@ -24,5 +30,8 @@ def test_typechecked(monkeypatch, recwarn):
         foo()
 
     assert len(warning.list) == 1
-    assert warning.list[0].filename == __file__
+    if os.name == "nt":
+        assert warning.list[0].filename.lower() == __file__.lower()
+    else:
+        assert warning.list[0].filename == __file__
     assert warning.list[0].lineno == test_typechecked.__code__.co_firstlineno + 3

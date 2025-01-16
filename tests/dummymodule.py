@@ -290,6 +290,19 @@ def attribute_assign_unpacking(obj: Foo) -> Foo:
     return obj
 
 
+@typechecked
+def attribute_assign_separate_fail(obj: Foo) -> Foo:
+    obj.bar = 123
+    obj.baz = 123123
+    return obj
+
+
+@typechecked
+def attribute_assign_unpacking_fail(obj: Foo) -> Foo:
+    obj.bar, obj.baz = (123, 123123)
+    return obj
+
+
 @typechecked(forward_ref_policy=ForwardRefPolicy.ERROR)
 def override_forward_ref_policy(value: "NonexistentType") -> None:  # noqa: F821
     pass

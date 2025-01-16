@@ -4,6 +4,7 @@ import sys
 import warnings
 from collections.abc import Sequence
 from typing import Any, Callable, NoReturn, TypeVar, Union, overload
+import inspect
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -280,7 +281,20 @@ def check_variable_assignment(
 
         for val, (varname, annotation) in zip(values_to_check, target):
             try:
-                check_type_internal(val, annotation, memo)
+                varpath = varname.split(".")
+                if len(varpath) > 1 and not inspect.isclass(annotation):
+                    continue
+                have_annotation_for_attribute = True
+                for seg in varpath[1:]:
+                    if not inspect.isclass(annotation):
+                        have_annotation_for_attribute = False
+                        break
+                    if sys.version_info >= (3, 10):
+                        annotation = inspect.get_annotations(annotation).get(seg)
+                    else:
+                        annotation = annotation.__annotations__.get(seg)
+                if have_annotation_for_attribute:
+                    check_type_internal(val, annotation, memo)
             except TypeCheckError as exc:
                 qualname = qualified_name(val, add_class_prefix=True)
                 exc.append_path_element(f"value assigned to {varname} ({qualname})")

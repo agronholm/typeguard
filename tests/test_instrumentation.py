@@ -269,6 +269,22 @@ def test_attribute_assign_unpacking(dummymodule):
     )
 
 
+def test_attribute_assign_separate_fail(dummymodule):
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to obj.bar \(int\) is not an instance of str",
+    ):
+        dummymodule.attribute_assign_separate_fail(dummymodule.Foo())
+
+
+def test_attribute_assign_unpacking_fail(dummymodule):
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to obj.bar \(int\) is not an instance of str",
+    ):
+        dummymodule.attribute_assign_unpacking_fail(dummymodule.Foo())
+
+
 class TestOptionsOverride:
     def test_forward_ref_policy(self, dummymodule):
         with pytest.raises(NameError, match="name 'NonexistentType' is not defined"):
