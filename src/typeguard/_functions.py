@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import sys
 import warnings
 from collections.abc import Sequence
 from typing import Any, Callable, NoReturn, TypeVar, Union, overload
-import inspect
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
