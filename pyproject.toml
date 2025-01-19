@@ -99,7 +99,7 @@ strict = true
 pretty = true
 
 [tool.tox]
-env_list = ["py39", "py310", "py311", "py312", "py313"]
+env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
