@@ -261,6 +261,11 @@ def test_unpacking_assign_star_no_annotation_success(dummymodule):
     )
 
 
+def test_attribute_assign_unpacking(dummymodule):
+    foo = dummymodule.DummyClass()
+    dummymodule.attribute_assign_unpacking(foo)
+
+
 def test_unpacking_assign_star_no_annotation_fail(dummymodule):
     with pytest.raises(
         TypeCheckError, match=r"value assigned to z \(bytes\) is not an instance of str"

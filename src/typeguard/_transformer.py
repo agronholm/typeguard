@@ -1073,8 +1073,9 @@ class TypeguardTransformer(NodeTransformer):
 
                         path.insert(0, exp.id)
                         name = prefix + ".".join(path)
-                        annotation = self._memo.variable_annotations.get(exp.id)
-                        if annotation:
+                        if len(path) == 1 and (
+                            annotation := self._memo.variable_annotations.get(exp.id)
+                        ):
                             annotations_.append((Constant(name), annotation))
                             check_required = True
                         else:
