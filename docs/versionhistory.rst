@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``TypeCheckError`` in unpacking assignment involving properties of a parameter
+  of the function (`#506 <https://github.com/agronholm/typeguard/issues/506>`_;
+  regression introduced in v4.4.1)
+
 **4.4.1** (2024-11-03)
 
 - Dropped Python 3.8 support

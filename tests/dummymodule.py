@@ -74,6 +74,9 @@ class Metaclass(type):
 
 @typechecked
 class DummyClass(metaclass=Metaclass):
+    bar: str
+    baz: int
+
     def type_checked_method(self, x: int, y: int) -> int:
         return x * y
 
@@ -268,6 +271,11 @@ def unpacking_assign_star_no_annotation(value: Any) -> Tuple[int, List[bytes], s
     z: str
     x, *y, z = value
     return x, y, z
+
+
+@typechecked
+def attribute_assign_unpacking(obj: DummyClass) -> None:
+    obj.bar, obj.baz = "foo", 123123
 
 
 @typechecked(forward_ref_policy=ForwardRefPolicy.ERROR)
