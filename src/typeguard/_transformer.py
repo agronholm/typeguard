@@ -1048,7 +1048,7 @@ class TypeguardTransformer(NodeTransformer):
             check_required = False
             for target in node.targets:
                 elts: Sequence[expr]
-                if isinstance(target, Name):
+                if isinstance(target, (Name, Attribute)):
                     elts = [target]
                 elif isinstance(target, Tuple):
                     elts = target.elts
