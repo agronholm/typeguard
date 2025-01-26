@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import sys
 import warnings
 from importlib import import_module
@@ -8,15 +9,16 @@ from pathlib import Path
 import pytest
 from pytest import FixtureRequest
 
-from typeguard import TypeCheckError, config, install_import_hook, suppress_type_checks
+from typeguard import TypeCheckError, install_import_hook, suppress_type_checks
 from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
-cached_module_path = Path(
+instrumented_cached_module_path = Path(
     cache_from_source(str(dummy_module_path), optimization=OPTIMIZATION)
 )
+cached_module_path = Path(cache_from_source(str(dummy_module_path)))
 
 # This block here is to test the recipe mentioned in the user guide
 if "pytest" in sys.modules:
@@ -36,20 +38,32 @@ def method(request: FixtureRequest) -> str:
 
 
 def _fixture_module(name: str, method: str):
-    config.debug_instrumentation = True
+    # config.debug_instrumentation = True
     sys.path.insert(0, str(this_dir))
     try:
-        sys.modules.pop(name, None)
-        if cached_module_path.exists():
-            cached_module_path.unlink()
-
+        # sys.modules.pop(name, None)
         if method == "typechecked":
-            return import_module(name)
+            if cached_module_path.exists():
+                cached_module_path.unlink()
+
+            if name in sys.modules:
+                module = import_module(name)
+                importlib.reload(module)
+            else:
+                module = import_module(name)
+            return module
+
+        if instrumented_cached_module_path.exists():
+            instrumented_cached_module_path.unlink()
 
         with install_import_hook([name]):
             with warnings.catch_warnings():
                 warnings.filterwarnings("error", module="typeguard")
-                module = import_module(name)
+                if name in sys.modules:
+                    module = import_module(name)
+                    importlib.reload(module)
+                else:
+                    module = import_module(name)
                 return module
     finally:
         sys.path.remove(str(this_dir))
@@ -346,6 +360,7 @@ def test_literal_in_union(dummymodule):
 
 
 def test_typevar_forwardref(dummymodule):
+    print(f"id of typevar_forwardref: {id(dummymodule.typevar_forwardref):x}")
     instance = dummymodule.typevar_forwardref(dummymodule.DummyClass)
     assert isinstance(instance, dummymodule.DummyClass)
 

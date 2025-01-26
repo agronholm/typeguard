@@ -533,7 +533,7 @@ def check_typevar(
 ) -> None:
     if origin_type.__bound__ is not None:
         annotation = (
-            Type[origin_type.__bound__] if subclass_check else origin_type.__bound__
+            type[origin_type.__bound__] if subclass_check else origin_type.__bound__
         )
         check_type_internal(value, annotation, memo)
     elif origin_type.__constraints__:
