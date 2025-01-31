@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">= 3.9"
 dependencies = [
@@ -99,7 +100,7 @@ strict = true
 pretty = true
 
 [tool.tox]
-env_list = ["py39", "py310", "py311", "py312", "py313"]
+env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]

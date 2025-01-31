@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import sys
 import warnings
 from importlib import import_module
@@ -8,15 +9,16 @@ from pathlib import Path
 import pytest
 from pytest import FixtureRequest
 
-from typeguard import TypeCheckError, config, install_import_hook, suppress_type_checks
+from typeguard import TypeCheckError, install_import_hook, suppress_type_checks
 from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
 this_dir = Path(__file__).parent
 dummy_module_path = this_dir / "dummymodule.py"
-cached_module_path = Path(
+instrumented_cached_module_path = Path(
     cache_from_source(str(dummy_module_path), optimization=OPTIMIZATION)
 )
+cached_module_path = Path(cache_from_source(str(dummy_module_path)))
 
 # This block here is to test the recipe mentioned in the user guide
 if "pytest" in sys.modules:
@@ -35,25 +37,48 @@ def method(request: FixtureRequest) -> str:
     return request.param
 
 
-@pytest.fixture(scope="module")
-def dummymodule(method: str):
-    config.debug_instrumentation = True
+def _fixture_module(name: str, method: str):
+    # config.debug_instrumentation = True
     sys.path.insert(0, str(this_dir))
     try:
-        sys.modules.pop("dummymodule", None)
-        if cached_module_path.exists():
-            cached_module_path.unlink()
-
+        # sys.modules.pop(name, None)
         if method == "typechecked":
-            return import_module("dummymodule")
+            if cached_module_path.exists():
+                cached_module_path.unlink()
 
-        with install_import_hook(["dummymodule"]):
+            if name in sys.modules:
+                module = import_module(name)
+                importlib.reload(module)
+            else:
+                module = import_module(name)
+            return module
+
+        if instrumented_cached_module_path.exists():
+            instrumented_cached_module_path.unlink()
+
+        with install_import_hook([name]):
             with warnings.catch_warnings():
                 warnings.filterwarnings("error", module="typeguard")
-                module = import_module("dummymodule")
+                if name in sys.modules:
+                    module = import_module(name)
+                    importlib.reload(module)
+                else:
+                    module = import_module(name)
                 return module
     finally:
         sys.path.remove(str(this_dir))
+
+
+@pytest.fixture(scope="module")
+def dummymodule(method: str):
+    return _fixture_module("dummymodule", method)
+
+
+@pytest.fixture(scope="module")
+def deferredannos(method: str):
+    if sys.version_info < (3, 14):
+        raise pytest.skip("Deferred annotations are only supported in Python 3.14+")
+    return _fixture_module("deferredannos", method)
 
 
 def test_type_checked_func(dummymodule):
@@ -335,6 +360,7 @@ def test_literal_in_union(dummymodule):
 
 
 def test_typevar_forwardref(dummymodule):
+    print(f"id of typevar_forwardref: {id(dummymodule.typevar_forwardref):x}")
     instance = dummymodule.typevar_forwardref(dummymodule.DummyClass)
     assert isinstance(instance, dummymodule.DummyClass)
 
@@ -347,3 +373,16 @@ def test_suppress_annotated_assignment(dummymodule):
 def test_suppress_annotated_multi_assignment(dummymodule):
     with suppress_type_checks():
         assert dummymodule.multi_assign_single_value() == (6, 6, 6)
+
+
+class TestUsesForwardRef:
+    def test_success(self, deferredannos):
+        obj = deferredannos.NotYetDefined()
+        assert deferredannos.uses_forwardref(obj) is obj
+
+    def test_failure(self, deferredannos):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "x" \(int\) is not an instance of deferredannos.NotYetDefined',
+        ):
+            deferredannos.uses_forwardref(1)
