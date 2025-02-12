@@ -1138,8 +1138,11 @@ class TypeguardTransformer(NodeTransformer):
                 func_name,
                 [
                     node.value,
-                    Constant(node.target.id),
-                    annotation,
+                    List([
+                        List(
+                            [Tuple([Constant(node.target.id), annotation], ctx=Load())], ctx=Load(),
+                        )], ctx=Load()
+                    ),
                     self._memo.get_memo_name(),
                 ],
                 [],
