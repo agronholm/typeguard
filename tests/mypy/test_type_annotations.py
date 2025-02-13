@@ -31,7 +31,7 @@ def get_negative_mypy_output() -> str:
     )
     output = process.stdout.decode()
     assert output
-    return re.sub(r'\n(?!\s|negative\.py)', ' ', output.replace("\r", ""))
+    return re.sub(r"\n(?!\s|negative\.py)", " ", output.replace("\r", ""))
 
 
 def get_expected_errors() -> Dict[int, str]:
