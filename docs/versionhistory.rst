@@ -11,6 +11,7 @@ This library adheres to
   regression introduced in v4.4.1)
 - Fixed display of module name for forward references
   (`#492 <https://github.com/agronholm/typeguard/pull/492>`_; PR by @JelleZijlstra)
+- Fixed ``TypeError`` when using := (`#510 <https://github.com/agronholm/typeguard/issues/510>`_; PR: `#511 <https://github.com/agronholm/typeguard/pull/511>`_; PR by `@JohannesK71083 <https://github.com/JohannesK71083>`_)
 
 **4.4.1** (2024-11-03)
 
