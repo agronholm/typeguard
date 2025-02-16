@@ -75,6 +75,9 @@ class Metaclass(type):
 
 @typechecked
 class DummyClass(metaclass=Metaclass):
+    bar: str
+    baz: int
+
     def type_checked_method(self, x: int, y: int) -> int:
         return x * y
 
