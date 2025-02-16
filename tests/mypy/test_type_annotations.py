@@ -1,14 +1,12 @@
+import json
 import os
 import platform
-import re
 import subprocess
-from typing import Dict, List
 
 import pytest
 
 POSITIVE_FILE = "positive.py"
 NEGATIVE_FILE = "negative.py"
-LINE_PATTERN = NEGATIVE_FILE + ":([0-9]+):"
 
 pytestmark = [
     pytest.mark.skipif(
@@ -18,8 +16,8 @@ pytestmark = [
 ]
 
 
-def get_mypy_cmd(filename: str) -> List[str]:
-    return ["mypy", "--strict", filename]
+def get_mypy_cmd(filename: str) -> list[str]:
+    return ["mypy", "-O", "json", "--strict", filename]
 
 
 def get_negative_mypy_output() -> str:
@@ -31,10 +29,10 @@ def get_negative_mypy_output() -> str:
     )
     output = process.stdout.decode()
     assert output
-    return re.sub(r"\n(?!\s|negative\.py)", " ", output.replace("\r", ""))
+    return output
 
 
-def get_expected_errors() -> Dict[int, str]:
+def get_expected_errors() -> dict[int, str]:
     """
     Extract the expected errors from comments in the negative examples file.
     """
@@ -46,14 +44,14 @@ def get_expected_errors() -> Dict[int, str]:
     for idx, line in enumerate(lines):
         line = line.rstrip()
         if "# error" in line:
-            expected[idx + 1] = line[line.index("# error") + 2 :]
+            expected[idx + 1] = line[line.index("# error") + 9 :]
 
     # Sanity check.  Should update if negative.py changes.
     assert len(expected) == 9
     return expected
 
 
-def get_mypy_errors() -> Dict[int, str]:
+def get_mypy_errors() -> dict[int, str]:
     """
     Extract the errors from running mypy on the negative examples file.
     """
@@ -61,10 +59,8 @@ def get_mypy_errors() -> Dict[int, str]:
 
     got = {}
     for line in mypy_output.splitlines():
-        m = re.match(LINE_PATTERN, line)
-        if m is None:
-            continue
-        got[int(m.group(1))] = line[len(m.group(0)) + 1 :]
+        error = json.loads(line)
+        got[error["line"]] = f"{error['message']}  [{error['code']}]"
 
     return got
 
@@ -109,5 +105,6 @@ def test_negative() -> None:
     ]
     for idx, expected, got in mismatches:
         print(f"Line {idx}", f"Expected: {expected}", f"Got:      {got}", sep="\n\t")
+
     if mismatches:
         raise RuntimeError("Error messages changed")
