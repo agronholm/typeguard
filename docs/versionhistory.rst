@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.4.2** (2025-02-16)
 
 - Fixed ``TypeCheckError`` in unpacking assignment involving properties of a parameter
   of the function (`#506 <https://github.com/agronholm/typeguard/issues/506>`_;
