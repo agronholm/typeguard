@@ -13,6 +13,9 @@ This library adheres to
   (`#492 <https://github.com/agronholm/typeguard/pull/492>`_; PR by @JelleZijlstra)
 - Fixed ``TypeError`` when using an assignment expression
   (`#510 <https://github.com/agronholm/typeguard/issues/510>`_; PR by @JohannesK71083)
+- Fixed ``ValueError: no signature found for builtin`` when checking against a protocol
+  and a matching attribute in the subject is a built-in function
+  (`#504 <https://github.com/agronholm/typeguard/issues/504>`_)
 
 **4.4.1** (2024-11-03)
 

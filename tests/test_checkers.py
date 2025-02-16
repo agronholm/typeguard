@@ -2,6 +2,7 @@ import collections.abc
 import sys
 import types
 from contextlib import nullcontext
+from datetime import timedelta
 from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
@@ -1382,6 +1383,18 @@ class TestProtocol:
             f"{MyProtocol.__qualname__} protocol because its 'meth' method should "
             f"be a class method but it's an instance method"
         )
+
+    def test_builtin_signature_check(self) -> None:
+        class MyProtocol(Protocol):
+            def attr(self) -> None:
+                pass
+
+        class Foo:
+            attr = timedelta
+
+        # Foo.attr is incompatible but timedelta has not inspectable signature so the
+        # check is skipped
+        check_type(Foo(), MyProtocol)
 
 
 class TestRecursiveType:
