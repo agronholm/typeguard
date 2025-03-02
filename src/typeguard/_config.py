@@ -92,8 +92,6 @@ class TypeCheckConfiguration:
          If set to ``True``, the code of modules or functions instrumented by typeguard
          is printed to ``sys.stderr`` after the instrumentation is done
 
-         Requires Python 3.9 or newer.
-
          Default: ``False``
     """
 

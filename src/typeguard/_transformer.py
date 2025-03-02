@@ -373,7 +373,7 @@ class AnnotationTransformer(NodeTransformer):
 
         if isinstance(node.op, BitOr):
             # If either branch of the BinOp has been transformed to `None`, it means
-            # that a type in the union was ignored, so the entire annotation should e
+            # that a type in the union was ignored, so the entire annotation should be
             # ignored
             if not hasattr(node, "left") or not hasattr(node, "right"):
                 return None
@@ -384,6 +384,7 @@ class AnnotationTransformer(NodeTransformer):
             elif self._memo.name_matches(node.right, *anytype_names):
                 return node.right
 
+            # Turn union types to typing.Union constructs on Python 3.9
             if sys.version_info < (3, 10):
                 union_name = self.transformer._get_import("typing", "Union")
                 return Subscript(

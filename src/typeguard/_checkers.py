@@ -1041,7 +1041,7 @@ def builtin_checker_lookup(
         and getattr(origin_type, "__qualname__", "").startswith("NewType.")
         and hasattr(origin_type, "__supertype__")
     ):
-        # typing.NewType on Python 3.9 and below
+        # typing.NewType on Python 3.9
         return check_newtype
 
     return None
