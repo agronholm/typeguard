@@ -4,6 +4,13 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- **BACKWARD INCOMPATIBLE** Due to numerous bug reports, collection checks once again
+  default to checking all elements rather than just the first one. Set
+  ``typeguard.config.collection_check_strategy`` to
+  ``typeguard.CollectionCheckStrategy.FIRST_ITEM`` to restore the previous behavior.
+
 **4.4.2** (2025-02-16)
 
 - Fixed ``TypeCheckError`` in unpacking assignment involving properties of a parameter
