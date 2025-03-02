@@ -4,7 +4,7 @@ import inspect
 import sys
 from importlib import import_module
 from inspect import currentframe
-from types import CodeType, FrameType, FunctionType
+from types import FrameType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,7 +16,6 @@ from typing import (
     get_args,
     get_origin,
 )
-from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
     from ._memo import TypeCheckMemo
@@ -51,9 +50,6 @@ else:
                 )
 
             raise
-
-
-_functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
 
 def get_type_name(type_: Any) -> str:
