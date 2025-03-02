@@ -5,51 +5,41 @@ import sys
 from importlib import import_module
 from inspect import currentframe
 from types import CodeType, FrameType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, ForwardRef, Union, cast, final
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ForwardRef,
+    Union,
+    cast,
+    final,
+    get_args,
+    get_origin,
+)
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
     from ._memo import TypeCheckMemo
 
 if sys.version_info >= (3, 14):
-    from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         return forwardref.evaluate(
             globals=memo.globals, locals=memo.locals, type_params=()
         )
-
 elif sys.version_info >= (3, 13):
-    from typing import get_args, get_origin
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
         return forwardref._evaluate(
             memo.globals, memo.locals, type_params=(), recursive_guard=frozenset()
         )
-
-elif sys.version_info >= (3, 10):
-    from typing import get_args, get_origin
-
-    def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(
-            memo.globals, memo.locals, recursive_guard=frozenset()
-        )
-
 else:
-    from typing_extensions import get_args, get_origin
-
-    evaluate_extra_args: tuple[frozenset[Any], ...] = (
-        (frozenset(),) if sys.version_info >= (3, 9) else ()
-    )
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        from ._union_transformer import compile_type_hint
-
-        if not forwardref.__forward_evaluated__:
-            forwardref.__forward_code__ = compile_type_hint(forwardref.__forward_arg__)
-
         try:
-            return forwardref._evaluate(memo.globals, memo.locals, *evaluate_extra_args)
+            return forwardref._evaluate(
+                memo.globals, memo.locals, recursive_guard=frozenset()
+            )
         except NameError:
             if sys.version_info < (3, 10):
                 # Try again, with the type substitutions (list -> List etc.) in place
@@ -57,7 +47,7 @@ else:
                 new_globals.setdefault("Union", Union)
 
                 return forwardref._evaluate(
-                    new_globals, memo.locals or new_globals, *evaluate_extra_args
+                    new_globals, memo.locals or new_globals, recursive_guard=frozenset()
                 )
 
             raise
