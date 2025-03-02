@@ -551,7 +551,11 @@ class TestList:
         )
 
     def test_first_check_success(self):
-        check_type(["aa", "bb", 1], List[str])
+        check_type(
+            ["aa", "bb", 1],
+            List[str],
+            collection_check_strategy=CollectionCheckStrategy.FIRST_ITEM,
+        )
 
     def test_first_check_empty(self):
         check_type([], List[str])
@@ -582,7 +586,11 @@ class TestSequence:
         [pytest.param([1, "bb"], id="list"), pytest.param((1, "bb"), id="tuple")],
     )
     def test_first_check_success(self, value):
-        check_type(value, Sequence[int])
+        check_type(
+            value,
+            Sequence[int],
+            collection_check_strategy=CollectionCheckStrategy.FIRST_ITEM,
+        )
 
     def test_first_check_empty(self):
         check_type([], Sequence[int])
@@ -598,7 +606,6 @@ class TestSequence:
             check_type,
             [1, 2, "bb"],
             Sequence[int],
-            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("list is not an instance of int")
 
 

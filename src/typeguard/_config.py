@@ -84,7 +84,7 @@ class TypeCheckConfiguration:
          Specifies how thoroughly the contents of collections (list, dict, etc.) are
          type checked.
 
-         Default: ``FIRST_ITEM``
+         Default: ``ALL_ITEMS``
 
     .. attribute:: debug_instrumentation
        :type: bool
@@ -98,7 +98,7 @@ class TypeCheckConfiguration:
     forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
     typecheck_fail_callback: TypeCheckFailCallback | None = None
     collection_check_strategy: CollectionCheckStrategy = (
-        CollectionCheckStrategy.FIRST_ITEM
+        CollectionCheckStrategy.ALL_ITEMS
     )
     debug_instrumentation: bool = False
 
