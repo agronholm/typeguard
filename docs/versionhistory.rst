@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``@typechecked`` unable to find the target function or method if it or the
+  containing class had PEP 695 type parameters on them
+  (`#500 <https://github.com/agronholm/typeguard/issues/500>`_)
+
 **4.4.2** (2025-02-16)
 
 - Fixed ``TypeCheckError`` in unpacking assignment involving properties of a parameter

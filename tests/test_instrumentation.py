@@ -78,7 +78,16 @@ def dummymodule(method: str):
 def deferredannos(method: str):
     if sys.version_info < (3, 14):
         raise pytest.skip("Deferred annotations are only supported in Python 3.14+")
+
     return _fixture_module("deferredannos", method)
+
+
+@pytest.fixture(scope="module")
+def pep695(method: str):
+    if sys.version_info < (3, 12):
+        raise pytest.skip("PEP 695 type parameter syntax requires Python 3.12+")
+
+    return _fixture_module("pep695", method)
 
 
 def test_type_checked_func(dummymodule):
@@ -386,3 +395,25 @@ class TestUsesForwardRef:
             match=r'argument "x" \(int\) is not an instance of deferredannos.NotYetDefined',
         ):
             deferredannos.uses_forwardref(1)
+
+
+class TestParametrized:
+    def test_success_func(self, pep695):
+        assert pep695.parametrized_func(1, "2") == 1
+
+    def test_success_method(self, pep695):
+        assert pep695.ParametrizedClass[int]().method(1, "2") == 1
+
+    def test_failure_func(self, pep695):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "y" \(int\) is not an instance of str',
+        ):
+            pep695.parametrized_func(1, 2)
+
+    def test_failure_method(self, pep695):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "y" \(int\) is not an instance of str',
+        ):
+            pep695.ParametrizedClass[int]().method("str", 2)
