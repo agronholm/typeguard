@@ -115,13 +115,18 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     new_function.__module__ = f.__module__
     new_function.__name__ = f.__name__
     new_function.__qualname__ = f.__qualname__
+    new_function.__doc__ = f.__doc__
+    new_function.__defaults__ = f.__defaults__
+    new_function.__kwdefaults__ = f.__kwdefaults__
+
+    if sys.version_info >= (3, 12):
+        new_function.__type_params__ = f.__type_params__
+
     if sys.version_info >= (3, 14):
         new_function.__annotate__ = f.__annotate__
     else:
         new_function.__annotations__ = f.__annotations__
-    new_function.__doc__ = f.__doc__
-    new_function.__defaults__ = f.__defaults__
-    new_function.__kwdefaults__ = f.__kwdefaults__
+
     return new_function
 
 
