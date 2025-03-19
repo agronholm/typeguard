@@ -4,11 +4,11 @@ import ast
 import functools
 import inspect
 import sys
+import typing
 from collections.abc import Sequence
 from functools import partial
 from inspect import isclass, isfunction
 from types import CodeType, FrameType, FunctionType
-import typing
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
 from warnings import warn
 
@@ -16,7 +16,14 @@ from ._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
 from ._exceptions import InstrumentationWarning, TypeCheckError
 from ._functions import TypeCheckFailCallback, check_type
 from ._transformer import TypeguardTransformer
-from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset, qualified_name
+from ._utils import (
+    Unset,
+    function_name,
+    get_stacklevel,
+    is_method_of,
+    qualified_name,
+    unset,
+)
 
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
@@ -151,8 +158,8 @@ def wrap_function(fn: FunctionType) -> FunctionType:
             # inlined here to avoid additional frames in the traceback
             for argname, value in bound_args.arguments.items():
                 if argname in annotations:
-                  description = f"argument '{argname}'"
-                  check_type(value, annotations[argname])
+                    description = f"argument '{argname}'"
+                    check_type(value, annotations[argname])
 
             # call the decorated function
             description, value = unset, unset
