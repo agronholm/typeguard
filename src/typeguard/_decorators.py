@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 import ast
+import functools
 import inspect
 import sys
 from collections.abc import Sequence
 from functools import partial
 from inspect import isclass, isfunction
 from types import CodeType, FrameType, FunctionType
+import typing
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
 from warnings import warn
 
 from ._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
-from ._exceptions import InstrumentationWarning
-from ._functions import TypeCheckFailCallback
+from ._exceptions import InstrumentationWarning, TypeCheckError
+from ._functions import TypeCheckFailCallback, check_type
 from ._transformer import TypeguardTransformer
-from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
+from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset, qualified_name
 
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
@@ -130,6 +132,63 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     return new_function
 
 
+def wrap_function(fn: FunctionType) -> FunctionType:
+    """Type check wrapper for functions that does not use instrumentation."""
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def _wrapped_fn(*args, **kwargs):
+        # Hide the function from the traceback. Supported by Pytest and IPython
+        __tracebackhide__ = True  # pylint: disable=unused-variable,invalid-name
+
+        bound_args = sig.bind(*args, **kwargs)
+        # bound_args.apply_defaults()  # Do not typecheck default values for now
+        annotations = _get_type_hints(fn)
+
+        description, value = unset, unset
+        try:
+            # check argument types against annotations
+            # inlined here to avoid additional frames in the traceback
+            for argname, value in bound_args.arguments.items():
+                if argname in annotations:
+                  description = f"argument '{argname}'"
+                  check_type(value, annotations[argname])
+
+            # call the decorated function
+            description, value = unset, unset
+            value = fn(*args, **kwargs)
+
+            # check return type against annotations
+            if "return" in annotations:
+                description = "return value"
+                check_type(value, annotations["return"])
+
+            # Finally return the return value.
+            return value
+        except TypeCheckError as exc:
+            if unset in (description, value):
+                # An error that did not originate from this wrapper.
+                raise
+
+            qualname = qualified_name(value, add_class_prefix=True)
+            exc.append_path_element(f'"{description}" ({qualname})')
+            raise
+
+    return _wrapped_fn
+
+
+def _get_type_hints(fn: Callable[..., Any]) -> dict[str, Any]:
+    """Return the type hints for the given function (or cached value)."""
+    annotations = getattr(fn, "_cached_annotations", None)
+    if annotations is None:
+        try:
+            annotations = typing.get_type_hints(fn, include_extras=True)
+            fn._cached_annotations = annotations  # pylint: disable=protected-access
+        except NameError:
+            annotations = {}
+    return annotations
+
+
 @overload
 def typechecked(
     *,
@@ -137,6 +196,7 @@ def typechecked(
     typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
     collection_check_strategy: CollectionCheckStrategy | Unset = unset,
     debug_instrumentation: bool | Unset = unset,
+    disable_instrumentation: bool | Unset = unset,
 ) -> Callable[[T_CallableOrType], T_CallableOrType]: ...
 
 
@@ -151,6 +211,7 @@ def typechecked(
     typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
     collection_check_strategy: CollectionCheckStrategy | Unset = unset,
     debug_instrumentation: bool | Unset = unset,
+    disable_instrumentation: bool | Unset = unset,
 ) -> Any:
     """
     Instrument the target function to perform run-time type checking.
@@ -190,6 +251,11 @@ def typechecked(
 
     if not __debug__:
         return target
+
+    if disable_instrumentation is not unset or disable_instrumentation:
+        wrap_or_instrument = wrap_function
+    else:
+        wrap_or_instrument = instrument
 
     if isclass(target):
         for key, attr in target.__dict__.items():
