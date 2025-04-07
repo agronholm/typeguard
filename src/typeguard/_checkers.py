@@ -172,7 +172,7 @@ def check_callable(
             if unfulfilled_kwonlyargs:
                 raise TypeCheckError(
                     f"has mandatory keyword-only arguments in its declaration: "
-                    f'{", ".join(unfulfilled_kwonlyargs)}'
+                    f"{', '.join(unfulfilled_kwonlyargs)}"
                 )
 
             num_positional_args = num_mandatory_pos_args = 0
@@ -550,7 +550,7 @@ def check_typevar(
                 get_type_name(constraint) for constraint in origin_type.__constraints__
             )
             raise TypeCheckError(
-                f"does not match any of the constraints " f"({formatted_constraints})"
+                f"does not match any of the constraints ({formatted_constraints})"
             )
 
 
@@ -1066,7 +1066,7 @@ def load_plugins() -> None:
             plugin = ep.load()
         except Exception as exc:
             warnings.warn(
-                f"Failed to load plugin {ep.name!r}: " f"{qualified_name(exc)}: {exc}",
+                f"Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}",
                 stacklevel=2,
             )
             continue
