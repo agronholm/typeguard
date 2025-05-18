@@ -7,6 +7,7 @@ import types
 import typing
 import warnings
 from collections.abc import Mapping, MutableMapping, Sequence
+from dataclasses import fields, is_dataclass
 from enum import Enum
 from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
@@ -172,7 +173,7 @@ def check_callable(
             if unfulfilled_kwonlyargs:
                 raise TypeCheckError(
                     f"has mandatory keyword-only arguments in its declaration: "
-                    f'{", ".join(unfulfilled_kwonlyargs)}'
+                    f"{', '.join(unfulfilled_kwonlyargs)}"
                 )
 
             num_positional_args = num_mandatory_pos_args = 0
@@ -550,7 +551,7 @@ def check_typevar(
                 get_type_name(constraint) for constraint in origin_type.__constraints__
             )
             raise TypeCheckError(
-                f"does not match any of the constraints " f"({formatted_constraints})"
+                f"does not match any of the constraints ({formatted_constraints})"
             )
 
 
@@ -857,6 +858,31 @@ def check_byteslike(
         raise TypeCheckError("is not bytes-like")
 
 
+def check_dataclass(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    for field in fields(origin_type):
+        try:
+            subject_member = getattr(value, field.name)
+        except AttributeError:
+            raise TypeCheckError(
+                f"is not compatible with the {origin_type.__qualname__} "
+                f"because it has no attribute named {field.name!r}"
+            ) from None
+        check_type_internal(getattr(value, field.name), field.type, memo)
+
+        try:
+            check_type_internal(subject_member, field.type, memo)
+        except TypeCheckError as exc:
+            raise TypeCheckError(
+                f"is not compatible with the {origin_type.__qualname__} "
+                f"because its {field.name!r} attribute {exc}"
+            ) from None
+
+
 def check_self(
     value: Any,
     origin_type: Any,
@@ -1043,6 +1069,8 @@ def builtin_checker_lookup(
     ):
         # typing.NewType on Python 3.9
         return check_newtype
+    elif isclass(origin_type) and is_dataclass(origin_type):
+        return check_dataclass
 
     return None
 
@@ -1066,7 +1094,7 @@ def load_plugins() -> None:
             plugin = ep.load()
         except Exception as exc:
             warnings.warn(
-                f"Failed to load plugin {ep.name!r}: " f"{qualified_name(exc)}: {exc}",
+                f"Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}",
                 stacklevel=2,
             )
             continue

@@ -166,6 +166,8 @@ The following types from the standard library have specialized support:
    * - | :class:`typing.Callable`
        | :class:`collections.abc.Callable`
      - Argument count is checked but types are not (yet)
+   * - | :func:`dataclasses.dataclass`
+     - Object attribute values match dataclass field types
    * - | :class:`dict`
        | :class:`typing.Dict`
      - Keys and values are typechecked

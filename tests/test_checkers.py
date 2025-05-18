@@ -1,7 +1,9 @@
 import collections.abc
 import sys
 import types
+from collections import namedtuple
 from contextlib import nullcontext
+from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from functools import partial
 from io import BytesIO, StringIO
@@ -269,6 +271,35 @@ class TestCallable:
             pass
 
         check_type(some_callable, Callable[[int], Any])
+
+
+class TestDataclass:
+    def test_valid_builtin(self):
+        D = make_dataclass("D", [("x", str), ("y", int), ("z", bool)])
+        C = namedtuple("C", "x y z")
+        check_type(C("A", 1, True), D)
+
+    def test_valid_optional(self):
+        @dataclass
+        class D:
+            x: str | None
+
+        C = namedtuple("C", "x")
+        check_type(C("A"), D)
+        check_type(C(None), D)
+
+    def test_fail_absent_attribute(self):
+        D = make_dataclass("D", [("x", str)])
+        pytest.raises(TypeCheckError, check_type, object(), D).match(
+            " has no attribute named 'x'"
+        )
+
+    def test_fail_mismatch(self):
+        D = make_dataclass("D", [("x", str)])
+        C = namedtuple("C", "x")
+        pytest.raises(TypeCheckError, check_type, C(0), D).match(
+            " is not an instance of str"
+        )
 
 
 class TestLiteral:
