@@ -872,7 +872,6 @@ def check_dataclass(
                 f"is not compatible with the {origin_type.__qualname__} "
                 f"because it has no attribute named {field.name!r}"
             ) from None
-        check_type_internal(getattr(value, field.name), field.type, memo)
 
         try:
             check_type_internal(subject_member, field.type, memo)
