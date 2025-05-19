@@ -282,7 +282,7 @@ class TestDataclass:
     def test_valid_optional(self):
         @dataclass
         class D:
-            x: str | None
+            x: Union[str, None]
 
         C = namedtuple("C", "x")
         check_type(C("A"), D)
