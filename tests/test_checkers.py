@@ -897,8 +897,13 @@ class TestUnion:
 
     @pytest.mark.skipif(sys.version_info < (3, 10), reason="UnionType requires 3.10")
     def test_raw_uniontype_fail(self):
+        if sys.version_info < (3, 14):
+            expected_type = r"\w+\.UnionType"
+        else:
+            expected_type = "Union"
+
         with pytest.raises(
-            TypeCheckError, match=r"class str is not an instance of \w+\.UnionType$"
+            TypeCheckError, match=f"class str is not an instance of {expected_type}$"
         ):
             check_type(str, types.UnionType)
 
