@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.4.3** (2025-06-05)
 
 - Fixed ``@typechecked`` unable to find the target function or method if it or the
   containing class had PEP 695 type parameters on them
