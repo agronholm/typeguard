@@ -692,3 +692,18 @@ def test_duplicate_method():
     assert Foo().x(1) == "second"
     with pytest.raises(TypeCheckError):
         Foo().x("wrong")
+
+
+def test_duplicate_function():
+    @typechecked
+    def foo() -> list[int]:  # noqa: F811
+        return [x for x in range(5)]
+
+    foo1 = foo
+
+    @typechecked
+    def foo() -> list[int]:  # noqa: F811
+        return [x for x in range(5, 10)]
+
+    assert foo1() == [0, 1, 2, 3, 4]
+    assert foo() == [5, 6, 7, 8, 9]

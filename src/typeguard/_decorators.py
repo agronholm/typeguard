@@ -41,8 +41,11 @@ def find_target_function(
             new_path = (
                 target_path[1:] if const.co_name == target_path[0] else target_path
             )
-            if not new_path and const.co_firstlineno == firstlineno:
-                return const
+            if not new_path:
+                if const.co_firstlineno == firstlineno:
+                    return const
+
+                continue
 
             if target_code := find_target_function(const, new_path, firstlineno):
                 return target_code
