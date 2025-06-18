@@ -974,6 +974,9 @@ class TestType:
             "class int is not a subclass of str"
         )
 
+    def test_parametrized_value(self):
+        check_type(list[str], type[list[str]])
+
     @pytest.mark.parametrize(
         "value", [pytest.param(str, id="str"), pytest.param(int, id="int")]
     )

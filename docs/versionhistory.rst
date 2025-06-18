@@ -9,6 +9,9 @@ This library adheres to
 - Fixed ``IndexError`` when using ``@typechecked`` on more than one function with the
   same name under certain circumstances
   (`#527 <https://github.com/agronholm/typeguard/issues/527>`_)
+- Fixed ``TypeError`` during type checking when the value to check is a parametrized
+  generic class
+  (`#526 <https://github.com/agronholm/typeguard/issues/526>`_)
 
 **4.4.3** (2025-06-05)
 

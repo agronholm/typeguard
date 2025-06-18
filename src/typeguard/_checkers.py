@@ -500,8 +500,17 @@ def check_class(
                 )
         finally:
             del errors  # avoid creating ref cycle
-    elif not issubclass(value, expected_class):  # type: ignore[arg-type]
-        raise TypeCheckError(f"is not a subclass of {qualified_name(expected_class)}")
+    else:
+        if isinstance(expected_class, generic_alias_types):
+            expected_class = get_origin(expected_class)
+
+        if isinstance(value, generic_alias_types):
+            value = get_origin(value)
+
+        if not issubclass(value, expected_class):
+            raise TypeCheckError(
+                f"is not a subclass of {qualified_name(expected_class)}"
+            )
 
 
 def check_newtype(
