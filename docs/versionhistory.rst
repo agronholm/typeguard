@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**4.4.4** (2026-06-18)
+**4.4.4** (2025-06-18)
 
 - Fixed ``IndexError`` when using ``@typechecked`` on more than one function with the
   same name under certain circumstances
