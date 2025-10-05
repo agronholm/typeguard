@@ -1,3 +1,6 @@
+.. image:: https://img.shields.io/pypi/v/typeguard
+  :target: https://pypi.org/project/typeguard/
+  :alt: PyPI Link
 .. image:: https://github.com/agronholm/typeguard/actions/workflows/test.yml/badge.svg
   :target: https://github.com/agronholm/typeguard/actions/workflows/test.yml
   :alt: Build Status
