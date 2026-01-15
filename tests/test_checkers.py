@@ -1421,6 +1421,40 @@ class TestProtocol:
         # check is skipped
         check_type(Foo(), MyProtocol)
 
+    def test_inherited_classmethod(self) -> None:
+        class MyProtocol(Protocol):
+            @classmethod
+            def class_meth(cls) -> None:
+                pass
+
+        class Base:
+            @classmethod
+            def class_meth(cls) -> None:
+                pass
+
+        class Sub(Base):
+            pass
+
+        check_type(Sub(), MyProtocol)
+        check_type(Sub, type[MyProtocol])
+
+    def test_inherited_staticmethod(self) -> None:
+        class MyProtocol(Protocol):
+            @staticmethod
+            def static_meth() -> None:
+                pass
+
+        class Base:
+            @staticmethod
+            def static_meth() -> None:
+                pass
+
+        class Sub(Base):
+            pass
+
+        check_type(Sub(), MyProtocol)
+        check_type(Sub, type[MyProtocol])
+
 
 class TestRecursiveType:
     def test_valid(self):
