@@ -27,14 +27,12 @@ if sys.version_info >= (3, 14):
         # This is needed because Python 3.14's ForwardRef.evaluate() requires
         # all referenced names to be available in the provided globals/locals.
         if module_name := getattr(forwardref, "__forward_module__", None):
-            if module := sys.modules.get(module_name):
-                try:
-                    return forwardref.evaluate(
-                        globals=vars(module), locals=None, type_params=()
-                    )
-                except NameError:
-                    # Fall back to caller's namespace for backwards compatibility
-                    pass
+            try:
+                # Not passing globals / locals defaults to those of the caller
+                return forwardref.evaluate(type_params=())
+            except NameError:
+                # Fall back to caller's namespace for backwards compatibility
+                pass
 
         return forwardref.evaluate(
             globals=memo.globals, locals=memo.locals, type_params=()
