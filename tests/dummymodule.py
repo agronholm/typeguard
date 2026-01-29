@@ -14,12 +14,18 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     TypeVar,
     Union,
     no_type_check,
     no_type_check_decorator,
     overload,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import NotRequired, Required
+else:
+    from typing_extensions import NotRequired, Required
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -351,3 +357,9 @@ def typevar_forwardref(x: Type[T]) -> T:
 def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa: F821
     """Regression test for #335."""
     return x
+
+
+# Regression test for #536 - TypedDict with forward reference annotations
+class TypedDictWithForwardRef(TypedDict):
+    x: "Required[int]"
+    y: "NotRequired[str]"

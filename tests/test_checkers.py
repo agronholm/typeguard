@@ -543,6 +543,25 @@ class TestTypedDict:
         assert is_typeddict(DummyDict)
         assert not is_typeddict(dict)
 
+    def test_typed_dict_with_forward_ref_from_external_module(self):
+        """Regression test for #536: TypedDict forward ref NameError in Python 3.14."""
+        from tests.dummymodule import TypedDictWithForwardRef
+
+        # Should not raise NameError for 'Required' or 'NotRequired'
+        check_type({"x": 1}, TypedDictWithForwardRef)
+        check_type({"x": 1, "y": "foo"}, TypedDictWithForwardRef)
+
+        # Should still enforce types correctly
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            check_type({"x": "not an int"}, TypedDictWithForwardRef)
+
+        with pytest.raises(TypeCheckError, match=r"is not an instance of str"):
+            check_type({"x": 1, "y": 123}, TypedDictWithForwardRef)
+
+        # Required key 'x' should still be required
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x"'):
+            check_type({}, TypedDictWithForwardRef)
+
 
 class TestList:
     def test_bad_type(self):
