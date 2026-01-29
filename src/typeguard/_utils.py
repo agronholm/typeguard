@@ -26,7 +26,7 @@ if sys.version_info >= (3, 14):
         # If the ForwardRef has a module, try that module's namespace first.
         # This is needed because Python 3.14's ForwardRef.evaluate() requires
         # all referenced names to be available in the provided globals/locals.
-        if module_name := getattr(forwardref, "__forward_module__", None):
+        if getattr(forwardref, "__forward_module__", None):
             try:
                 # Not passing globals / locals defaults to those of the caller
                 return forwardref.evaluate(type_params=())
