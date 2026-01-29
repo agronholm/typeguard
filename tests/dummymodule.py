@@ -359,7 +359,14 @@ def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa
     return x
 
 
-# Regression test for #536 - TypedDict with forward reference annotations
+# Regression test for #536 - forward reference evaluation on Python 3.14
+class ModuleLocalClass:
+    """A class only available in this module's namespace, not the caller's."""
+
+    pass
+
+
 class TypedDictWithForwardRef(TypedDict):
     x: "Required[int]"
     y: "NotRequired[str]"
+    z: "NotRequired[ModuleLocalClass]"

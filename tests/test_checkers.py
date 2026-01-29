@@ -544,19 +544,32 @@ class TestTypedDict:
         assert not is_typeddict(dict)
 
     def test_typed_dict_with_forward_ref_from_external_module(self):
-        """Regression test for #536: TypedDict forward ref NameError in Python 3.14."""
-        from tests.dummymodule import TypedDictWithForwardRef
+        """Regression test for #536: forward ref NameError in Python 3.14."""
+        import tests.dummymodule
 
-        # Should not raise NameError for 'Required' or 'NotRequired'
+        # Only import the TypedDict, NOT ModuleLocalClass - this tests that forward
+        # references resolve using the type's module namespace, not the caller's
+        TypedDictWithForwardRef = tests.dummymodule.TypedDictWithForwardRef
+
+        # Should not raise NameError for forward refs to names in the type's module
+        # (Required, NotRequired, and ModuleLocalClass are all in dummymodule)
         check_type({"x": 1}, TypedDictWithForwardRef)
         check_type({"x": 1, "y": "foo"}, TypedDictWithForwardRef)
+        check_type(
+            {"x": 1, "z": tests.dummymodule.ModuleLocalClass()}, TypedDictWithForwardRef
+        )
 
-        # Should still enforce types correctly
+        # Should still enforce types correctly (verifies Required[int] is unwrapped)
         with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
             check_type({"x": "not an int"}, TypedDictWithForwardRef)
 
         with pytest.raises(TypeCheckError, match=r"is not an instance of str"):
             check_type({"x": 1, "y": 123}, TypedDictWithForwardRef)
+
+        with pytest.raises(
+            TypeCheckError, match=r"is not an instance of .*ModuleLocalClass"
+        ):
+            check_type({"x": 1, "z": "not a ModuleLocalClass"}, TypedDictWithForwardRef)
 
         # Required key 'x' should still be required
         with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x"'):

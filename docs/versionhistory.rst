@@ -6,9 +6,8 @@ This library adheres to
 
 **UNRELEASED**
 
-- Fixed ``NameError`` when checking ``TypedDict`` with forward reference annotations
-  (like ``Required`` or ``NotRequired``) on Python 3.14
-  (`#536 <https://github.com/agronholm/typeguard/issues/536>`_)
+- Fixed ``NameError`` when evaluating forward references on Python 3.14
+  (`#536 <https://github.com/agronholm/typeguard/issues/536>`_; PR by @dionhaefner)
 
 **4.4.4** (2025-06-18)
 
