@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``NameError`` when checking ``TypedDict`` with forward reference annotations
+  (like ``Required`` or ``NotRequired``) on Python 3.14
+  (`#536 <https://github.com/agronholm/typeguard/issues/536>`_)
+
 **4.4.4** (2025-06-18)
 
 - Fixed ``IndexError`` when using ``@typechecked`` on more than one function with the
