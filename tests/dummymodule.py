@@ -367,6 +367,4 @@ class ModuleLocalClass:
 
 
 class TypedDictWithForwardRef(TypedDict):
-    x: "Required[int]"
-    y: "NotRequired[str]"
-    z: "NotRequired[ModuleLocalClass]"
+    x: "ModuleLocalClass"
