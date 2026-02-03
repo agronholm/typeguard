@@ -14,6 +14,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     TypeVar,
     Union,
     no_type_check,
@@ -351,3 +352,12 @@ def typevar_forwardref(x: Type[T]) -> T:
 def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa: F821
     """Regression test for #335."""
     return x
+
+
+# Regression test for #536 - forward reference evaluation on Python 3.14
+class ModuleLocalClass:
+    """A class only available in this module's namespace, not the caller's."""
+
+
+class TypedDictWithForwardRef(TypedDict):
+    x: "ModuleLocalClass"

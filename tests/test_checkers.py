@@ -543,6 +543,23 @@ class TestTypedDict:
         assert is_typeddict(DummyDict)
         assert not is_typeddict(dict)
 
+    def test_typed_dict_with_forward_ref_from_external_module(self):
+        """Regression test for #536: forward ref NameError in Python 3.14."""
+        import tests.dummymodule
+
+        # Only import the TypedDict, NOT ModuleLocalClass - this tests that forward
+        # references resolve using the type's module namespace, not the caller's
+        TypedDictWithForwardRef = tests.dummymodule.TypedDictWithForwardRef
+
+        # Should not raise NameError for forward ref to ModuleLocalClass
+        check_type({"x": tests.dummymodule.ModuleLocalClass()}, TypedDictWithForwardRef)
+
+        # Should still enforce types correctly
+        with pytest.raises(
+            TypeCheckError, match=r"is not an instance of .*ModuleLocalClass"
+        ):
+            check_type({"x": "not a ModuleLocalClass"}, TypedDictWithForwardRef)
+
 
 class TestList:
     def test_bad_type(self):

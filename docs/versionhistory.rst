@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``NameError`` when evaluating forward references on Python 3.14
+  (`#536 <https://github.com/agronholm/typeguard/issues/536>`_; PR by @dionhaefner)
+
 **4.4.4** (2025-06-18)
 
 - Fixed ``IndexError`` when using ``@typechecked`` on more than one function with the
