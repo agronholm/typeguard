@@ -22,11 +22,6 @@ from typing import (
     overload,
 )
 
-if sys.version_info >= (3, 11):
-    from typing import NotRequired, Required
-else:
-    from typing_extensions import NotRequired, Required
-
 from typeguard import (
     CollectionCheckStrategy,
     ForwardRefPolicy,
@@ -362,8 +357,6 @@ def never_called(x: List["NonExistentType"]) -> List["NonExistentType"]:  # noqa
 # Regression test for #536 - forward reference evaluation on Python 3.14
 class ModuleLocalClass:
     """A class only available in this module's namespace, not the caller's."""
-
-    pass
 
 
 class TypedDictWithForwardRef(TypedDict):
