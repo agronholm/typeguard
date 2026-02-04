@@ -48,8 +48,8 @@ from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualifie
 
 if sys.version_info >= (3, 11):
     from typing import (
-        Required,
         NotRequired,
+        Required,
         TypeAlias,
         get_args,
         get_origin,
@@ -59,8 +59,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Any as SubclassableAny
     from typing_extensions import (
-        Required,
         NotRequired,
+        Required,
         TypeAlias,
         get_args,
         get_origin,

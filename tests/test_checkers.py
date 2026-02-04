@@ -560,14 +560,10 @@ class TestTypedDict:
             x2: "Required[int]"
             y: int
 
-        with pytest.raises(
-            TypeCheckError, match=r'is missing required key\(s\): "x1"'
-        ):
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x1"'):
             check_type({"x2": 2, "y": 3}, DummyDict)
 
-        with pytest.raises(
-            TypeCheckError, match=r'is missing required key\(s\): "x2"'
-        ):
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x2"'):
             check_type({"x1": 1, "y": 3}, DummyDict)
 
     def test_is_typeddict(self, typing_provider):
