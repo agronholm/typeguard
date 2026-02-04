@@ -48,6 +48,7 @@ from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualifie
 
 if sys.version_info >= (3, 11):
     from typing import (
+        Required,
         NotRequired,
         TypeAlias,
         get_args,
@@ -58,6 +59,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Any as SubclassableAny
     from typing_extensions import (
+        Required,
         NotRequired,
         TypeAlias,
         get_args,
@@ -266,6 +268,9 @@ def check_typed_dict(
 
         if get_origin(annotation) is NotRequired:
             required_keys.discard(key)
+            annotation = get_args(annotation)[0]
+        elif get_origin(annotation) is Required:
+            required_keys.add(key)
             annotation = get_args(annotation)[0]
 
         type_hints[key] = annotation
