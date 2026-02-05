@@ -675,6 +675,7 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
                 protocol_type = "static"
             elif isinstance(descriptor, classmethod):
                 protocol_type = "class"
+
             break
 
     # Check if the subject-side method is a class method or static method
@@ -685,6 +686,7 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
                 subject_type = "static"
             elif isinstance(descriptor, classmethod):
                 subject_type = "class"
+
             break
 
     if protocol_type == "instance" and subject_type != "instance":
