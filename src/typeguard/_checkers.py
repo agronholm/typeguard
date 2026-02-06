@@ -673,20 +673,26 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
     subject_type: typing.Literal["instance", "class", "static"] = "instance"
 
     # Check if the protocol-side method is a class method or static method
-    if attrname in protocol.__dict__:
-        descriptor = protocol.__dict__[attrname]
-        if isinstance(descriptor, staticmethod):
-            protocol_type = "static"
-        elif isinstance(descriptor, classmethod):
-            protocol_type = "class"
+    for klass in protocol.__mro__:
+        if attrname in klass.__dict__:
+            descriptor = klass.__dict__[attrname]
+            if isinstance(descriptor, staticmethod):
+                protocol_type = "static"
+            elif isinstance(descriptor, classmethod):
+                protocol_type = "class"
+
+            break
 
     # Check if the subject-side method is a class method or static method
-    if attrname in subject.__dict__:
-        descriptor = subject.__dict__[attrname]
-        if isinstance(descriptor, staticmethod):
-            subject_type = "static"
-        elif isinstance(descriptor, classmethod):
-            subject_type = "class"
+    for klass in subject.__mro__:
+        if attrname in klass.__dict__:
+            descriptor = klass.__dict__[attrname]
+            if isinstance(descriptor, staticmethod):
+                subject_type = "static"
+            elif isinstance(descriptor, classmethod):
+                subject_type = "class"
+
+            break
 
     if protocol_type == "instance" and subject_type != "instance":
         raise TypeCheckError(
