@@ -984,7 +984,9 @@ def check_type_internal(
 
 
 # Equality checks are applied to these
-origin_type_checkers = {
+origin_type_checkers: dict[
+    Any, Callable[[Any, Any, tuple[Any, ...], TypeCheckMemo], None]
+] = {
     bytes: check_byteslike,
     AbstractSet: check_set,
     BinaryIO: check_io,

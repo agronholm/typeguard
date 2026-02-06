@@ -78,6 +78,9 @@ exclude_lines = [
 [tool.ruff]
 src = ["src"]
 
+[tool.ruff.per-file-target-version]
+"tests/pep695.py" = "py312"
+
 [tool.ruff.lint]
 extend-select = [
     "B0",           # flake8-bugbear
@@ -97,6 +100,7 @@ ignore = [
 python_version = "3.11"
 strict = true
 pretty = true
+files = ["src"]
 
 [tool.tox]
 env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
