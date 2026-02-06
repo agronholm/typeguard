@@ -578,10 +578,14 @@ class TestTypedDict:
             y: int
 
         # Ensure inner type is validated correctly (regression test for #533)
-        with pytest.raises(TypeCheckError, match=r"value of key 'x1' of dict is not an instance of int"):
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'x1' of dict is not an instance of int"
+        ):
             check_type({"x1": "foo", "x2": 2, "y": 3}, DummyDict)
 
-        with pytest.raises(TypeCheckError, match=r"value of key 'x2' of dict is not an instance of int"):
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'x2' of dict is not an instance of int"
+        ):
             check_type({"x1": 1, "x2": "foo", "y": 3}, DummyDict)
 
     def test_is_typeddict(self, typing_provider):
