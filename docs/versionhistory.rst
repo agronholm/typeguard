@@ -10,6 +10,9 @@ This library adheres to
   (`#536 <https://github.com/agronholm/typeguard/issues/536>`_; PR by @dionhaefner)
 - Fixed protocol check incorrectly rejecting inherited classmethods and staticmethods
   (`#539 <https://github.com/agronholm/typeguard/issues/539>`_)
+- Fixed missing ``TypeCheckError`` when checking ``TypedDict`` with ``Required[...]``
+  annotations
+  (`#533 <https://github.com/agronholm/typeguard/issues/533>`_; PR by @dionhaefner)
 
 **4.4.4** (2025-06-18)
 

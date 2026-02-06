@@ -535,6 +535,59 @@ class TestTypedDict:
         ):
             check_type({"x": 1, "y": 6, "z": "foo"}, DummyDict)
 
+    def test_required_pass(self, typing_provider):
+        try:
+            Required = typing_provider.Required
+        except AttributeError:
+            pytest.skip(f"'Required' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            x1: Required[int]
+            x2: "Required[int]"
+            y: int
+
+        check_type({"x1": 1, "x2": 2}, DummyDict)
+        check_type({"x1": 1, "x2": 2, "y": 3}, DummyDict)
+
+    def test_required_missing(self, typing_provider):
+        try:
+            Required = typing_provider.Required
+        except AttributeError:
+            pytest.skip(f"'Required' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            x1: Required[int]
+            x2: "Required[int]"
+            y: int
+
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x1"'):
+            check_type({"x2": 2, "y": 3}, DummyDict)
+
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "x2"'):
+            check_type({"x1": 1, "y": 3}, DummyDict)
+
+    def test_required_wrong_type(self, typing_provider):
+        try:
+            Required = typing_provider.Required
+        except AttributeError:
+            pytest.skip(f"'Required' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            x1: Required[int]
+            x2: "Required[int]"
+            y: int
+
+        # Ensure inner type is validated correctly (regression test for #533)
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'x1' of dict is not an instance of int"
+        ):
+            check_type({"x1": "foo", "x2": 2, "y": 3}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'x2' of dict is not an instance of int"
+        ):
+            check_type({"x1": 1, "x2": "foo", "y": 3}, DummyDict)
+
     def test_is_typeddict(self, typing_provider):
         # Ensure both typing.TypedDict and typing_extensions.TypedDict are recognized
         class DummyDict(typing_provider.TypedDict):
