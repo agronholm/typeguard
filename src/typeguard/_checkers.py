@@ -46,6 +46,11 @@ from ._exceptions import TypeCheckError, TypeHintWarning
 from ._memo import TypeCheckMemo
 from ._utils import evaluate_forwardref, get_stacklevel, get_type_name, qualified_name
 
+if sys.version_info >= (3, 15):
+    from typing import NoExtraItems
+else:
+    from typing_extensions import NoExtraItems
+
 if sys.version_info >= (3, 11):
     from typing import (
         NotRequired,
@@ -249,16 +254,24 @@ def check_typed_dict(
         raise TypeCheckError("is not a dict")
 
     declared_keys = frozenset(origin_type.__annotations__)
-    if hasattr(origin_type, "__required_keys__"):
-        required_keys = set(origin_type.__required_keys__)
-    else:  # py3.8 and lower
-        required_keys = set(declared_keys) if origin_type.__total__ else set()
-
+    required_keys = set(origin_type.__required_keys__)
     existing_keys = set(value)
-    extra_keys = existing_keys - declared_keys
-    if extra_keys:
-        keys_formatted = ", ".join(f'"{key}"' for key in sorted(extra_keys, key=repr))
-        raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
+    if extra_keys := existing_keys - declared_keys:
+        if (
+            argtype := getattr(origin_type, "__extra_items__", NoExtraItems)
+        ) is NoExtraItems:
+            keys_formatted = ", ".join(
+                f'"{key}"' for key in sorted(extra_keys, key=repr)
+            )
+            raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
+
+        for key in extra_keys:
+            argvalue = value[key]
+            try:
+                check_type_internal(argvalue, argtype, memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f"value of key {key!r}")
+                raise
 
     # Detect NotRequired fields which are hidden by get_type_hints()
     type_hints: dict[str, type] = {}
@@ -275,8 +288,7 @@ def check_typed_dict(
 
         type_hints[key] = annotation
 
-    missing_keys = required_keys - existing_keys
-    if missing_keys:
+    if missing_keys := required_keys - existing_keys:
         keys_formatted = ", ".join(f'"{key}"' for key in sorted(missing_keys, key=repr))
         raise TypeCheckError(f"is missing required key(s): {keys_formatted}")
 

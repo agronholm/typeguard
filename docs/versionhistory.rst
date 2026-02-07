@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added support for ``extra_items`` in ``TypedDict``, allowing users to specify
+  the types for the values of "leftover" keys in a typed dict (keys that weren't
+  explicitly defined in the ``TypedDict`` subclass)
+  (`#538 <https://github.com/agronholm/typeguard/issues/538>`_)
 - Fixed ``NameError`` when evaluating forward references on Python 3.14
   (`#536 <https://github.com/agronholm/typeguard/issues/536>`_; PR by @dionhaefner)
 - Fixed protocol check incorrectly rejecting inherited classmethods and staticmethods

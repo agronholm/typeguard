@@ -613,6 +613,40 @@ class TestTypedDict:
         ):
             check_type({"x": "not a ModuleLocalClass"}, TypedDictWithForwardRef)
 
+    def test_extra_items_positive(self, typing_provider):
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=Union[str, int]):
+                x: int
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"x": 6, "y": 7, "z": "foo"}, DummyDict)
+
+    def test_extra_items_bad_type(self, typing_provider):
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=Union[str, int]):
+                x: int
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        with pytest.raises(
+            TypeCheckError,
+            match=r"value of key 'z' of dict did not match any element in the union",
+        ):
+            check_type({"x": 6, "y": 7, "z": None}, DummyDict)
+
 
 class TestList:
     def test_bad_type(self):
