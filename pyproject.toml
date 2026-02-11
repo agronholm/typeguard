@@ -79,7 +79,7 @@ exclude_lines = [
 src = ["src"]
 
 [tool.ruff.per-file-target-version]
-"tests/pep695.py" = "py312"
+"tests/dummymodule_py312.py" = "py312"
 
 [tool.ruff.lint]
 extend-select = [

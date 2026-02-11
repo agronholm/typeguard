@@ -488,6 +488,9 @@ def check_class(
     else:
         expected_class = args[0]
 
+    if type(expected_class) in type_alias_types:
+        expected_class = expected_class.__value__
+
     if expected_class is Any:
         return
     elif expected_class is typing_extensions.Self:
@@ -950,6 +953,9 @@ def check_type_internal(
 
             return
 
+    if type(annotation) in type_alias_types:
+        annotation = annotation.__value__
+
     if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
 
@@ -1040,10 +1046,16 @@ origin_type_checkers: dict[
 if sys.version_info >= (3, 10):
     origin_type_checkers[types.UnionType] = check_uniontype
     origin_type_checkers[typing.TypeGuard] = check_typeguard
+
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(
         {typing.LiteralString: check_literal_string, typing.Self: check_self}
     )
+
+if sys.version_info >= (3, 12):
+    type_alias_types = (typing_extensions.TypeAliasType, typing.TypeAliasType)
+else:
+    type_alias_types = (typing_extensions.TypeAliasType,)
 
 
 def builtin_checker_lookup(

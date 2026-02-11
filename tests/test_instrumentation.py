@@ -83,11 +83,11 @@ def deferredannos(method: str):
 
 
 @pytest.fixture(scope="module")
-def pep695(method: str):
+def dummymodule_py312(method: str):
     if sys.version_info < (3, 12):
-        raise pytest.skip("PEP 695 type parameter syntax requires Python 3.12+")
+        raise pytest.skip("This test requires Python 3.12+")
 
-    return _fixture_module("pep695", method)
+    return _fixture_module("dummymodule_py312", method)
 
 
 def test_type_checked_func(dummymodule):
@@ -398,22 +398,44 @@ class TestUsesForwardRef:
 
 
 class TestParametrized:
-    def test_success_func(self, pep695):
-        assert pep695.parametrized_func(1, "2") == 1
+    def test_success_func(self, dummymodule_py312):
+        assert dummymodule_py312.parametrized_func(1, "2") == 1
 
-    def test_success_method(self, pep695):
-        assert pep695.ParametrizedClass[int]().method(1, "2") == 1
+    def test_success_method(self, dummymodule_py312):
+        assert dummymodule_py312.ParametrizedClass[int]().method(1, "2") == 1
 
-    def test_failure_func(self, pep695):
+    def test_failure_func(self, dummymodule_py312):
         with pytest.raises(
             TypeCheckError,
             match=r'argument "y" \(int\) is not an instance of str',
         ):
-            pep695.parametrized_func(1, 2)
+            dummymodule_py312.parametrized_func(1, 2)
 
-    def test_failure_method(self, pep695):
+    def test_failure_method(self, dummymodule_py312):
         with pytest.raises(
             TypeCheckError,
             match=r'argument "y" \(int\) is not an instance of str',
         ):
-            pep695.ParametrizedClass[int]().method("str", 2)
+            dummymodule_py312.ParametrizedClass[int]().method("str", 2)
+
+
+class TestTypeAlias:
+    def test_success(self, dummymodule_py312):
+        assert dummymodule_py312.func_using_type_alias([1, 2]) == 1
+
+    def test_failure(self, dummymodule_py312):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'item 0 of argument "x" \(list\) is not an instance of int',
+        ):
+            dummymodule_py312.func_using_type_alias(["foo"])
+
+    def test_type_arg_success(self, dummymodule_py312):
+        assert dummymodule_py312.func_using_type_of_type_alias(list) is list
+
+    def test_type_arg_failure(self, dummymodule_py312):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "x" \(class dict\) is not a subclass of list',
+        ):
+            dummymodule_py312.func_using_type_of_type_alias(dict)
