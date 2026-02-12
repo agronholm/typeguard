@@ -7,6 +7,9 @@
 .. image:: https://readthedocs.org/projects/typeguard/badge/?version=latest
   :target: https://typeguard.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation
+.. image:: https://tidelift.com/badges/package/pypi/typeguard
+  :target: https://tidelift.com/subscription/pkg/pypi-typeguard
+  :alt: Tidelift
 
 This library provides run-time type checking for functions defined with
 `PEP 484 <https://www.python.org/dev/peps/pep-0484/>`_ argument (and return) type
