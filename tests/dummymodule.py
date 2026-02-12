@@ -247,6 +247,13 @@ def unpacking_assign() -> Tuple[int, str]:
 
 
 @typechecked
+def unpacking_assign_single_item_tuple() -> str:
+    x: str
+    (x,) = ("foo",)
+    return x
+
+
+@typechecked
 def unpacking_assign_generator() -> Tuple[int, str]:
     def genfunc():
         yield 1

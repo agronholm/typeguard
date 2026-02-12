@@ -19,6 +19,9 @@ This library adheres to
   (`#533 <https://github.com/agronholm/typeguard/issues/533>`_; PR by @dionhaefner)
 - Fixed type aliases (e.g. ``type Foo = list[int]``) not being resolved during type
   checking (`#526 <https://github.com/agronholm/typeguard/issues/526>`_)
+- Fixed type-checked assignments to a single tuple target (e.g. ``x, = ("foo",)``)
+  falsely raising ``TypeCheckedError``
+  (`#535 <https://github.com/agronholm/typeguard/issues/535>`_)
 
 **4.4.4** (2025-06-18)
 

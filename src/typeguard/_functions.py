@@ -243,42 +243,38 @@ def check_yield_type(
 
 
 def check_variable_assignment(
-    value: Any, targets: Sequence[list[tuple[str, Any]]], memo: TypeCheckMemo
+    value: Any,
+    groups: Sequence[list[tuple[str, Any]] | tuple[str, Any]],
+    memo: TypeCheckMemo,
 ) -> Any:
     if _suppression.type_checks_suppressed:
         return value
 
     value_to_return = value
-    for target in targets:
-        star_variable_index = next(
-            (i for i, (varname, _) in enumerate(target) if varname.startswith("*")),
-            None,
-        )
-        if star_variable_index is not None:
-            value_to_return = list(value)
-            remaining_vars = len(target) - 1 - star_variable_index
-            end_index = len(value_to_return) - remaining_vars
-            values_to_check = (
-                value_to_return[:star_variable_index]
-                + [value_to_return[star_variable_index:end_index]]
-                + value_to_return[end_index:]
-            )
-        elif len(target) > 1:
-            values_to_check = value_to_return = []
-            iterator = iter(value)
-            for _ in target:
-                try:
-                    values_to_check.append(next(iterator))
-                except StopIteration:
-                    raise ValueError(
-                        f"not enough values to unpack (expected {len(target)}, got "
-                        f"{len(values_to_check)})"
-                    ) from None
+    for targets in groups:
+        values_to_check: list[tuple[Any, str, Any]]
+        if isinstance(targets, list):
+            values_to_check = []
 
-        else:
-            values_to_check = [value]
+            # Get all the available values from a generator or arbitrary iterator
+            if not isinstance(value_to_return, list):
+                value_to_return = list(value)
 
-        for val, (varname, annotation) in zip(values_to_check, target):
+            iterator = iter(value_to_return)
+            for index, (name, annotation) in enumerate(targets):
+                if name.startswith("*"):
+                    remaining_values = list(iterator)
+                    cutoff_offset = len(targets) - index
+                    star_values = remaining_values[:cutoff_offset]
+                    iterator = iter(remaining_values[cutoff_offset:])
+                    values_to_check.append((star_values, name[1:], annotation))
+                else:
+                    next_value = next(iterator)
+                    values_to_check.append((next_value, name, annotation))
+        else:  # single target, no unpacking
+            values_to_check = [(value,) + targets]
+
+        for val, varname, annotation in values_to_check:
             try:
                 check_type_internal(val, annotation, memo)
             except TypeCheckError as exc:
