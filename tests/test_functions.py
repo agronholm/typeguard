@@ -44,7 +44,7 @@ class TestCheckArgumentTypes:
                 (1, "foo"),
                 {"z": b"foo", "xyz": b"foo"},
                 r"value of key 'xyz' of argument \"kwargs\" \(dict\) is not an instance of int",
-                id="vararg",
+                id="varkwarg",
             ),
         ],
     )
