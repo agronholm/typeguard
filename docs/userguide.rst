@@ -86,6 +86,33 @@ the import hook.
     its methods, such methods will not be instrumented. In contrast, the import hook
     has no such restrictions.
 
+Explicitly checking arguments and return types
+----------------------------------------------
+
+Two functions are provided for fine-grained checking of argument and return types:
+
+* :func:`~typeguard.check_argument_types`
+* :func:`~typeguard.check_return_type`
+
+These functions use the previous stack frame and the garbage collector to find a reference
+to the function to obtain the type annotations to check against.
+
+Here's how to use them::
+
+    from typeguard import check_argument_types, check_return_type
+
+    def some_function(a: int, b: float, c: str, *args: str) -> bool:
+        # Must be called before anything else, or the results may not be valid
+        check_argument_types()
+        ...
+        return check_return_type(retval)
+
+.. note:: This method is not reliable when used in nested functions (i.e. functions defined inside
+   other functions). This is because these functions rely on finding the correct function
+   object using the garbage collector, and when a nested function is running, its function object
+   may no longer be around anymore, as it is only bound to the closure of the enclosing function.
+   For this reason, it is recommended to use ``@typechecked`` instead for nested functions.
+
 Using the import hook
 ---------------------
 

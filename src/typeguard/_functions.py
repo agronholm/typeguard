@@ -3,7 +3,8 @@ from __future__ import annotations
 import sys
 import warnings
 from collections.abc import Sequence
-from typing import Any, Callable, NoReturn, TypeVar, Union, overload
+from inspect import Parameter, signature
+from typing import Any, Callable, NoReturn, TypeVar, Union, get_type_hints, overload
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -14,7 +15,7 @@ from ._config import (
 )
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
-from ._utils import get_stacklevel, qualified_name
+from ._utils import find_function, get_stacklevel, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import Literal, Never, TypeAlias
@@ -115,7 +116,49 @@ def check_type(
     return value
 
 
-def check_argument_types(
+def check_argument_types() -> Literal[True]:
+    """
+    Check that the argument values match the annotated types.
+
+    Unless both ``args`` and ``kwargs`` are provided, the information will be retrieved from
+    the previous stack frame (ie. from the function that called this).
+
+    :return: ``True``
+    :raises TypeCheckError: if there is an argument type mismatch
+
+    .. version-changed:: 4.5.0
+       This function was restored since its removal in v3.0.0.
+
+    """
+    # faster than inspect.currentframe(), but not officially
+    # supported in all python implementations
+    frame = sys._getframe(1)
+    func = find_function(frame)
+    f_locals = frame.f_locals
+    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
+    if sys.version_info >= (3, 10):
+        sig = signature(func, globals=frame.f_globals, locals=frame.f_locals)
+    else:
+        sig = signature(func)
+
+    arguments = {}
+    for param in sig.parameters.values():
+        if param.annotation is Parameter.empty or param.annotation is Any:
+            continue
+
+        if param.kind is Parameter.VAR_POSITIONAL:
+            annotation: Any = tuple[param.annotation, ...]  # type: ignore[name-defined]
+        elif param.kind is Parameter.VAR_KEYWORD:
+            annotation = dict[str, param.annotation]  # type: ignore[name-defined]
+        else:
+            annotation = param.annotation
+
+        arguments[param.name] = (f_locals[param.name], annotation)
+
+    return check_argument_types_internal(func.__name__, arguments, memo)
+
+
+def check_argument_types_internal(
     func_name: str,
     arguments: dict[str, tuple[Any, Any]],
     memo: TypeCheckMemo,
@@ -146,7 +189,28 @@ def check_argument_types(
     return True
 
 
-def check_return_type(
+def check_return_type(retval: T) -> T:
+    """
+    Check that the return value is compatible with the return value annotation in the function.
+
+    :param retval: the value about to be returned from the call
+    :return: ``retval`` unchanged
+    :raises TypeCheckError: if there is a type mismatch
+
+    .. version-changed:: 4.5.0
+       This function was restored since its removal in v3.0.0.
+
+    """
+    # faster than inspect.currentframe(), but not officially
+    # supported in all python implementations
+    frame = sys._getframe(1)
+    func = find_function(frame)
+    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
+    type_hints = get_type_hints(func, frame.f_globals, frame.f_locals)
+    return check_return_type_internal(func.__name__, retval, type_hints["return"], memo)
+
+
+def check_return_type_internal(
     func_name: str,
     retval: T,
     annotation: Any,

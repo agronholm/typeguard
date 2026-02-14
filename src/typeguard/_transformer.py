@@ -770,7 +770,7 @@ class TypeguardTransformer(NodeTransformer):
                     ],
                 )
                 func_name = self._get_import(
-                    "typeguard._functions", "check_argument_types"
+                    "typeguard._functions", "check_argument_types_internal"
                 )
                 args = [
                     self._memo.joined_path,
@@ -793,7 +793,7 @@ class TypeguardTransformer(NodeTransformer):
                 )
             ):
                 func_name = self._get_import(
-                    "typeguard._functions", "check_return_type"
+                    "typeguard._functions", "check_return_type_internal"
                 )
                 return_node = Return(
                     Call(
@@ -923,7 +923,9 @@ class TypeguardTransformer(NodeTransformer):
             and self._memo.should_instrument
             and not self._memo.is_ignored_name(self._memo.return_annotation)
         ):
-            func_name = self._get_import("typeguard._functions", "check_return_type")
+            func_name = self._get_import(
+                "typeguard._functions", "check_return_type_internal"
+            )
             old_node = node
             retval = old_node.value or Constant(None)
             node = Return(

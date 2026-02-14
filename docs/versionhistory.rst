@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Restored the ``check_argument_types()`` and ``check_return_type()`` functions that
+  were dropped in v3.0.0, for users who want more fine-grained control over run-time
+  type checking (`#437 <https://github.com/agronholm/typeguard/issues/437>`_)
 - Added support for ``extra_items`` in ``TypedDict``, allowing users to specify
   the types for the values of "leftover" keys in a typed dict (keys that weren't
   explicitly defined in the ``TypedDict`` subclass)

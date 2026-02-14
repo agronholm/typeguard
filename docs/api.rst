@@ -6,6 +6,10 @@ API reference
 Type checking
 -------------
 
+.. autofunction:: check_argument_types
+
+.. autofunction:: check_return_type
+
 .. autofunction:: check_type
 
 .. autodecorator:: typechecked
