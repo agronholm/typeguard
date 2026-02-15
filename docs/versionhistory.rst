@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.5.0** (2026-02-15)
 
 - Restored the ``check_argument_types()`` and ``check_return_type()`` functions that
   were dropped in v3.0.0, for users who want more fine-grained control over run-time
