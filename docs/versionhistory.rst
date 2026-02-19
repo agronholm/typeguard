@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed iterable unpacking incorrectly calculating the cut-off offset of the item list
+  when assigning remaining values to the star variable
+  (`#546 <https://github.com/agronholm/typeguard/issues/546>`_)
+
 **4.5.0** (2026-02-15)
 
 - Restored the ``check_argument_types()`` and ``check_return_type()`` functions that

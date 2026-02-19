@@ -280,10 +280,10 @@ def test_unpacking_assign_star_with_annotation(dummymodule):
 
 def test_unpacking_assign_star_no_annotation_success(dummymodule):
     assert dummymodule.unpacking_assign_star_no_annotation(
-        (1, b"abc", b"bah", "foo")
+        (1, b"abc", b"bah", b"xyzzy", b"1234", "foo")
     ) == (
         1,
-        [b"abc", b"bah"],
+        [b"abc", b"bah", b"xyzzy", b"1234"],
         "foo",
     )
 

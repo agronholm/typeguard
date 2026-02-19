@@ -328,7 +328,8 @@ def check_variable_assignment(
             for index, (name, annotation) in enumerate(targets):
                 if name.startswith("*"):
                     remaining_values = list(iterator)
-                    cutoff_offset = len(targets) - index
+                    num_remaining_targets = len(targets) - 1 - index
+                    cutoff_offset = len(remaining_values) - num_remaining_targets
                     star_values = remaining_values[:cutoff_offset]
                     iterator = iter(remaining_values[cutoff_offset:])
                     values_to_check.append((star_values, name[1:], annotation))
