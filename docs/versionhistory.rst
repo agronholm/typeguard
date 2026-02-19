@@ -4,7 +4,7 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.5.1** (2026-02-19)
 
 - Fixed iterable unpacking incorrectly calculating the cut-off offset of the item list
   when assigning remaining values to the star variable
