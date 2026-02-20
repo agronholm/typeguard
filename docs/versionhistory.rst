@@ -3,6 +3,9 @@ Version history
 
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
+**UNRELEASED**
+
+- Setting the TYPEGUARD_DISABLE environment variable has same effect as __debug__=False.
 
 **4.5.1** (2026-02-19)
 
