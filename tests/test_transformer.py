@@ -2008,3 +2008,32 @@ def test_literal() -> None:
             """
         ).strip()
     )
+
+
+def test_literal_wildcard_import() -> None:
+    # Regression test for #489
+    node = parse(
+        dedent(
+            """
+            from typing import *
+
+            def foo(x: Literal['a', 'b']) -> None:
+                pass
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo
+            from typeguard._functions import check_argument_types_internal
+            from typing import *
+
+            def foo(x: Literal['a', 'b']) -> None:
+                memo = TypeCheckMemo(globals(), locals())
+                check_argument_types_internal('foo', {'x': (x, Literal['a', 'b'])}, memo)
+            """
+        ).strip()
+    )
