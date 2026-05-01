@@ -1405,8 +1405,8 @@ class TestProtocol:
         )
 
     def test_subject_method_no_positional_params(self) -> None:
-        class _ZeroArg:
-            def __call__(self):
+        class ZeroArg:
+            def __call__(self) -> None:
                 return None
 
         class MyProtocol(Protocol):
@@ -1414,7 +1414,7 @@ class TestProtocol:
                 pass
 
         class Foo:
-            meth = _ZeroArg()
+            meth = ZeroArg()
 
         pytest.raises(TypeCheckError, check_type, Foo(), MyProtocol).match(
             f"^{qualified_name(Foo)} is not compatible with the "
