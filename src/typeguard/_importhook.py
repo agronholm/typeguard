@@ -66,6 +66,10 @@ class TypeguardLoader(SourceFileLoader):
         else:
             filename = os.fsdecode(bytes(path))
 
+        extra_kwargs = {}
+        if sys.version_info >= (3, 15):
+            extra_kwargs["module"] = fullname
+
         if isinstance(data, (ast.Module, ast.Expression, ast.Interactive)):
             module = data
         else:
@@ -74,21 +78,13 @@ class TypeguardLoader(SourceFileLoader):
             else:
                 source = decode_source(data)
 
-            if sys.version_info >= (3, 15):
-                module = _call_with_frames_removed(
-                    ast.parse,
-                    source,
-                    filename,
-                    "exec",
-                    module=fullname,
-                )
-            else:
-                module = _call_with_frames_removed(
-                    ast.parse,
-                    source,
-                    filename,
-                    "exec",
-                )
+            module = _call_with_frames_removed(
+                ast.parse,
+                source,
+                filename,
+                "exec",
+                **extra_kwargs,
+            )
 
         tree = TypeguardTransformer().visit(module)
         ast.fix_missing_locations(tree)
@@ -102,25 +98,15 @@ class TypeguardLoader(SourceFileLoader):
             print(ast.unparse(tree), file=sys.stderr)
             print("----------------------------------------------", file=sys.stderr)
 
-        if sys.version_info >= (3, 15):
-            return _call_with_frames_removed(
-                compile,
-                tree,
-                filename,
-                "exec",
-                0,
-                dont_inherit=True,
-                module=fullname,
-            )
-        else:
-            return _call_with_frames_removed(
-                compile,
-                tree,
-                filename,
-                "exec",
-                0,
-                dont_inherit=True,
-            )
+        return _call_with_frames_removed(
+            compile,
+            tree,
+            filename,
+            "exec",
+            0,
+            dont_inherit=True,
+            **extra_kwargs
+        )
 
     def exec_module(self, module: ModuleType) -> None:
         # Use a custom optimization marker – the import lock should make this monkey
