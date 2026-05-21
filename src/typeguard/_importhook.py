@@ -74,7 +74,7 @@ class TypeguardLoader(SourceFileLoader):
             else:
                 source = decode_source(data)
 
-            if sys.version_info >= (3,15):
+            if sys.version_info >= (3, 15):
                 module = _call_with_frames_removed(
                     ast.parse,
                     source,
@@ -104,11 +104,22 @@ class TypeguardLoader(SourceFileLoader):
 
         if sys.version_info >= (3, 15):
             return _call_with_frames_removed(
-                compile, tree, filename, "exec", 0, dont_inherit=True, module=fullname,
+                compile,
+                tree,
+                filename,
+                "exec",
+                0,
+                dont_inherit=True,
+                module=fullname,
             )
         else:
             return _call_with_frames_removed(
-                compile, tree, filename, "exec", 0, dont_inherit=True,
+                compile,
+                tree,
+                filename,
+                "exec",
+                0,
+                dont_inherit=True,
             )
 
     def exec_module(self, module: ModuleType) -> None:
