@@ -48,8 +48,8 @@ def _call_with_frames_removed(
     return f(*args, **kwargs)
 
 
-def optimized_cache_from_source(path: str, debug_override: bool | None = None) -> str:
-    return cache_from_source(path, debug_override, optimization=OPTIMIZATION)
+def optimized_cache_from_source(path: str) -> str:
+    return cache_from_source(path, optimization=OPTIMIZATION)
 
 
 class TypeguardLoader(SourceFileLoader):
@@ -57,6 +57,7 @@ class TypeguardLoader(SourceFileLoader):
     def source_to_code(
         data: Buffer | str | ast.Module | ast.Expression | ast.Interactive,
         path: Buffer | str | PathLike[str] = "<string>",
+        fullname: str | None = None,
         *,
         _optimize: int = -1,
     ) -> CodeType:

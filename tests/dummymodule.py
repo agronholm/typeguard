@@ -18,7 +18,6 @@ from typing import (
     TypeVar,
     Union,
     no_type_check,
-    no_type_check_decorator,
     overload,
 )
 
@@ -42,6 +41,7 @@ P = ParamSpec("P")
 
 
 if sys.version_info <= (3, 13):
+    from typing import no_type_check_decorator
 
     @no_type_check_decorator
     def dummy_decorator(func):

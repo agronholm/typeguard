@@ -103,7 +103,7 @@ pretty = true
 files = ["src"]
 
 [tool.tox]
-env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
+env_list = ["py39", "py310", "py311", "py312", "py313", "py314", "py315"]
 skip_missing_interpreters = true
 requires = ["tox >= 4.22"]
 
