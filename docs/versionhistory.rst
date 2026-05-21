@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Compatibility with Python 3.15, drop removed debug_override parameter from cache_from_source()
+  call (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+
 **4.5.2** (2026-05-14)
 
 - Fixed ``IndexError`` raised from ``check_signature_compatible`` when the subject
