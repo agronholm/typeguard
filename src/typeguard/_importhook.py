@@ -74,12 +74,21 @@ class TypeguardLoader(SourceFileLoader):
             else:
                 source = decode_source(data)
 
-            module = _call_with_frames_removed(
-                ast.parse,
-                source,
-                filename,
-                "exec",
-            )
+            if sys.version_info >= (3,15):
+                module = _call_with_frames_removed(
+                    ast.parse,
+                    source,
+                    filename,
+                    "exec",
+                    module=fullname,
+                )
+            else:
+                module = _call_with_frames_removed(
+                    ast.parse,
+                    source,
+                    filename,
+                    "exec",
+                )
 
         tree = TypeguardTransformer().visit(module)
         ast.fix_missing_locations(tree)
@@ -93,9 +102,14 @@ class TypeguardLoader(SourceFileLoader):
             print(ast.unparse(tree), file=sys.stderr)
             print("----------------------------------------------", file=sys.stderr)
 
-        return _call_with_frames_removed(
-            compile, tree, filename, "exec", 0, dont_inherit=True
-        )
+        if sys.version_info >= (3, 15):
+            return _call_with_frames_removed(
+                compile, tree, filename, "exec", 0, dont_inherit=True, module=fullname,
+            )
+        else:
+            return _call_with_frames_removed(
+                compile, tree, filename, "exec", 0, dont_inherit=True,
+            )
 
     def exec_module(self, module: ModuleType) -> None:
         # Use a custom optimization marker – the import lock should make this monkey
