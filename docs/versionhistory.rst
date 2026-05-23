@@ -6,8 +6,7 @@ This library adheres to
 
 **UNRELEASED**
 
-- Fixed compatibility with Python 3.15, drop removed debug_override parameter from
-  cache_from_source() call
+- Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
 
 **4.5.2** (2026-05-14)
