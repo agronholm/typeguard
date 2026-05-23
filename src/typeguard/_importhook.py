@@ -11,7 +11,7 @@ from importlib.util import cache_from_source, decode_source
 from inspect import isclass
 from os import PathLike
 from types import CodeType, ModuleType, TracebackType
-from typing import Any, TypeVar
+from typing import TypeVar
 from unittest.mock import patch
 
 from ._config import global_config
@@ -66,7 +66,7 @@ class TypeguardLoader(SourceFileLoader):
         else:
             filename = os.fsdecode(bytes(path))
 
-        extra_kwargs: dict[str, Any] = {}
+        extra_kwargs = {}
         if sys.version_info >= (3, 15):
             extra_kwargs["module"] = fullname
 
