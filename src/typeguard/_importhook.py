@@ -99,7 +99,13 @@ class TypeguardLoader(SourceFileLoader):
             print("----------------------------------------------", file=sys.stderr)
 
         return _call_with_frames_removed(
-            compile, tree, filename, "exec", 0, dont_inherit=True, **extra_kwargs
+            compile,
+            tree,
+            filename,
+            "exec",
+            0,
+            dont_inherit=True,
+            **extra_kwargs
         )
 
     def exec_module(self, module: ModuleType) -> None:
