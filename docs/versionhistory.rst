@@ -8,6 +8,7 @@ This library adheres to
 
 - Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+- Dropped support for Python 3.9
 
 **4.5.2** (2026-05-14)
 

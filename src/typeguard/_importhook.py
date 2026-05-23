@@ -27,10 +27,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import ParamSpec
 
-if sys.version_info >= (3, 10):
-    from importlib.metadata import PackageNotFoundError, version
-else:
-    from importlib_metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     OPTIMIZATION = "typeguard" + "".join(version("typeguard").split(".")[:3])
@@ -93,7 +90,7 @@ class TypeguardLoader(SourceFileLoader):
         tree = TypeguardTransformer().visit(module)
         ast.fix_missing_locations(tree)
 
-        if global_config.debug_instrumentation and sys.version_info >= (3, 9):
+        if global_config.debug_instrumentation:
             print(
                 f"Source code of {path!r} after instrumentation:\n"
                 "----------------------------------------------",

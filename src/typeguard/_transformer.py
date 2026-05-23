@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import builtins
-import sys
 import typing
 from ast import (
     AST,
@@ -387,15 +386,6 @@ class AnnotationTransformer(NodeTransformer):
             elif self._memo.name_matches(node.right, *anytype_names):
                 return node.right
 
-            # Turn union types to typing.Union constructs on Python 3.9
-            if sys.version_info < (3, 10):
-                union_name = self.transformer._get_import("typing", "Union")
-                return Subscript(
-                    value=union_name,
-                    slice=Tuple(elts=[node.left, node.right], ctx=Load()),
-                    ctx=Load(),
-                )
-
         return node
 
     def visit_Attribute(self, node: Attribute) -> Any:
@@ -456,9 +446,8 @@ class AnnotationTransformer(NodeTransformer):
                     node.value, "typing.Optional"
                 ) and not hasattr(node, "slice"):
                     return None
-                if sys.version_info >= (3, 9) and not hasattr(node, "slice"):
-                    return node.value
-                elif sys.version_info < (3, 9) and not hasattr(node.slice, "value"):
+
+                if not hasattr(node, "slice"):
                     return node.value
 
         return node

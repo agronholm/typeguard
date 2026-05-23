@@ -12,6 +12,7 @@ from inspect import Parameter, isclass, isfunction
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
 from itertools import zip_longest
 from textwrap import indent
+from types import UnionType
 from typing import (
     IO,
     AbstractSet,
@@ -23,11 +24,11 @@ from typing import (
     ForwardRef,
     List,
     NewType,
-    Optional,
     Set,
     TextIO,
     Tuple,
     Type,
+    TypeGuard,
     TypeVar,
     Union,
 )
@@ -71,18 +72,14 @@ else:
         get_origin,
     )
 
-if sys.version_info >= (3, 10):
-    from importlib.metadata import entry_points
-    from typing import ParamSpec
-else:
-    from importlib_metadata import entry_points
-    from typing_extensions import ParamSpec
+from importlib.metadata import entry_points
+from typing import ParamSpec
 
 TypeCheckerCallable: TypeAlias = Callable[
     [Any, Any, Tuple[Any, ...], TypeCheckMemo], Any
 ]
 TypeCheckLookupCallback: TypeAlias = Callable[
-    [Any, Tuple[Any, ...], Tuple[Any, ...]], Optional[TypeCheckerCallable]
+    [Any, Tuple[Any, ...], Tuple[Any, ...]], TypeCheckerCallable | None
 ]
 
 checker_lookup_functions: list[TypeCheckLookupCallback] = []
@@ -451,7 +448,7 @@ def check_uniontype(
     memo: TypeCheckMemo,
 ) -> None:
     if not args:
-        return check_instance(value, types.UnionType, (), memo)
+        return check_instance(value, UnionType, (), memo)
 
     errors: dict[str, TypeCheckError] = {}
     try:
@@ -1034,7 +1031,9 @@ origin_type_checkers: dict[
     Tuple: check_tuple,
     type: check_class,
     Type: check_class,
+    TypeGuard: check_typeguard,
     Union: check_union,
+    UnionType: check_uniontype,
     # On some versions of Python, these may simply be re-exports from "typing",
     # but exactly which Python versions is subject to change.
     # It's best to err on the safe side and just always specify these.
@@ -1043,9 +1042,6 @@ origin_type_checkers: dict[
     typing_extensions.Self: check_self,
     typing_extensions.TypeGuard: check_typeguard,
 }
-if sys.version_info >= (3, 10):
-    origin_type_checkers[types.UnionType] = check_uniontype
-    origin_type_checkers[typing.TypeGuard] = check_typeguard
 
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(

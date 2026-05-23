@@ -15,6 +15,7 @@ from typing import (
     BinaryIO,
     Callable,
     Collection,
+    Concatenate,
     ContextManager,
     Dict,
     ForwardRef,
@@ -25,7 +26,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
-    Optional,
+    ParamSpec,
     Protocol,
     Sequence,
     Set,
@@ -33,6 +34,7 @@ from typing import (
     TextIO,
     Tuple,
     Type,
+    TypeGuard,
     TypeVar,
     Union,
 )
@@ -70,11 +72,6 @@ if sys.version_info >= (3, 11):
     SubclassableAny = Any
 else:
     from typing_extensions import Any as SubclassableAny
-
-if sys.version_info >= (3, 10):
-    from typing import Concatenate, ParamSpec, TypeGuard
-else:
-    from typing_extensions import Concatenate, ParamSpec, TypeGuard
 
 P = ParamSpec("P")
 
@@ -482,7 +479,7 @@ class TestTypedDict:
         ],
     )
     def test_typed_dict(
-        self, value, total: bool, error_re: Optional[str], typing_provider
+        self, value, total: bool, error_re: str | None, typing_provider
     ):
         class DummyDict(typing_provider.TypedDict, total=total):
             x: int

@@ -11,6 +11,7 @@ from typing import (
     Generator,
     List,
     Literal,
+    ParamSpec,
     Sequence,
     Tuple,
     Type,
@@ -27,11 +28,6 @@ from typeguard import (
     typechecked,
     typeguard_ignore,
 )
-
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec
-else:
-    from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from nonexistent import Imaginary
