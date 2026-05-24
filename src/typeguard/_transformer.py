@@ -603,7 +603,10 @@ class TypeguardTransformer(NodeTransformer):
 
     def visit_ImportFrom(self, node: ImportFrom) -> ImportFrom:
         for name in node.names:
-            if name.name != "*":
+            if name.name == "*" and node.module in {"typing", "typing_extensions"}:
+                self._memo.local_names.add("Literal")
+                self._memo.imported_names["Literal"] = f"{node.module}.Literal"
+            elif name.name != "*":
                 alias = name.asname or name.name
                 self._memo.local_names.add(alias)
                 self._memo.imported_names[alias] = f"{node.module}.{name.name}"
