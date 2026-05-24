@@ -288,8 +288,8 @@ Suppressing the ``@typechecked`` decorator in production
 If you're using the :func:`@typechecked <typechecked>` decorator to gradually introduce
 run-time type checks to your code base, you can disable the checks in production by
 running Python in optimized mode (as opposed to debug mode which is the default mode).
-You can do this by either starting Python with the ``-O`` or ``-OO`` option, or by
-setting the PYTHONOPTIMIZE_ environment variable. This will cause
+You can do this by either starting Python with the ``-O`` or ``-OO`` option, or setting
+any of the PYTHONOPTIMIZE_ or TYPEGUARD_DISABLE environment variables. This will cause
 :func:`@typechecked <typechecked>` to become a no-op when the import hook is not being
 used to instrument the code.
 
