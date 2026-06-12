@@ -893,7 +893,7 @@ class TypeguardTransformer(NodeTransformer):
                         Assign([cls_name], first_args_expr),
                     )
 
-                # Rmove any placeholder "pass" at the end
+                # Remove any placeholder "pass" at the end
                 if isinstance(node.body[-1], Pass):
                     del node.body[-1]
 

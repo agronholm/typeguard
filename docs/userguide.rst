@@ -6,8 +6,8 @@ User guide
 Checking types directly
 -----------------------
 
-The most straightfoward way to do type checking with Typeguard is with
-:func:`.check_type`. It can be used as as a beefed-up version of :func:`isinstance` that
+The most straightforward way to do type checking with Typeguard is with
+:func:`.check_type`. It can be used as a beefed-up version of :func:`isinstance` that
 also supports checking against annotations in the :mod:`typing` module::
 
     from typeguard import check_type
