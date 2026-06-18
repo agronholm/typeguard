@@ -4,7 +4,7 @@ import ast
 import inspect
 import sys
 from collections.abc import Sequence
-from functools import partial
+from functools import partial, update_wrapper
 from inspect import isclass, isfunction
 from types import CodeType, FrameType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
@@ -130,6 +130,7 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     else:
         new_function.__annotations__ = f.__annotations__
 
+    update_wrapper(new_function, f, updated=())
     return new_function
 
 
