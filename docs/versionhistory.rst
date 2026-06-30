@@ -8,6 +8,10 @@ This library adheres to
 
 - Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+- Fixed ``@typechecked`` mishandling annotated variables assigned via the walrus
+  operator (``:=``): a non-iterable value raised a spurious ``TypeError`` and an
+  iterable value was silently coerced to a list
+  (`#557 <https://github.com/agronholm/typeguard/issues/557>`_)
 - Dropped support for Python 3.9
 
 **4.5.2** (2026-05-14)

@@ -352,6 +352,25 @@ class TestVariableArguments:
             dummymodule.typed_variable_args("foo", "bar", a="baz")
 
 
+class TestAssignmentExpr:
+    """Regression tests for #557 (annotated walrus operator)."""
+
+    def test_non_iterable_value(self, dummymodule):
+        # A non-iterable value must not be treated as a tuple-unpacking target.
+        assert dummymodule.assignment_expr_non_iterable() == 5
+
+    def test_iterable_value_not_coerced(self, dummymodule):
+        # An iterable value must not be silently replaced by list(value).
+        assert dummymodule.assignment_expr_iterable() == "hello"
+
+    def test_type_check_still_fires(self, dummymodule):
+        with pytest.raises(
+            TypeCheckError,
+            match=r"value assigned to x \(str\) is not an instance of int",
+        ):
+            dummymodule.assignment_expr_fail()
+
+
 class TestGuardedType:
     def test_plain(self, dummymodule):
         assert dummymodule.guarded_type_hint_plain("foo") == "foo"

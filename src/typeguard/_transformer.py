@@ -1150,13 +1150,8 @@ class TypeguardTransformer(NodeTransformer):
                     node.value,
                     List(
                         [
-                            List(
-                                [
-                                    Tuple(
-                                        [Constant(node.target.id), annotation],
-                                        ctx=Load(),
-                                    )
-                                ],
+                            Tuple(
+                                [Constant(node.target.id), annotation],
                                 ctx=Load(),
                             )
                         ],

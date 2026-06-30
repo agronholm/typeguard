@@ -218,6 +218,30 @@ def aug_assign() -> int:
 
 
 @typechecked
+def assignment_expr_non_iterable() -> int:
+    x: int
+    if (x := 5) > 100:
+        pass
+    return x
+
+
+@typechecked
+def assignment_expr_iterable() -> str:
+    x: str
+    if x := "hello":
+        pass
+    return x
+
+
+@typechecked
+def assignment_expr_fail() -> int:
+    x: int
+    if x := "foo":
+        pass
+    return x
+
+
+@typechecked
 def multi_assign_single_value() -> Tuple[int, float, complex]:
     x: int
     y: float
