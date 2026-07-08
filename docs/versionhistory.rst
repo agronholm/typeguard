@@ -595,7 +595,7 @@ This library adheres to
 
 **1.2.2** (2016-08-23)
 
-- Fixed checking of homogenous Tuple declarations (``Tuple[bool, ...]``)
+- Fixed checking of homogeneous Tuple declarations (``Tuple[bool, ...]``)
 
 **1.2.1** (2016-06-29)
 
