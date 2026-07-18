@@ -8,6 +8,11 @@ This library adheres to
 
 - Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+- Fixed an assignment expression against an annotated name (``x: int``, then
+  ``if (x := ...)``) being instrumented as an unpacking target, which raised
+  ``TypeError`` for a non-iterable value and silently replaced an iterable value with
+  ``list(value)``
+  (`#557 <https://github.com/agronholm/typeguard/issues/557>`_)
 - Dropped support for Python 3.9
 
 **4.5.2** (2026-05-14)
