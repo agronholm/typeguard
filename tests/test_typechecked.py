@@ -711,8 +711,6 @@ def test_duplicate_function():
 
 
 class TestAssignmentExpression:
-    """An annotated walrus target is a single name, not an unpacking target."""
-
     def test_non_iterable_value(self):
         @typechecked
         def foo() -> int:
@@ -725,8 +723,6 @@ class TestAssignmentExpression:
         assert foo() == 5
 
     def test_value_is_not_consumed(self):
-        """An iterable value used to come back as list(value), silently corrupted."""
-
         @typechecked
         def foo() -> str:
             x: str = "init"
