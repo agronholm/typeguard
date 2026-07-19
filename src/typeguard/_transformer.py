@@ -431,7 +431,8 @@ class AnnotationTransformer(NodeTransformer):
                     return None
 
                 # If all items in the subscript were Any, erase the subscript entirely
-                if all(item is None for item in items):
+                # (but not for an empty subscript like tuple[()], which is meaningful)
+                if items and all(item is None for item in items):
                     return node.value
 
                 for index, item in enumerate(items):

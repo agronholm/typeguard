@@ -20,6 +20,9 @@ This library adheres to
   protocol declares non-``ClassVar`` (instance) attributes; only ``ClassVar`` members
   are now required on the class itself
   (`#499 <https://github.com/agronholm/typeguard/issues/499>`_)
+- Fixed the import hook/instrumenter erasing the subscript of an empty tuple annotation
+  (``tuple[()]``) down to a bare ``tuple``, causing any tuple (including non-empty ones)
+  to pass the check
 - Dropped support for Python 3.9
 
 **4.5.2** (2026-05-14)

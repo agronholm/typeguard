@@ -206,6 +206,11 @@ def builtin_generic_collections(x: "list[set[int]]") -> Any:
 
 
 @typechecked
+def empty_tuple(x: "tuple[()]") -> Any:
+    return x
+
+
+@typechecked
 def paramspec_function(func: P, args: P.args, kwargs: P.kwargs) -> None:
     pass
 
