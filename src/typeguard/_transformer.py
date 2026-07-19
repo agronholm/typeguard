@@ -1148,10 +1148,6 @@ class TypeguardTransformer(NodeTransformer):
                 func_name,
                 [
                     node.value,
-                    # A walrus target is a single Name, so the group is a bare
-                    # tuple. Wrapping it in a list marks it as an unpacking
-                    # target, which makes check_variable_assignment consume the
-                    # value with list().
                     List(
                         [
                             Tuple(
