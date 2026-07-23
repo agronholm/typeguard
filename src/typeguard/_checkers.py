@@ -605,12 +605,10 @@ def check_literal(
         return tuple(retval)
 
     final_args = tuple(get_literal_args(args))
-    try:
-        index = final_args.index(value)
-    except ValueError:
-        pass
-    else:
-        if type(final_args[index]) is type(value):
+    for arg in final_args:
+        # the type check has to come first, as bool is a subclass of int
+        # (so 1 == True) and it short-circuits any non-boolean __eq__ result
+        if type(arg) is type(value) and arg == value:
             return
 
     formatted_args = ", ".join(repr(arg) for arg in final_args)

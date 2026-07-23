@@ -290,6 +290,13 @@ class TestLiteral:
         pytest.raises(TypeCheckError, check_type, 0, Literal[False])
         pytest.raises(TypeCheckError, check_type, 1, Literal[True])
 
+    def test_literal_bool_after_equal_int(self):
+        # the matching bool must be found even when an == equal int precedes it
+        check_type(True, Literal[1, True])
+        check_type(True, Literal[True, 1])
+        check_type(False, Literal[0, False])
+        check_type(False, Literal[False, 0])
+
     def test_literal_illegal_value(self):
         pytest.raises(TypeError, check_type, 4, Literal[1, 1.1]).match(
             r"Illegal literal value: 1.1$"

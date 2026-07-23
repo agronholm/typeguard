@@ -20,6 +20,10 @@ This library adheres to
   protocol declares non-``ClassVar`` (instance) attributes; only ``ClassVar`` members
   are now required on the class itself
   (`#499 <https://github.com/agronholm/typeguard/issues/499>`_)
+- Fixed ``Literal`` checks depending on the order of the arguments, where a ``bool``
+  would not match if an ``==`` equal ``int`` came first (``Literal[1, True]`` rejected
+  ``True``, but ``Literal[True, 1]`` accepted it)
+  (`#566 <https://github.com/agronholm/typeguard/pull/566>`_; PR by @uttam12331)
 - Fixed the import hook/instrumenter erasing the subscript of an empty tuple annotation
   (``tuple[()]``) down to a bare ``tuple``, causing any tuple (including non-empty ones)
   to pass the check
