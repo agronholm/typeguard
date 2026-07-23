@@ -11,6 +11,10 @@ This library adheres to
   (`#489 <https://github.com/agronholm/typeguard/issues/489>`_; PR by @ShipitAndPray)
 - Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+- Fixed ``Literal`` checks depending on the order of the arguments, where a ``bool``
+  would not match if an ``==`` equal ``int`` came first (``Literal[1, True]`` rejected
+  ``True``, but ``Literal[True, 1]`` accepted it)
+  (`#566 <https://github.com/agronholm/typeguard/pull/566>`_; PR by @uttam12331)
 - Fixed an assignment expression against an annotated name (``x: int``, then
   ``if (x := ...)``) being instrumented as an unpacking target, which raised
   ``TypeError`` for a non-iterable value and silently replaced an iterable value with
