@@ -23,6 +23,7 @@ This library adheres to
 - Fixed the import hook/instrumenter erasing the subscript of an empty tuple annotation
   (``tuple[()]``) down to a bare ``tuple``, causing any tuple (including non-empty ones)
   to pass the check
+  (`#565 <https://github.com/agronholm/typeguard/pull/565>`_; PR by @chuenchen309)
 - Dropped support for Python 3.9
 
 **4.5.2** (2026-05-14)
