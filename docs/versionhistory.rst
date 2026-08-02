@@ -4,6 +4,12 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``SyntaxError`` during instrumentation of annotations containing string
+  subscript values that are not valid Python expressions
+  (`#513 <https://github.com/agronholm/typeguard/issues/513>`_; PR by @deepakganesh78)
+
 **4.6.0** (2026-07-26)
 
 - Added support for type checking against the PEP 661 ``sentinel`` type (built-in on
