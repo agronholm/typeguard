@@ -75,6 +75,11 @@ def dummymodule(method: str):
 
 
 @pytest.fixture(scope="module")
+def issue513(method: str):
+    return _fixture_module("issue513", method)
+
+
+@pytest.fixture(scope="module")
 def deferredannos(method: str):
     if sys.version_info < (3, 14):
         raise pytest.skip("Deferred annotations are only supported in Python 3.14+")
@@ -98,6 +103,16 @@ def test_type_checked_func_error(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
         r'argument "y" \(str\) is not an instance of int'
     )
+
+
+def test_annotation_with_non_code_string(issue513):
+    assert issue513.annotated_by_string_key(1) == 1
+    pytest.raises(
+        TypeCheckError,
+        issue513.annotated_by_string_key,
+        "not an int",
+    ).match(r'argument "x" \(str\) is not an instance of int')
+    assert issue513.aliased_annotated(1) == 1
 
 
 def test_non_type_checked_func(dummymodule):
