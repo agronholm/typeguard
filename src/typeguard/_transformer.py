@@ -129,7 +129,7 @@ class TransformMemo:
     local_names: set[str] = field(init=False, default_factory=set)
     imported_names: dict[str, str] = field(init=False, default_factory=dict)
     ignored_names: set[str] = field(init=False, default_factory=set)
-    load_names: defaultdict[str, dict[str, Name]] = field(
+    load_names: defaultdict[str, dict[str, str]] = field(
         init=False, default_factory=lambda: defaultdict(dict)
     )
     has_yield_expressions: bool = field(init=False, default=False)
@@ -213,16 +213,15 @@ class TransformMemo:
 
     def get_import(self, module: str, name: str) -> Name:
         if module in self.load_names and name in self.load_names[module]:
-            return self.load_names[module][name]
+            return Name(id=self.load_names[module][name], ctx=Load())
 
         qualified_name = f"{module}.{name}"
         if name in self.imported_names and self.imported_names[name] == qualified_name:
             return Name(id=name, ctx=Load())
 
-        alias = self.get_unused_name(name)
-        node = self.load_names[module][name] = Name(id=alias, ctx=Load())
+        alias = self.load_names[module][name] = self.get_unused_name(name)
         self.imported_names[name] = qualified_name
-        return node
+        return Name(id=alias, ctx=Load())
 
     def insert_imports(self, node: Module | FunctionDef | AsyncFunctionDef) -> None:
         """Insert imports needed by injected code."""
@@ -232,7 +231,7 @@ class TransformMemo:
         # Insert imports after any "from __future__ ..." imports and any docstring
         for modulename, names in self.load_names.items():
             aliases = [
-                alias(orig_name, new_name.id if orig_name != new_name.id else None)
+                alias(orig_name, new_name if orig_name != new_name else None)
                 for orig_name, new_name in sorted(names.items())
             ]
             node.body.insert(self.code_inject_index, ImportFrom(modulename, aliases, 0))
