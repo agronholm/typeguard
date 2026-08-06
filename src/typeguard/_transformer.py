@@ -61,7 +61,7 @@ from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, cast, overload
+from typing import Any, ClassVar, TypeVar, cast, overload
 from typing import __all__ as typing_all
 
 from typing_extensions import __all__ as typing_extensions_all
@@ -114,6 +114,24 @@ aug_assign_functions = {
     BitXor: "ixor",
     BitOr: "ior",
 }
+
+T = TypeVar("T", ast.stmt, ast.expr)
+
+
+def set_position(node: T, anchor: ast.stmt) -> T:
+    node.lineno = node.end_lineno = anchor.lineno
+    node.col_offset = node.end_col_offset = anchor.col_offset
+    return node
+
+
+def append_body(target: FunctionDef | AsyncFunctionDef, node: ast.stmt) -> None:
+    target.body.append(set_position(node, target.body[-1] if target.body else target))
+
+
+def insert_body(
+    target: Module | FunctionDef | AsyncFunctionDef, node: ast.stmt, idx: int
+) -> None:
+    target.body.insert(idx, set_position(node, target.body[idx]))
 
 
 @dataclass
@@ -234,7 +252,8 @@ class TransformMemo:
                 alias(orig_name, new_name if orig_name != new_name else None)
                 for orig_name, new_name in sorted(names.items())
             ]
-            node.body.insert(self.code_inject_index, ImportFrom(modulename, aliases, 0))
+            import_node = ImportFrom(modulename, aliases, 0)
+            insert_body(node, import_node, self.code_inject_index)
 
     def name_matches(self, expression: expr | Expr | None, *names: str) -> bool:
         if expression is None:
@@ -781,9 +800,8 @@ class TypeguardTransformer(NodeTransformer):
                     annotations_dict,
                     self._memo.get_memo_name(),
                 ]
-                node.body.insert(
-                    self._memo.code_inject_index, Expr(Call(func_name, args, []))
-                )
+                call_node = Expr(Call(func_name, args, []))
+                insert_body(node, call_node, self._memo.code_inject_index)
 
             # Add a checked "return None" to the end if there's no explicit return
             # Skip if the return annotation is None or Any
@@ -812,12 +830,11 @@ class TypeguardTransformer(NodeTransformer):
                     )
                 )
 
-                # Replace a placeholder "pass" at the end
-                if isinstance(node.body[-1], Pass):
-                    copy_location(return_node, node.body[-1])
-                    del node.body[-1]
+                append_body(node, return_node)
 
-                node.body.append(return_node)
+                # Replace a placeholder "pass" at the end
+                if isinstance(node.body[-2], Pass):
+                    del node.body[-2]
 
             # Insert code to create the call memo, if it was ever needed for this
             # function
@@ -885,11 +902,11 @@ class TypeguardTransformer(NodeTransformer):
                     [globals_call, locals_call],
                     [keyword(key, value) for key, value in memo_kwargs.items()],
                 )
-                node.body.insert(
-                    self._memo.code_inject_index,
-                    Assign([memo_store_name], memo_expr),
-                )
+                memo_node = Assign([memo_store_name], memo_expr)
+                insert_body(node, memo_node, self._memo.code_inject_index)
 
+                set_position(self._memo.memo_var_name, node)
+                set_position(self._memo.joined_path, node)
                 self._memo.insert_imports(node)
 
                 # Special case the __new__() method to create a local alias from the
@@ -903,10 +920,8 @@ class TypeguardTransformer(NodeTransformer):
                 ):
                     first_args_expr = Name(node.args.args[0].arg, ctx=Load())
                     cls_name = Name(self._memo.parent.node.name, ctx=Store())
-                    node.body.insert(
-                        self._memo.code_inject_index,
-                        Assign([cls_name], first_args_expr),
-                    )
+                    assign_node = Assign([cls_name], first_args_expr)
+                    insert_body(node, assign_node, self._memo.code_inject_index)
 
                 # Remove any placeholder "pass" at the end
                 if isinstance(node.body[-1], Pass):
@@ -1218,7 +1233,7 @@ class TypeguardTransformer(NodeTransformer):
                 ],
                 [],
             )
-            return Assign(targets=[node.target], value=check_call)
+            return set_position(Assign(targets=[node.target], value=check_call), node)
 
         return node
 
