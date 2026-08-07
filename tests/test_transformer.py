@@ -1,7 +1,10 @@
+import json
 import sys
 from ast import parse, unparse
+from pathlib import Path
 from textwrap import dedent
 
+import coverage
 import pytest
 
 from typeguard._transformer import TypeguardTransformer
@@ -2007,3 +2010,119 @@ def test_literal_wildcard_import() -> None:
             """
         ).strip()
     )
+
+
+SAMPLES = {
+    "two_functions": """
+        def foo(x: int) -> int:
+            return x
+
+
+        def bar(y: str) -> str | None:
+            if y:
+                return y
+            pass
+
+
+        foo(1)
+        bar("a")
+        bar("")
+        """,
+    "string_annotation": """
+        def foo(x: "int | str") -> "int | str":
+            if isinstance(x, int):
+                y = x
+
+            return x
+
+
+        foo(1)
+        """,
+    "overloads": """
+        from typing import overload
+
+
+        @overload
+        def foo(x: int) -> int: ...
+
+
+        @overload
+        def foo(x: str) -> str: ...
+
+
+        def foo(x: "int | str") -> "int | str":
+            return x
+
+
+        foo(1)
+        """,
+    "unreachable_tail": """
+        import decimal
+
+
+        class K:
+            def m(self, value: decimal.Decimal) -> decimal.Decimal:
+                if value:
+                    return value
+
+                raise ValueError("never reached")
+
+
+        K().m(decimal.Decimal(1))
+        """,
+}
+
+
+@pytest.fixture(params=list(SAMPLES))
+def sample(request: pytest.FixtureRequest) -> str:
+    return dedent(SAMPLES[request.param])
+
+
+def execute(source: str, filename: str, *, instrument: bool) -> None:
+    tree = parse(source)
+    if instrument:
+        TypeguardTransformer().visit(tree)
+
+    exec(compile(tree, filename, "exec"), {})  # noqa: S102
+
+
+def measure(path: Path, source: str, *, instrument: bool) -> coverage.Coverage:
+    path.write_text(source)
+    cov = coverage.Coverage(
+        data_file=None, branch=True, config_file=False, include=[str(path)]
+    )
+    cov.start()
+    try:
+        execute(source, str(path), instrument=instrument)
+    finally:
+        cov.stop()
+
+    return cov
+
+
+def measured_coverage(path: Path, source: str, *, instrument: bool) -> dict:
+    cov = measure(path, source, instrument=instrument)
+    report = path.with_suffix(".json")
+    cov.json_report(outfile=str(report))
+    (measured,) = json.loads(report.read_text())["files"].values()
+    return measured
+
+
+def test_instrumentation_reports_the_same_coverage(tmp_path: Path, sample: str) -> None:
+    plain = measured_coverage(tmp_path / "plain.py", sample, instrument=False)
+    instrumented = measured_coverage(
+        tmp_path / "instrumented.py", sample, instrument=True
+    )
+    assert instrumented == plain
+
+
+def test_instrumentation_keeps_every_line_and_arc(tmp_path: Path, sample: str) -> None:
+    plain = measure(tmp_path / "plain.py", sample, instrument=False).get_data()
+    instrumented = measure(
+        tmp_path / "instrumented.py", sample, instrument=True
+    ).get_data()
+    (plain_file,) = plain.measured_files()
+    (instrumented_file,) = instrumented.measured_files()
+
+    assert set(instrumented.lines(instrumented_file)) == set(plain.lines(plain_file))
+    assert set(plain.arcs(plain_file)) <= set(instrumented.arcs(instrumented_file))
