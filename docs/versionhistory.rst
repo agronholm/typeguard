@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed coverage drop due to instrumented modules producing wrong line and branch coverage
+  (`#356 <https://github.com/agronholm/typeguard/issues/356>`_; PR by @Kakadus)
+
 **4.6.0** (2026-07-26)
 
 - Added support for type checking against the PEP 661 ``sentinel`` type (built-in on
