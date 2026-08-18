@@ -82,8 +82,10 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
     if not new_code:
         return "cannot find the target function in the AST"
 
-    if global_config.debug_instrumentation:
+    if global_config.warn_on_unchecked_types:
         instrumentor.warn_on_skipped_type_checks()
+
+    if global_config.debug_instrumentation:
         # Find the matching AST node, then unparse it to source and print to stdout
         print(
             f"Source code of {f.__qualname__}() after instrumentation:"
@@ -141,6 +143,7 @@ def typechecked(
     typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
     collection_check_strategy: CollectionCheckStrategy | Unset = unset,
     debug_instrumentation: bool | Unset = unset,
+    warn_on_unchecked_types: bool | Unset = unset,
 ) -> Callable[[T_CallableOrType], T_CallableOrType]: ...
 
 
@@ -155,6 +158,7 @@ def typechecked(
     typecheck_fail_callback: TypeCheckFailCallback | Unset = unset,
     collection_check_strategy: CollectionCheckStrategy | Unset = unset,
     debug_instrumentation: bool | Unset = unset,
+    warn_on_unchecked_types: bool | Unset = unset,
 ) -> Any:
     """
     Instrument the target function to perform run-time type checking.
@@ -181,6 +185,8 @@ def typechecked(
         :attr:`.TypeCheckConfiguration.collection_check_strategy`
     :param debug_instrumentation: override for
         :attr:`.TypeCheckConfiguration.debug_instrumentation`
+    :param warn_on_unchecked_types: override for
+        :attr:`.TypeCheckConfiguration.warn_on_unchecked_types`
 
     """
     if target is None:
@@ -190,6 +196,7 @@ def typechecked(
             typecheck_fail_callback=typecheck_fail_callback,
             collection_check_strategy=collection_check_strategy,
             debug_instrumentation=debug_instrumentation,
+            warn_on_unchecked_types=warn_on_unchecked_types,
         )
 
     if not __debug__:

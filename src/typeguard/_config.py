@@ -93,6 +93,16 @@ class TypeCheckConfiguration:
          is printed to ``sys.stderr`` after the instrumentation is done
 
          Default: ``False``
+
+    .. attribute:: warn_on_unchecked_types
+       :type: bool
+
+         If set to ``True``, typeguard emits an :class:`~.InstrumentationWarning` for
+         each type check it had to skip because the annotation refers to a name that is
+         only available during static type checking (typically something imported inside
+         an ``if TYPE_CHECKING:`` block)
+
+         Default: ``False``
     """
 
     forward_ref_policy: ForwardRefPolicy = ForwardRefPolicy.WARN
@@ -101,6 +111,7 @@ class TypeCheckConfiguration:
         CollectionCheckStrategy.FIRST_ITEM
     )
     debug_instrumentation: bool = False
+    warn_on_unchecked_types: bool = False
 
 
 global_config = TypeCheckConfiguration()

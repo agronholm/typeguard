@@ -6,10 +6,11 @@ This library adheres to
 
 **UNRELEASED**
 
-- The instrumenter now emits an ``InstrumentationWarning`` for each type check it skips
-  because the annotation refers to a name that is only available during static type
-  checking (e.g. imported inside an ``if TYPE_CHECKING:`` block). These warnings are only
-  emitted when ``debug_instrumentation`` is enabled
+- Added a new ``warn_on_unchecked_types`` configuration option (disabled by default).
+  When enabled, the instrumenter emits an ``InstrumentationWarning`` for each type check
+  it skips because the annotation refers to a name that is only available during static
+  type checking (e.g. imported inside an ``if TYPE_CHECKING:`` block). A matching
+  ``--typeguard-warn-on-unchecked-types`` pytest option was also added
   (`#347 <https://github.com/agronholm/typeguard/issues/347>`_)
 
 **4.6.0** (2026-07-26)

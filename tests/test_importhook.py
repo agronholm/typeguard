@@ -99,13 +99,28 @@ def test_ignore_packages_with_blanket_import():
 
 def test_debug_instrumentation(monkeypatch, capsys):
     monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
-    with pytest.warns(InstrumentationWarning) as warning_info:
-        import_dummymodule(error_on_warnings=False)
+    # Skipped type checks must stay silent unless warn_on_unchecked_types is enabled,
+    # even with debug_instrumentation turned on
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", InstrumentationWarning)
+            import_dummymodule(error_on_warnings=False)
+    finally:
+        sys.modules.pop("dummymodule", None)
 
     out, err = capsys.readouterr()
     path_str = str(dummy_module_path)
     assert f"Source code of {path_str!r} after instrumentation:" in err
     assert "class DummyClass" in err
+
+
+def test_warn_on_unchecked_types(monkeypatch):
+    monkeypatch.setattr("typeguard.config.warn_on_unchecked_types", True)
+    try:
+        with pytest.warns(InstrumentationWarning) as warning_info:
+            import_dummymodule(error_on_warnings=False)
+    finally:
+        sys.modules.pop("dummymodule", None)
 
     # A warning should point at each type check skipped due to an
     # "if TYPE_CHECKING:" import (see guarded_type_hint_plain in dummymodule)
