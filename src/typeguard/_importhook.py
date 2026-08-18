@@ -87,8 +87,12 @@ class TypeguardLoader(SourceFileLoader):
                     "exec",
                 )
 
-        tree = TypeguardTransformer().visit(module)
+        transformer = TypeguardTransformer()
+        tree = transformer.visit(module)
         ast.fix_missing_locations(tree)
+
+        if global_config.warn_on_unchecked_types:
+            transformer.warn_on_skipped_type_checks()
 
         if global_config.debug_instrumentation:
             print(

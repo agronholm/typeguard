@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import builtins
 import typing
+import warnings
 from ast import (
     AST,
     Add,
@@ -66,6 +67,8 @@ from typing import __all__ as typing_all
 
 from typing_extensions import __all__ as typing_extensions_all
 
+from ._exceptions import InstrumentationWarning
+
 PreliminaryNameTypePair: typing.TypeAlias = tuple[Constant, "expr | None"]
 NameTypePair: typing.TypeAlias = tuple[Constant, expr]
 
@@ -114,6 +117,25 @@ aug_assign_functions = {
     BitXor: "ixor",
     BitOr: "ior",
 }
+
+
+def get_annotation_base_name(expression: expr | Expr | None) -> str | None:
+    """
+    Return the leftmost name an annotation resolves to, or ``None``.
+
+    For a plain name (``Foo``) this is the name itself, and for an attribute access
+    (``foo.Bar``) it is the name of the root object (``foo``). Anything else yields
+    ``None``.
+
+    """
+    top_expression = expression.value if isinstance(expression, Expr) else expression
+
+    if isinstance(top_expression, Attribute) and isinstance(top_expression.value, Name):
+        return top_expression.value.id
+    elif isinstance(top_expression, Name):
+        return top_expression.id
+
+    return None
 
 
 @dataclass
@@ -183,17 +205,8 @@ class TransformMemo:
         return name
 
     def is_ignored_name(self, expression: expr | Expr | None) -> bool:
-        top_expression = (
-            expression.value if isinstance(expression, Expr) else expression
-        )
-
-        if isinstance(top_expression, Attribute) and isinstance(
-            top_expression.value, Name
-        ):
-            name = top_expression.value.id
-        elif isinstance(top_expression, Name):
-            name = top_expression.id
-        else:
+        name = get_annotation_base_name(expression)
+        if name is None:
             return False
 
         memo: TransformMemo | None = self
@@ -393,12 +406,14 @@ class AnnotationTransformer(NodeTransformer):
 
     def visit_Attribute(self, node: Attribute) -> Any:
         if self._memo.is_ignored_name(node):
+            self.transformer._record_skipped_type_check(node, self._memo)
             return None
 
         return node
 
     def visit_Subscript(self, node: Subscript) -> Any:
         if self._memo.is_ignored_name(node.value):
+            self.transformer._record_skipped_type_check(node.value, self._memo)
             return None
 
         # The subscript of typing(_extensions).Literal can be any arbitrary string, so
@@ -458,6 +473,7 @@ class AnnotationTransformer(NodeTransformer):
 
     def visit_Name(self, node: Name) -> Any:
         if self._memo.is_ignored_name(node):
+            self.transformer._record_skipped_type_check(node, self._memo)
             return None
 
         return node
@@ -485,6 +501,8 @@ class TypeguardTransformer(NodeTransformer):
         self._target_path = tuple(target_path) if target_path else None
         self._memo = self._module_memo = TransformMemo(None, None, ())
         self.names_used_in_annotations: set[str] = set()
+        self.typechecking_only_names: set[str] = set()
+        self.skipped_type_checks: set[tuple[str, str]] = set()
         self.target_node: FunctionDef | AsyncFunctionDef | None = None
         self.target_lineno = target_lineno
 
@@ -563,6 +581,36 @@ class TypeguardTransformer(NodeTransformer):
     def _get_import(self, module: str, name: str) -> Name:
         memo = self._memo if self._target_path else self._module_memo
         return memo.get_import(module, name)
+
+    def _record_skipped_type_check(
+        self, expression: expr | Expr | None, memo: TransformMemo
+    ) -> None:
+        """
+        Note that a type check was omitted because ``expression`` refers to a name that
+        is only available while static type checking (i.e. imported inside an
+        ``if TYPE_CHECKING:`` block).
+
+        """
+        name = get_annotation_base_name(expression)
+        if name is not None and name in self.typechecking_only_names:
+            self.skipped_type_checks.add((name, str(memo.joined_path.value)))
+
+    def warn_on_skipped_type_checks(self) -> None:
+        """
+        Emit an :class:`~.InstrumentationWarning` for each type check that was skipped
+        because the referenced type is only available during static type checking.
+
+        """
+        for name, scope in sorted(self.skipped_type_checks):
+            location = repr(scope) if scope else "the module top level"
+            warnings.warn(
+                InstrumentationWarning(
+                    f"skipped type checking the annotation reference {name!r} in "
+                    f"{location} because {name!r} is only available during static type "
+                    f"checking (e.g. imported in an 'if TYPE_CHECKING:' block)"
+                ),
+                stacklevel=1,
+            )
 
     @overload
     def _convert_annotation(self, annotation: None) -> None: ...
@@ -1239,5 +1287,6 @@ class TypeguardTransformer(NodeTransformer):
             collector = NameCollector()
             collector.visit(node)
             self._memo.ignored_names.update(collector.names)
+            self.typechecking_only_names.update(collector.names)
 
         return node

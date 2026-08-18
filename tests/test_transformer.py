@@ -4,6 +4,7 @@ from textwrap import dedent
 
 import pytest
 
+from typeguard import InstrumentationWarning
 from typeguard._transformer import TypeguardTransformer
 
 
@@ -931,6 +932,58 @@ class TestTypecheckingImport:
     Test that annotations imported conditionally on typing.TYPE_CHECKING are not used in
     run-time checks.
     """
+
+    def test_skipped_type_checks_recorded(self) -> None:
+        transformer = TypeguardTransformer()
+        transformer.visit(
+            parse(
+                dedent(
+                    """
+                    from typing import TYPE_CHECKING
+                    if TYPE_CHECKING:
+                        import typing
+                        from nonexistent import FooBar
+
+                    def foo(x: FooBar, y: typing.Collection) -> FooBar:
+                        return x
+
+                    def bar(x: list[FooBar]) -> int:
+                        return len(x)
+                    """
+                )
+            )
+        )
+        assert transformer.skipped_type_checks == {
+            ("FooBar", "foo"),
+            ("typing", "foo"),
+            ("FooBar", "bar"),
+        }
+
+    def test_warn_on_skipped_type_checks(self) -> None:
+        transformer = TypeguardTransformer()
+        transformer.visit(
+            parse(
+                dedent(
+                    """
+                    from typing import TYPE_CHECKING
+                    if TYPE_CHECKING:
+                        from nonexistent import FooBar
+
+                    def foo(x: FooBar) -> None:
+                        pass
+                    """
+                )
+            )
+        )
+        with pytest.warns(InstrumentationWarning) as warning_info:
+            transformer.warn_on_skipped_type_checks()
+
+        assert len(warning_info) == 1
+        assert str(warning_info[0].message) == (
+            "skipped type checking the annotation reference 'FooBar' in 'foo' because "
+            "'FooBar' is only available during static type checking (e.g. imported in "
+            "an 'if TYPE_CHECKING:' block)"
+        )
 
     def test_direct_references(self) -> None:
         node = parse(

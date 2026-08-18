@@ -50,6 +50,14 @@ def pytest_addoption(parser: Parser) -> None:
     add_ini_option("bool")
 
     group.addoption(
+        "--typeguard-warn-on-unchecked-types",
+        action="store_true",
+        help="emit a warning for each type check skipped because the annotation refers "
+        "to a name only available during static type checking",
+    )
+    add_ini_option("bool")
+
+    group.addoption(
         "--typeguard-typecheck-fail-callback",
         action="store",
         help=(
@@ -116,6 +124,10 @@ def pytest_configure(config: Config) -> None:
     debug_option = getoption("typeguard-debug-instrumentation")
     if debug_option:
         global_config.debug_instrumentation = True
+
+    warn_on_unchecked_types_option = getoption("typeguard-warn-on-unchecked-types")
+    if warn_on_unchecked_types_option:
+        global_config.warn_on_unchecked_types = True
 
     fail_callback_option = getoption("typeguard-typecheck-fail-callback")
     if fail_callback_option:
