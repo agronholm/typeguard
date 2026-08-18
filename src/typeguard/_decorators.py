@@ -83,6 +83,7 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         return "cannot find the target function in the AST"
 
     if global_config.debug_instrumentation:
+        instrumentor.warn_on_skipped_type_checks()
         # Find the matching AST node, then unparse it to source and print to stdout
         print(
             f"Source code of {f.__qualname__}() after instrumentation:"

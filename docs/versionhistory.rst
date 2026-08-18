@@ -4,6 +4,14 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- The instrumenter now emits an ``InstrumentationWarning`` for each type check it skips
+  because the annotation refers to a name that is only available during static type
+  checking (e.g. imported inside an ``if TYPE_CHECKING:`` block). These warnings are only
+  emitted when ``debug_instrumentation`` is enabled
+  (`#347 <https://github.com/agronholm/typeguard/issues/347>`_)
+
 **4.6.0** (2026-07-26)
 
 - Added support for type checking against the PEP 661 ``sentinel`` type (built-in on

@@ -317,5 +317,11 @@ instrumentation in place, you should set the ``typeguard.config.debug_instrument
 flag to ``True``. This will print all the instrumented code after the modifications,
 which you can check to find the reason for the unexpected behavior.
 
+With this flag enabled, Typeguard also emits an :class:`~.InstrumentationWarning` for
+each type check it had to skip because the annotation refers to a name that is only
+available during static type checking (typically something imported inside an
+``if TYPE_CHECKING:`` block). This helps explain why a value you expected to be checked
+was left unchecked.
+
 If you're using the pytest plugin, you can also pass the
 ``--typeguard-debug-instrumentation`` and ``-s`` flags together for the same effect.

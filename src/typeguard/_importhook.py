@@ -87,10 +87,12 @@ class TypeguardLoader(SourceFileLoader):
                     "exec",
                 )
 
-        tree = TypeguardTransformer().visit(module)
+        transformer = TypeguardTransformer()
+        tree = transformer.visit(module)
         ast.fix_missing_locations(tree)
 
         if global_config.debug_instrumentation:
+            transformer.warn_on_skipped_type_checks()
             print(
                 f"Source code of {path!r} after instrumentation:\n"
                 "----------------------------------------------",

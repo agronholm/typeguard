@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from typeguard import TypeCheckError, TypeguardFinder, install_import_hook
+from typeguard import (
+    InstrumentationWarning,
+    TypeCheckError,
+    TypeguardFinder,
+    install_import_hook,
+)
 from typeguard._importhook import OPTIMIZATION
 
 pytestmark = pytest.mark.filterwarnings("error:no type annotations present")
@@ -17,7 +22,7 @@ cached_module_path = Path(
 )
 
 
-def import_dummymodule():
+def import_dummymodule(error_on_warnings: bool = True):
     if cached_module_path.exists():
         cached_module_path.unlink()
 
@@ -25,7 +30,8 @@ def import_dummymodule():
     try:
         with install_import_hook(["dummymodule"]):
             with warnings.catch_warnings():
-                warnings.filterwarnings("error", module="typeguard")
+                if error_on_warnings:
+                    warnings.filterwarnings("error", module="typeguard")
                 module = import_module("dummymodule")
                 return module
     finally:
@@ -93,8 +99,18 @@ def test_ignore_packages_with_blanket_import():
 
 def test_debug_instrumentation(monkeypatch, capsys):
     monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
-    import_dummymodule()
+    with pytest.warns(InstrumentationWarning) as warning_info:
+        import_dummymodule(error_on_warnings=False)
+
     out, err = capsys.readouterr()
     path_str = str(dummy_module_path)
     assert f"Source code of {path_str!r} after instrumentation:" in err
     assert "class DummyClass" in err
+
+    # A warning should point at each type check skipped due to an
+    # "if TYPE_CHECKING:" import (see guarded_type_hint_plain in dummymodule)
+    messages = [str(warning.message) for warning in warning_info]
+    assert any(
+        "'Imaginary'" in message and "guarded_type_hint_plain" in message
+        for message in messages
+    )
