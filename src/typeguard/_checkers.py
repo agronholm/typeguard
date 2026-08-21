@@ -53,6 +53,11 @@ if sys.version_info >= (3, 15):
 else:
     from typing_extensions import NoExtraItems
 
+if sys.version_info >= (3, 13):
+    from typing import ReadOnly
+else:
+    from typing_extensions import ReadOnly
+
 if sys.version_info >= (3, 11):
     from typing import (
         NotRequired,
@@ -282,12 +287,21 @@ def check_typed_dict(
         if isinstance(annotation, ForwardRef):
             annotation = evaluate_forwardref(annotation, memo)
 
-        if get_origin(annotation) is NotRequired:
-            required_keys.discard(key)
-            annotation = get_args(annotation)[0]
-        elif get_origin(annotation) is Required:
-            required_keys.add(key)
-            annotation = get_args(annotation)[0]
+        # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
+        # order) so the underlying type is actually checked. ReadOnly (PEP 705)
+        # was previously left wrapped, which silently skipped type checking.
+        while True:
+            origin = get_origin(annotation)
+            if origin is NotRequired:
+                required_keys.discard(key)
+                annotation = get_args(annotation)[0]
+            elif origin is Required:
+                required_keys.add(key)
+                annotation = get_args(annotation)[0]
+            elif origin is ReadOnly:
+                annotation = get_args(annotation)[0]
+            else:
+                break
 
         type_hints[key] = annotation
 

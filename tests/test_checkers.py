@@ -540,6 +540,38 @@ class TestTypedDict:
         ):
             check_type({"x": 1, "y": 6, "z": "foo"}, DummyDict)
 
+    def test_readonly_pass(self, typing_provider):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            x: ReadOnly[int]
+            y: "ReadOnly[int]"
+
+        check_type({"x": 1, "y": 2}, DummyDict)
+
+    def test_readonly_fail(self, typing_provider):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            x: ReadOnly[int]
+            y: "ReadOnly[int]"
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'x' of dict is not an instance of int"
+        ):
+            check_type({"x": "foo", "y": 2}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
+        ):
+            check_type({"x": 1, "y": "foo"}, DummyDict)
+
     def test_required_pass(self, typing_provider):
         try:
             Required = typing_provider.Required
