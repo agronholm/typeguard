@@ -572,6 +572,57 @@ class TestTypedDict:
         ):
             check_type({"x": 1, "y": "foo"}, DummyDict)
 
+    def test_readonly_nested_qualifiers(self, typing_provider):
+        # Exercise the iterative qualifier unwrapping: ReadOnly nested with
+        # Required/NotRequired in either order must be stripped down to the
+        # underlying type, and the Required/NotRequired-ness preserved.
+        try:
+            ReadOnly = typing_provider.ReadOnly
+            Required = typing_provider.Required
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(
+                f"'ReadOnly'/'Required'/'NotRequired' not found in "
+                f"{typing_provider.__name__!r}"
+            )
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            a: ReadOnly[Required[int]]
+            b: Required[ReadOnly[int]]
+            c: ReadOnly[NotRequired[int]]
+            d: "NotRequired[ReadOnly[int]]"
+
+        # a and b are required (through the nesting); c and d are optional.
+        check_type({"a": 1, "b": 2}, DummyDict)
+        check_type({"a": 1, "b": 2, "c": 3, "d": 4}, DummyDict)
+
+        # The underlying type is still checked through every nesting order.
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'a' of dict is not an instance of int"
+        ):
+            check_type({"a": "foo", "b": 2}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'b' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": "foo"}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'c' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": 2, "c": "foo"}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'd' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": 2, "d": "foo"}, DummyDict)
+
+        # Required-ness survives the unwrapping: a missing required key errors.
+        with pytest.raises(
+            TypeCheckError, match=r'is missing required key\(s\): "a"'
+        ):
+            check_type({"b": 2}, DummyDict)
+
     def test_required_pass(self, typing_provider):
         try:
             Required = typing_provider.Required
