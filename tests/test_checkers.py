@@ -618,9 +618,7 @@ class TestTypedDict:
             check_type({"a": 1, "b": 2, "d": "foo"}, DummyDict)
 
         # Required-ness survives the unwrapping: a missing required key errors.
-        with pytest.raises(
-            TypeCheckError, match=r'is missing required key\(s\): "a"'
-        ):
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
             check_type({"b": 2}, DummyDict)
 
     def test_required_pass(self, typing_provider):
