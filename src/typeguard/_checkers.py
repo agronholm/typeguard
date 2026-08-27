@@ -7,7 +7,13 @@ import sys
 import types
 import typing
 import warnings
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import (
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    MutableSet,
+    Sequence,
+)
 from enum import Enum
 from inspect import Parameter, isclass
 from io import BufferedIOBase, IOBase, RawIOBase, TextIOBase
@@ -330,7 +336,13 @@ def check_sequence(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if not isinstance(value, collections.abc.Sequence):
+    if origin_type is collections.deque:
+        if not isinstance(value, collections.deque):
+            raise TypeCheckError("is not a deque")
+    elif origin_type is MutableSequence:
+        if not isinstance(value, MutableSequence):
+            raise TypeCheckError("is not a mutable sequence")
+    elif not isinstance(value, collections.abc.Sequence):
         raise TypeCheckError("is not a sequence")
 
     if args and args != (Any,):
@@ -352,6 +364,9 @@ def check_set(
     if origin_type is frozenset:
         if not isinstance(value, frozenset):
             raise TypeCheckError("is not a frozenset")
+    elif origin_type is MutableSet:
+        if not isinstance(value, MutableSet):
+            raise TypeCheckError("is not a mutable set")
     elif not isinstance(value, AbstractSet):
         raise TypeCheckError("is not a set")
 
@@ -1029,6 +1044,7 @@ origin_type_checkers: dict[
     Callable: check_callable,
     collections.abc.Callable: check_callable,
     complex: check_number,
+    collections.deque: check_sequence,
     dict: check_mapping,
     Dict: check_mapping,
     float: check_number,
@@ -1039,9 +1055,13 @@ origin_type_checkers: dict[
     typing.Literal: check_literal,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
+    MutableSequence: check_sequence,
+    MutableSet: check_set,
     None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
+    collections.abc.MutableSequence: check_sequence,
+    collections.abc.MutableSet: check_set,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,

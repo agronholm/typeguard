@@ -18,6 +18,7 @@ from typing import (
     Collection,
     Concatenate,
     ContextManager,
+    Deque,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -27,6 +28,8 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    MutableSequence,
+    MutableSet,
     ParamSpec,
     Protocol,
     Sequence,
@@ -801,6 +804,86 @@ class TestFrozenSet:
         pytest.raises(TypeCheckError, check_type, sample_set, FrozenSet[int]).match(
             "set is not a frozenset"
         )
+
+
+class TestDeque:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, Deque[int]).match(
+            "int is not a deque"
+        )
+
+    def test_valid(self):
+        check_type(collections.deque([1, 2]), Deque[int])
+
+    def test_first_check_empty(self):
+        check_type(collections.deque(), Deque[int])
+
+    def test_first_check_fail(self):
+        pytest.raises(
+            TypeCheckError, check_type, collections.deque(["bb"]), Deque[int]
+        ).match("item 0 of collections.deque is not an instance of int")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            collections.deque([1, 2, "bb"]),
+            Deque[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("item 2 of collections.deque is not an instance of int")
+
+    def test_list_against_deque(self):
+        pytest.raises(TypeCheckError, check_type, [1, 2], Deque[int]).match(
+            "list is not a deque"
+        )
+
+
+class TestMutableSequence:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, MutableSequence[int]).match(
+            "int is not a mutable sequence"
+        )
+
+    def test_valid(self):
+        check_type([1, 2], MutableSequence[int])
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            [1, 2, "bb"],
+            MutableSequence[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("item 2 of list is not an instance of int")
+
+    def test_tuple_against_mutable_sequence(self):
+        pytest.raises(TypeCheckError, check_type, (1, 2), MutableSequence[int]).match(
+            "tuple is not a mutable sequence"
+        )
+
+
+class TestMutableSet:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, MutableSet[int]).match(
+            "int is not a mutable set"
+        )
+
+    def test_valid(self):
+        check_type({1, 2}, MutableSet[int])
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {1, 2, "bb"},
+            MutableSet[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("set is not an instance of int")
+
+    def test_frozenset_against_mutable_set(self):
+        pytest.raises(
+            TypeCheckError, check_type, frozenset({1, 2}), MutableSet[int]
+        ).match("frozenset is not a mutable set")
 
 
 @pytest.mark.parametrize(

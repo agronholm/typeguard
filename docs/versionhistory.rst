@@ -4,6 +4,13 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed the element type of ``Deque`` (``collections.deque``), ``MutableSequence`` and
+  ``MutableSet`` annotations not being checked, unlike the already supported ``List``,
+  ``Sequence``, ``Set`` and ``FrozenSet``
+  (`#577 <https://github.com/agronholm/typeguard/pull/577>`_; PR by @sneha4175)
+
 **4.6.0** (2026-07-26)
 
 - Added support for type checking against the PEP 661 ``sentinel`` type (built-in on
