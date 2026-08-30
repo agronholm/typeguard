@@ -53,7 +53,7 @@ def find_target_function(
     return None
 
 
-def instrument(f: T_CallableOrType) -> FunctionType | str:
+def instrument(f: T_CallableOrType, *, owner: type | None = None) -> FunctionType | str:
     if not getattr(f, "__code__", None):
         return "no code associated"
     elif not getattr(f, "__module__", None):
@@ -103,7 +103,11 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         frame_locals = cast(FrameType, frame.f_back).f_locals
         cells: list[_Cell] = []
         for key in new_code.co_freevars:
-            if key in instrumentor.names_used_in_annotations:
+            if key == "__class__" and owner is not None:
+                # Annotation instrumentation can introduce a class cell that was not
+                # present in the original method. Bind it to the class being decorated.
+                cells.append(make_cell(owner))
+            elif key in instrumentor.names_used_in_annotations:
                 # Find the value and make a new cell from it
                 value = frame_locals.get(key) or ForwardRef(key)
                 cells.append(make_cell(value))
@@ -197,12 +201,12 @@ def typechecked(
     if isclass(target):
         for key, attr in target.__dict__.items():
             if is_method_of(attr, target):
-                retval = instrument(attr)
+                retval = instrument(attr, owner=target)
                 if isfunction(retval):
                     setattr(target, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
                 if is_method_of(attr.__func__, target):
-                    retval = instrument(attr.__func__)
+                    retval = instrument(attr.__func__, owner=target)
                     if isfunction(retval):
                         wrapper = attr.__class__(retval)
                         setattr(target, key, wrapper)
@@ -211,7 +215,7 @@ def typechecked(
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
                     if is_method_of(property_func, target):
-                        retval = instrument(property_func)
+                        retval = instrument(property_func, owner=target)
                         if isfunction(retval):
                             kwargs[name] = retval
 

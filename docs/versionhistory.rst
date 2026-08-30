@@ -6,6 +6,11 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``__new__()`` methods instrumented through a ``@typechecked`` class or the
+  import hook binding their defining class name to the subclass being instantiated,
+  changing the meaning of class-name references in the method body and forward-reference
+  annotations
+  (`#578 <https://github.com/agronholm/typeguard/issues/578>`_; PR by @onuracar-dev)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
