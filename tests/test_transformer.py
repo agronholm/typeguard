@@ -701,7 +701,6 @@ def test_new_with_self() -> None:
             class Foo:
 
                 def __new__(cls) -> Self:
-                    Foo = cls
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
                     return check_return_type_internal('Foo.__new__', super().__new__(cls), \
 Self, memo)
@@ -729,13 +728,14 @@ def test_new_with_explicit_class_name() -> None:
             """
             from typeguard import TypeCheckMemo
             from typeguard._functions import check_return_type_internal
+            from typing import ForwardRef
 
             class A:
 
                 def __new__(cls) -> 'A':
-                    A = cls
                     memo = TypeCheckMemo(globals(), locals(), self_type=cls)
-                    return check_return_type_internal('A.__new__', object.__new__(cls), A, memo)
+                    return check_return_type_internal('A.__new__', object.__new__(cls), \
+ForwardRef('A'), memo)
             """
         ).strip()
     )

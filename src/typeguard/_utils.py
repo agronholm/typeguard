@@ -23,6 +23,20 @@ if TYPE_CHECKING:
 
 _functions_map: WeakValueDictionary[CodeType, FunctionType] = WeakValueDictionary()
 
+
+def _resolve_self_type_forwardref(
+    forwardref: ForwardRef, memo: TypeCheckMemo, exc: NameError
+) -> Any:
+    self_type = memo.self_type
+    if self_type is not None and forwardref.__forward_arg__ in {
+        self_type.__name__,
+        self_type.__qualname__,
+    }:
+        return self_type
+
+    raise exc
+
+
 if sys.version_info >= (3, 14):
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
@@ -37,21 +51,30 @@ if sys.version_info >= (3, 14):
                 # Fall back to caller's namespace for backwards compatibility
                 pass
 
-        return forwardref.evaluate(
-            globals=memo.globals, locals=memo.locals, type_params=()
-        )
+        try:
+            return forwardref.evaluate(
+                globals=memo.globals, locals=memo.locals, type_params=()
+            )
+        except NameError as exc:
+            return _resolve_self_type_forwardref(forwardref, memo, exc)
 elif sys.version_info >= (3, 13):
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(
-            memo.globals, memo.locals, type_params=(), recursive_guard=frozenset()
-        )
+        try:
+            return forwardref._evaluate(
+                memo.globals, memo.locals, type_params=(), recursive_guard=frozenset()
+            )
+        except NameError as exc:
+            return _resolve_self_type_forwardref(forwardref, memo, exc)
 else:
 
     def evaluate_forwardref(forwardref: ForwardRef, memo: TypeCheckMemo) -> Any:
-        return forwardref._evaluate(
-            memo.globals, memo.locals, recursive_guard=frozenset()
-        )
+        try:
+            return forwardref._evaluate(
+                memo.globals, memo.locals, recursive_guard=frozenset()
+            )
+        except NameError as exc:
+            return _resolve_self_type_forwardref(forwardref, memo, exc)
 
 
 def get_type_name(type_: Any) -> str:

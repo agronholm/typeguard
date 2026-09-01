@@ -98,6 +98,21 @@ class DummyClass(metaclass=Metaclass):
         return None
 
 
+@typechecked
+class NewForwardRefBase:
+    def __new__(cls) -> "NewForwardRefBase":  # noqa: PYI034
+        instance = super().__new__(cls)
+        instance.class_name_resolved_to_base = (
+            NewForwardRefBase.__name__ == "NewForwardRefBase"
+        )
+        instance.class_name_resolved_to_subclass = NewForwardRefBase is cls
+        return instance
+
+
+class NewForwardRefSub(NewForwardRefBase):
+    pass
+
+
 def outer():
     @typechecked
     class Inner:
