@@ -505,8 +505,7 @@ def check_class(
     else:
         expected_class = args[0]
 
-    if type(expected_class) in type_alias_types:
-        expected_class = expected_class.__value__
+    expected_class = resolve_type_alias(expected_class)
 
     if expected_class is Any:
         return
@@ -985,8 +984,7 @@ def check_type_internal(
 
             return
 
-    if type(annotation) in type_alias_types:
-        annotation = annotation.__value__
+    annotation = resolve_type_alias(annotation)
 
     if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
@@ -1087,6 +1085,29 @@ if sys.version_info >= (3, 12):
     type_alias_types = (typing_extensions.TypeAliasType, typing.TypeAliasType)
 else:
     type_alias_types = (typing_extensions.TypeAliasType,)
+
+
+def resolve_type_alias(annotation: Any) -> Any:
+    """
+    Resolve a ``TypeAliasType`` annotation to the type it aliases.
+
+    A bare alias (``type(annotation) in type_alias_types``) resolves directly via
+    ``__value__``. A subscripted alias such as ``Boxed[int]`` for
+    ``type Boxed[T] = list[T]`` has ``Boxed`` as its origin rather than being a
+    ``TypeAliasType`` itself, so the bare check above misses it and the type
+    parameters in ``__value__`` are never substituted. Any other annotation is
+    returned unchanged.
+    """
+    if type(annotation) in type_alias_types:
+        return annotation.__value__
+
+    origin = get_origin(annotation)
+    if type(origin) in type_alias_types:
+        args = get_args(annotation)
+        value = origin.__value__
+        return value[args] if args else value
+
+    return annotation
 
 
 def builtin_checker_lookup(

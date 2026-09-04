@@ -453,3 +453,17 @@ class TestTypeAlias:
             match=r'argument "x" \(class dict\) is not a subclass of list',
         ):
             dummymodule_py312.func_using_type_of_type_alias(dict)
+
+    def test_parametrized_success(self, dummymodule_py312):
+        # Regression test for GH-579: a parametrized alias (Boxed[int] for
+        # type Boxed[T] = list[T]) has the alias as its origin rather than
+        # being a TypeAliasType itself, so it used to slip past the
+        # bare-alias check entirely and skip checking altogether.
+        assert dummymodule_py312.func_using_parametrized_type_alias([1, 2]) == 1
+
+    def test_parametrized_failure(self, dummymodule_py312):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'item 0 of argument "x" \(list\) is not an instance of int',
+        ):
+            dummymodule_py312.func_using_parametrized_type_alias(["foo"])
