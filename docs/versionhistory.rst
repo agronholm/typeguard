@@ -9,6 +9,11 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
+- Fixed ``Never`` and ``NoReturn`` skipping the check entirely when nested inside
+  another annotation, so ``list[Never]`` accepted ``[1]`` and ``Union[int, Never]``
+  accepted ``"x"``. Only a bare one in an argument or return annotation was
+  recognised (`#580 <https://github.com/agronholm/typeguard/issues/580>`_;
+  PR by @dchaudhari7177)
 
 **4.6.0** (2026-07-26)
 

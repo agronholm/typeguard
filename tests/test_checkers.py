@@ -27,6 +27,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    NoReturn,
     ParamSpec,
     Protocol,
     Sequence,
@@ -41,7 +42,7 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, Never
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -1705,6 +1706,59 @@ class TestLiteralString:
         pytest.raises(TypeCheckError, check_type, 1, LiteralString).match(
             "int is not an instance of str"
         )
+
+
+class TestNever:
+    """Regression tests for #578 and #580.
+
+    ``Never``/``NoReturn`` were only recognised as an entire argument or return
+    annotation, so nested in another annotation no check ran at all and every
+    value passed.
+    """
+
+    @pytest.mark.parametrize(
+        "annotation, value, message",
+        [
+            pytest.param(List[Never], [1], "item 0 of list", id="list"),
+            pytest.param(
+                Dict[str, Never], {"a": 1}, "value of key 'a' of dict", id="dict_value"
+            ),
+            pytest.param(
+                Tuple[Never, ...], (1, 2), "item 0 of tuple", id="tuple_ellipsis"
+            ),
+            pytest.param(
+                Sequence[NoReturn], [1], "item 0 of list", id="sequence_noreturn"
+            ),
+        ],
+    )
+    def test_nested_fail(self, annotation, value, message):
+        pytest.raises(TypeCheckError, check_type, value, annotation).match(
+            f"{message} is not compatible with Never"
+        )
+
+    def test_union_member_fail(self):
+        """The surprising one: a str passed Union[int, Never] on the Never member."""
+        pytest.raises(TypeCheckError, check_type, "x", Union[int, Never]).match(
+            "is not compatible with Never"
+        )
+
+    def test_bare_fail(self):
+        pytest.raises(TypeCheckError, check_type, 1, Never).match(
+            "is not compatible with Never"
+        )
+
+    @pytest.mark.parametrize(
+        "annotation, value",
+        [
+            pytest.param(List[Never], [], id="empty_list"),
+            pytest.param(Dict[str, Never], {}, id="empty_dict"),
+            pytest.param(Union[Never, None], None, id="optional_none"),
+            pytest.param(Union[int, Never], 3, id="union_other_member"),
+        ],
+    )
+    def test_nothing_to_check_passes(self, annotation, value):
+        """A Never with no value to reach it is satisfied, not violated."""
+        check_type(value, annotation)
 
 
 class TestTypeGuard:

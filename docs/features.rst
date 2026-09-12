@@ -187,7 +187,7 @@ The following types from the standard library have specialized support:
      - Field values are typechecked
    * - | :class:`typing.Never`
        | :class:`typing.NoReturn`
-     - Supported in argument and return type annotations
+     - Any value fails the check; nested occurrences (``list[Never]``) fail per value
    * - :class:`typing.Protocol`
      - Run-time protocols are checked with :func:`isinstance`, others are ignored
    * - :class:`typing.Self`

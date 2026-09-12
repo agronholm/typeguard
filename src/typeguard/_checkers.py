@@ -663,6 +663,19 @@ def check_none(
         raise TypeCheckError("is not None")
 
 
+def check_never(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    # Never/NoReturn has no values, so nothing can satisfy it. A bare one in an
+    # argument or return annotation is reported by _functions.py in terms of the
+    # call ("declared never to be called"); nested inside another annotation
+    # there is no call to talk about, so the message names the type.
+    raise TypeCheckError("is not compatible with Never")
+
+
 def check_sentinel(
     value: Any,
     origin_type: Any,
@@ -1054,6 +1067,7 @@ origin_type_checkers: dict[
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
+    typing.NoReturn: check_never,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
     Sequence: check_sequence,
@@ -1074,13 +1088,19 @@ origin_type_checkers: dict[
     # It's best to err on the safe side and just always specify these.
     typing_extensions.Literal: check_literal,
     typing_extensions.LiteralString: check_literal_string,
+    typing_extensions.Never: check_never,
+    typing_extensions.NoReturn: check_never,
     typing_extensions.Self: check_self,
     typing_extensions.TypeGuard: check_typeguard,
 }
 
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(
-        {typing.LiteralString: check_literal_string, typing.Self: check_self}
+        {
+            typing.LiteralString: check_literal_string,
+            typing.Never: check_never,
+            typing.Self: check_self,
+        }
     )
 
 if sys.version_info >= (3, 12):
