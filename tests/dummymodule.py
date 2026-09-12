@@ -369,3 +369,18 @@ class ModuleLocalClass:
 
 class TypedDictWithForwardRef(TypedDict):
     x: "ModuleLocalClass"
+
+
+# Regression test for #578 - the alias injected into __new__() must not make the
+# class's own name mean the subclass
+class SelfNamingNew:
+    def __new__(cls, other: "SelfNamingNew | None" = None) -> "SelfNamingNew":
+        # Recorded rather than returned, because the return value has to stay an
+        # instance for the return check.
+        cls.saw_own_name_as = SelfNamingNew
+        cls.saw_first_arg_as = cls
+        return super().__new__(cls)
+
+
+class SubclassOfSelfNamingNew(SelfNamingNew):
+    pass

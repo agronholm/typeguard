@@ -9,6 +9,11 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
+- Fixed the class name alias injected into an instrumented ``__new__()`` shadowing
+  the defining class for the whole method body. The alias was bound to the first
+  argument, which is the *subclass* on a subclass construction, so the class's own
+  name meant the subclass and a forward-reference argument annotation was checked
+  against it (`#578 <https://github.com/agronholm/typeguard/issues/578>`_; PR by @dchaudhari7177)
 
 **4.6.0** (2026-07-26)
 

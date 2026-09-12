@@ -98,3 +98,38 @@ def test_debug_instrumentation(monkeypatch, capsys):
     path_str = str(dummy_module_path)
     assert f"Source code of {path_str!r} after instrumentation:" in err
     assert "class DummyClass" in err
+
+
+def test_new_does_not_alias_own_class_to_the_subclass():
+    """
+    Regression test for #578.
+
+    The alias injected into ``__new__()`` for #398 must not shadow the defining
+    class once that class exists: the first argument is the *subclass* on a
+    subclass construction, so binding it made the class's own name mean the
+    subclass for the whole method body.
+    """
+    dummymodule = import_dummymodule()
+    try:
+        cls = dummymodule.SubclassOfSelfNamingNew
+        cls()
+        assert cls.saw_first_arg_as is cls
+        assert cls.saw_own_name_as is dummymodule.SelfNamingNew
+    finally:
+        del sys.modules["dummymodule"]
+
+
+def test_new_forward_ref_argument_checks_against_the_defining_class():
+    """
+    Regression test for #578.
+
+    A forward-reference *argument* annotation naming the defining class was
+    checked against the subclass, so a legitimate instance of the base class
+    was rejected.
+    """
+    dummymodule = import_dummymodule()
+    try:
+        base = object.__new__(dummymodule.SelfNamingNew)
+        dummymodule.SubclassOfSelfNamingNew(base)
+    finally:
+        del sys.modules["dummymodule"]

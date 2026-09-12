@@ -893,20 +893,37 @@ class TypeguardTransformer(NodeTransformer):
 
                 self._memo.insert_imports(node)
 
-                # Special case the __new__() method to create a local alias from the
-                # class name to the first argument (usually "cls")
+                # Special case the __new__() method to make a forward reference naming
+                # the defining class resolvable. The class does not exist yet the first
+                # time __new__() runs for an Enum (#398), so fall back to the first
+                # argument (usually "cls") only in that window. Binding the argument
+                # unconditionally would make the class's own name mean the *subclass*
+                # for the whole method body on a subclass construction (#578).
                 if (
                     isinstance(node, FunctionDef)
-                    and node.args
+                    and node.args.args
                     and self._memo.parent is not None
                     and isinstance(self._memo.parent.node, ClassDef)
                     and node.name == "__new__"
                 ):
-                    first_args_expr = Name(node.args.args[0].arg, ctx=Load())
-                    cls_name = Name(self._memo.parent.node.name, ctx=Store())
+                    class_name = self._memo.parent.node.name
                     node.body.insert(
                         self._memo.code_inject_index,
-                        Assign([cls_name], first_args_expr),
+                        Assign(
+                            [Name(class_name, ctx=Store())],
+                            Call(
+                                Attribute(
+                                    Call(Name(id="globals", ctx=Load()), [], []),
+                                    "get",
+                                    ctx=Load(),
+                                ),
+                                [
+                                    Constant(class_name),
+                                    Name(node.args.args[0].arg, ctx=Load()),
+                                ],
+                                [],
+                            ),
+                        ),
                     )
 
                 # Remove any placeholder "pass" at the end
