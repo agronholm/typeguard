@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed protocol method checks accepting extra mandatory keyword-only arguments when
+  the protocol method accepts arbitrary keyword arguments
+  (`#597 <https://github.com/agronholm/typeguard/pull/597>`_; PR by @Eric3-jp)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
