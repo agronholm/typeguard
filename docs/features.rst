@@ -75,7 +75,8 @@ Both the import hook and :func:`@typechecked <typechecked>` avoid checking again
 names bound by imports, classes, assignments or ``type`` statements in a module-level
 ``if TYPE_CHECKING:`` (or ``if typing.TYPE_CHECKING:``) block, since those names will
 not be available at run time. Therefore, no errors or warnings are emitted for such
-annotations, even when they would normally not be found.
+annotations, even when they would normally not be found. Names also bound in the
+runtime ``else`` branch remain available for type checking.
 
 Support for generator functions
 -------------------------------

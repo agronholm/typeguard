@@ -8,7 +8,8 @@ This library adheres to
 
 - Fixed classes, annotated assignments and ``type`` aliases defined in a module-level
   ``if TYPE_CHECKING:`` block being instrumented as runtime annotations, which caused
-  a ``NameError`` (`#456 <https://github.com/agronholm/typeguard/issues/456>`_)
+  a ``NameError``. Names rebound in the runtime ``else`` branch remain checked
+  (`#456 <https://github.com/agronholm/typeguard/issues/456>`_)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)

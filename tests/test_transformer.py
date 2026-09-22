@@ -4,6 +4,7 @@ from textwrap import dedent
 
 import pytest
 
+from typeguard import TypeCheckError
 from typeguard._transformer import TypeguardTransformer
 
 
@@ -1089,6 +1090,80 @@ class TestTypecheckingImport:
         transformed = unparse(node)
         assert "check_variable_assignment" not in transformed
         assert "args: Args = value" in transformed
+
+    @pytest.mark.parametrize("targeted", [False, True])
+    @pytest.mark.parametrize(
+        "binding",
+        [
+            "class RuntimeType: pass",
+            "RuntimeType: object = int",
+            pytest.param(
+                "type RuntimeType = int",
+                marks=pytest.mark.skipif(
+                    sys.version_info < (3, 12),
+                    reason="type statements require Python 3.12",
+                ),
+            ),
+        ],
+    )
+    def test_else_rebinds_type_checking_name(
+        self, binding: str, targeted: bool
+    ) -> None:
+        node = parse(
+            dedent(
+                f"""
+                from __future__ import annotations
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    {binding}
+                else:
+                    {binding}
+
+                def foo(value: RuntimeType) -> None:
+                    pass
+                """
+            )
+        )
+        target = node.body[-1]
+        transformer = (
+            TypeguardTransformer(("foo",), target.lineno)
+            if targeted
+            else TypeguardTransformer()
+        )
+        transformer.visit(node)
+        assert (
+            "check_argument_types_internal('foo', {'value': (value, RuntimeType)}"
+            in unparse(node)
+        )
+
+        if not targeted:
+            namespace = {}
+            exec(compile(node, "<test>", "exec"), namespace)
+            with pytest.raises(TypeCheckError):
+                namespace["foo"](object())
+
+    def test_else_annotation_without_value_does_not_bind_name(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from __future__ import annotations
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    class Hidden:
+                        pass
+                else:
+                    Hidden: object
+
+                def foo(value: Hidden) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert "check_argument_types_internal" not in unparse(node)
+        namespace = {}
+        exec(compile(node, "<test>", "exec"), namespace)
+        namespace["foo"](object())
 
     def test_else_class_is_available_at_runtime(self) -> None:
         node = parse(

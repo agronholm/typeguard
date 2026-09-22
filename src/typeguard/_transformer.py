@@ -286,8 +286,9 @@ class TransformMemo:
 
 
 class NameCollector(NodeVisitor):
-    def __init__(self) -> None:
+    def __init__(self, *, ignore_unbound_annotations: bool = False) -> None:
         self.names: set[str] = set()
+        self.ignore_unbound_annotations = ignore_unbound_annotations
 
     def visit_Import(self, node: Import) -> None:
         for name in node.names:
@@ -303,7 +304,9 @@ class NameCollector(NodeVisitor):
                 self.names.add(target.id)
 
     def visit_AnnAssign(self, node: AnnAssign) -> None:
-        if isinstance(node.target, Name):
+        if isinstance(node.target, Name) and (
+            node.value is not None or not self.ignore_unbound_annotations
+        ):
             self.names.add(node.target.id)
 
     def visit_NamedExpr(self, node: NamedExpr) -> Any:
@@ -1246,7 +1249,11 @@ class TypeguardTransformer(NodeTransformer):
             for child_node in node.body:
                 collector.visit(child_node)
 
-            self._memo.ignored_names.update(collector.names)
+            runtime_collector = NameCollector(ignore_unbound_annotations=True)
+            for child_node in node.orelse:
+                runtime_collector.visit(child_node)
+
+            self._memo.ignored_names.update(collector.names - runtime_collector.names)
 
         self.generic_visit(node)
         return node
