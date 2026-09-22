@@ -1581,6 +1581,56 @@ class TestProtocol:
             f"mandatory keyword-only arguments not present in the protocol: x"
         )
 
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_extra_kwarg_with_varkwargs(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            def meth(self, **kwargs: Any) -> None:
+                pass
+
+        class Foo:
+            def meth(self, *, x: str, **kwargs: Any) -> None:
+                pass
+
+        subject = Foo() if instantiate else Foo
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        pytest.raises(TypeCheckError, check_type, subject, annotation).match(
+            "mandatory keyword-only arguments not present in the protocol: x"
+        )
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_optional_kwarg_with_varkwargs(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            def meth(self, **kwargs: Any) -> None:
+                pass
+
+        class Foo:
+            def meth(self, *, x: str = "foo", **kwargs: Any) -> None:
+                pass
+
+        subject = Foo() if instantiate else Foo
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        check_type(subject, annotation)
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_required_kwarg_with_varkwargs(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            def meth(self, *, x: str, **kwargs: Any) -> None:
+                pass
+
+        class Foo:
+            def meth(self, *, x: str, **kwargs: Any) -> None:
+                pass
+
+        subject = Foo() if instantiate else Foo
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        check_type(subject, annotation)
+
     def test_instance_staticmethod_mismatch(self) -> None:
         class MyProtocol(Protocol):
             @staticmethod
