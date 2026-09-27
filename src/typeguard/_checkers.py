@@ -879,6 +879,17 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because it has no attribute named {attrname!r}"
                 ) from None
+            except Exception as exc:
+                # The attribute lookup raised something other than AttributeError,
+                # so we cannot tell whether the attribute is there. A __getattr__
+                # that raises, or a property whose getter raises, is legal Python,
+                # and letting that exception out would break the promise that
+                # check_type() only raises TypeCheckError.
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} attribute raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
             try:
                 check_type_internal(subject_member, annotation, memo)
@@ -895,6 +906,14 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because it has no method named {attrname!r}"
                 ) from None
+            except Exception as exc:
+                # As above: the lookup failed in a way that does not tell us
+                # whether the method is present.
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} method raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
             if not callable(subject_member):
                 raise TypeCheckError(
@@ -912,6 +931,26 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because its {attrname!r} method {exc}"
                 ) from None
+        else:
+            # A member that is neither annotated nor a plain function. The common
+            # case is a property: what the protocol body holds is a property
+            # descriptor, property objects are not callable, so neither branch above
+            # matched and the member was not checked at all. Require it to be present
+            # on the subject, which is the one thing that can be established without a
+            # declared type.
+            try:
+                getattr(value, attrname)
+            except AttributeError:
+                raise TypeCheckError(
+                    f"is not compatible with the {origin_type.__qualname__} "
+                    f"protocol because it has no attribute named {attrname!r}"
+                ) from None
+            except Exception as exc:
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} attribute raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
 
 def check_byteslike(

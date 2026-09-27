@@ -1458,6 +1458,116 @@ class TestProtocol:
             f"'meth'"
         )
 
+    @pytest.mark.parametrize(
+        "exc_factory",
+        [
+            pytest.param(lambda: ValueError("nope"), id="ValueError"),
+            pytest.param(lambda: KeyError("nope"), id="KeyError"),
+            pytest.param(lambda: RuntimeError("nope"), id="RuntimeError"),
+            pytest.param(lambda: RecursionError(), id="RecursionError"),
+        ],
+    )
+    def test_attribute_lookup_error_is_wrapped(
+        self, exc_factory: Callable[[], Exception]
+    ) -> None:
+        # A __getattr__ that raises something other than AttributeError is legal
+        # Python, and there is no way to tell from here whether the attribute is
+        # present. Whatever happens, the caller must only have to catch
+        # TypeCheckError, as the documentation promises.
+        class MyProtocol(Protocol):
+            member: int
+
+        class Hostile:
+            def __getattr__(self, name: str) -> int:
+                raise exc_factory()
+
+        exc = exc_factory()
+        with pytest.raises(
+            TypeCheckError, match="reading its 'member' attribute"
+        ) as ei:
+            check_type(Hostile(), MyProtocol)
+
+        # The original exception is kept as the cause so the original diagnosis is
+        # not lost.
+        assert ei.value.__cause__ is not None
+        assert type(ei.value.__cause__) is type(exc)
+
+    @pytest.mark.parametrize(
+        "exc_factory",
+        [
+            pytest.param(lambda: ValueError("nope"), id="ValueError"),
+            pytest.param(lambda: RecursionError(), id="RecursionError"),
+        ],
+    )
+    def test_method_lookup_error_is_wrapped(
+        self, exc_factory: Callable[[], Exception]
+    ) -> None:
+        class MyProtocol(Protocol):
+            def meth(self) -> None:
+                pass
+
+        class Hostile:
+            def __getattr__(self, name: str):
+                raise exc_factory()
+
+        with pytest.raises(TypeCheckError, match="reading its 'meth' method") as ei:
+            check_type(Hostile(), MyProtocol)
+
+        assert ei.value.__cause__ is not None
+
+    def test_property_member_is_required(self) -> None:
+        # A property in a protocol body is neither an annotation nor a callable, so
+        # before this was handled the member matched neither branch and was not
+        # checked at all: an object with no such attribute was accepted.
+        class MyProtocol(Protocol):
+            @property
+            def prop(self) -> int: ...
+
+        class Missing:
+            pass
+
+        pytest.raises(TypeCheckError, check_type, Missing(), MyProtocol).match(
+            f"is not compatible with the {MyProtocol.__qualname__} protocol "
+            f"because it has no attribute named 'prop'"
+        )
+
+        class Present:
+            @property
+            def prop(self) -> int:
+                return 1
+
+        check_type(Present(), MyProtocol)
+
+    def test_property_raising_is_wrapped(self) -> None:
+        # A property whose getter raises is a member that exists but cannot be
+        # read. It must not escape as whatever the getter raised.
+        class MyProtocol(Protocol):
+            @property
+            def prop(self) -> int: ...
+
+        class Hostile:
+            @property
+            def prop(self) -> int:
+                raise ValueError("boom")
+
+        with pytest.raises(TypeCheckError, match="reading its 'prop' attribute") as ei:
+            check_type(Hostile(), MyProtocol)
+
+        assert isinstance(ei.value.__cause__, ValueError)
+
+    def test_base_exception_from_lookup_still_propagates(self) -> None:
+        # Only Exception is wrapped. KeyboardInterrupt and friends must not be
+        # swallowed and turned into a type error.
+        class MyProtocol(Protocol):
+            member: int
+
+        class Hostile:
+            def __getattr__(self, name: str) -> int:
+                raise KeyboardInterrupt()
+
+        with pytest.raises(KeyboardInterrupt):
+            check_type(Hostile(), MyProtocol)
+
     def test_too_many_posargs(self) -> None:
         class MyProtocol(Protocol):
             def meth(self) -> None:
