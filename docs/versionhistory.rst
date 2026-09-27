@@ -8,11 +8,11 @@ This library adheres to
 
 - Fixed a ``Protocol`` member declared as a ``property`` being skipped by the checker
   entirely, so a value that did not have that attribute at all was accepted
-  (PR by @feiiiiii5)
+  (`#598 <https://github.com/agronholm/typeguard/pull/598>`_; PR by @feiiiiii5)
 - Fixed an exception other than ``AttributeError`` raised while reading a ``Protocol``
   member (a ``__getattr__`` that raises, or a property whose getter raises) escaping
   ``check_type()`` instead of being reported as ``TypeCheckError``
-  (PR by @feiiiiii5)
+  (`#598 <https://github.com/agronholm/typeguard/pull/598>`_; PR by @feiiiiii5)
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 - Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
