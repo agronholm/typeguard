@@ -1568,6 +1568,68 @@ class TestProtocol:
         with pytest.raises(KeyboardInterrupt):
             check_type(Hostile(), MyProtocol)
 
+    @pytest.mark.parametrize(
+        "default",
+        [
+            pytest.param("point", id="str"),
+            pytest.param(None, id="None"),
+            pytest.param({}, id="dict"),
+            pytest.param(object(), id="object"),
+        ],
+    )
+    def test_unannotated_protocol_attribute_is_not_a_member(self, default) -> None:
+        # An attribute a protocol body defines by assignment, with no declared
+        # type, is not a protocol member. mypy rejects the declaration outright
+        # ("All protocol members must have explicitly declared types") and pyright
+        # accepts a subject that lacks it, so a subject without it must be
+        # accepted here too.
+        #
+        # This is the counterpart of test_property_member_is_required: the member
+        # check keys off the kind of object the protocol body holds, and a plain
+        # assignment is not a member the way a property is.
+        class MyProtocol(Protocol):
+            concrete = default
+
+        class Minimal:
+            pass
+
+        check_type(Minimal(), MyProtocol)
+
+    def test_unannotated_helper_beside_a_real_member_is_not_required(self) -> None:
+        # The realistic shape: a protocol with real members plus a concrete
+        # class-level helper. Implementations are not required to inherit from the
+        # protocol, so they need not carry the helper.
+        class MyProtocol(Protocol):
+            name: str
+
+            def compute(self) -> int:
+                return 0
+
+            _cache = {}
+
+        class Minimal:
+            name = "x"
+
+            def compute(self) -> int:
+                return 1
+
+        check_type(Minimal(), MyProtocol)
+
+    def test_annotated_default_is_still_a_member(self) -> None:
+        # The other side of the line: an assignment *with* a declared type is a
+        # member, with or without a default. That was already the case before this
+        # change and must stay that way.
+        class MyProtocol(Protocol):
+            registry: dict = {}
+
+        class Minimal:
+            pass
+
+        pytest.raises(TypeCheckError, check_type, Minimal(), MyProtocol).match(
+            f"is not compatible with the {MyProtocol.__qualname__} protocol "
+            f"because it has no attribute named 'registry'"
+        )
+
     def test_too_many_posargs(self) -> None:
         class MyProtocol(Protocol):
             def meth(self) -> None:
