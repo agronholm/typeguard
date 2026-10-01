@@ -1153,8 +1153,15 @@ class TestType:
     @pytest.mark.parametrize(
         "value", [pytest.param(str, id="str"), pytest.param(int, id="int")]
     )
-    def test_union(self, value):
-        check_type(value, Type[Union[str, int, list]])
+    @pytest.mark.parametrize(
+        "annotation", [Type[Union[str, int, list]], type[str | int | list]]
+    )
+    def test_union(self, value, annotation):
+        check_type(value, annotation)
+
+    @pytest.mark.parametrize("annotation", [type[str | Any], type[Any | str]])
+    def test_uniontype_any(self, annotation):
+        check_type(list, annotation)
 
     def test_union_any(self):
         check_type(list, Type[Union[str, int, Any]])
@@ -1162,10 +1169,11 @@ class TestType:
     def test_any(self):
         check_type(list, Type[Any])
 
-    def test_union_fail(self):
-        pytest.raises(
-            TypeCheckError, check_type, dict, Type[Union[str, int, list]]
-        ).match(
+    @pytest.mark.parametrize(
+        "annotation", [Type[Union[str, int, list]], type[str | int | list]]
+    )
+    def test_union_fail(self, annotation):
+        pytest.raises(TypeCheckError, check_type, dict, annotation).match(
             "class dict did not match any element in the union:\n"
             "  str: is not a subclass of str\n"
             "  int: is not a subclass of int\n"
