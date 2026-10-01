@@ -2,6 +2,7 @@
 
 import sys
 from contextlib import contextmanager
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -96,6 +97,31 @@ class DummyClass(metaclass=Metaclass):
     @property
     def unannotated_property(self):
         return None
+
+
+@typechecked
+class BaseWithAnnotatedNew:
+    def __new__(cls, other: "BaseWithAnnotatedNew") -> "BaseWithAnnotatedNew":
+        instance = object.__new__(cls)
+        instance.defining_class = BaseWithAnnotatedNew
+        return instance
+
+    def __init__(self, other) -> None:
+        pass
+
+
+class ChildWithAnnotatedNew(BaseWithAnnotatedNew):
+    pass
+
+
+@typechecked
+class EnumWithAnnotatedNew(Enum):
+    member = 1
+
+    def __new__(cls, value: int) -> "EnumWithAnnotatedNew":
+        instance = object.__new__(cls)
+        instance._value_ = value
+        return instance
 
 
 def outer():

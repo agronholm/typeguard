@@ -457,6 +457,18 @@ class AnnotationTransformer(NodeTransformer):
         return node
 
     def visit_Name(self, node: Name) -> Any:
+        # ``cls`` may be a subclass here, but explicit self-class annotations must
+        # resolve to the class where __new__() was defined. The __class__ closure
+        # provides that binding even while the class is still being constructed.
+        if (
+            isinstance(self._memo.node, FunctionDef)
+            and self._memo.node.name == "__new__"
+            and self._memo.parent is not None
+            and isinstance(self._memo.parent.node, ClassDef)
+            and node.id == self._memo.parent.node.name
+        ):
+            return copy_location(Name("__class__", ctx=Load()), node)
+
         if self._memo.is_ignored_name(node):
             return None
 
@@ -892,22 +904,6 @@ class TypeguardTransformer(NodeTransformer):
                 )
 
                 self._memo.insert_imports(node)
-
-                # Special case the __new__() method to create a local alias from the
-                # class name to the first argument (usually "cls")
-                if (
-                    isinstance(node, FunctionDef)
-                    and node.args
-                    and self._memo.parent is not None
-                    and isinstance(self._memo.parent.node, ClassDef)
-                    and node.name == "__new__"
-                ):
-                    first_args_expr = Name(node.args.args[0].arg, ctx=Load())
-                    cls_name = Name(self._memo.parent.node.name, ctx=Store())
-                    node.body.insert(
-                        self._memo.code_inject_index,
-                        Assign([cls_name], first_args_expr),
-                    )
 
                 # Remove any placeholder "pass" at the end
                 if isinstance(node.body[-1], Pass):

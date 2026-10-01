@@ -131,6 +131,31 @@ def test_type_checked_staticmethod(dummymodule):
     ).match(r'argument "x" \(str\) is not an instance of int')
 
 
+def test_new_keeps_defining_class_binding(dummymodule):
+    """Regression test for #578."""
+    base = object.__new__(dummymodule.BaseWithAnnotatedNew)
+    instance = dummymodule.ChildWithAnnotatedNew(base)
+
+    assert instance.defining_class is dummymodule.BaseWithAnnotatedNew
+
+
+def test_new_checks_defining_class_without_class_cell(dummymodule):
+    """Regression test for the decorator-mode class cell handling in #578."""
+    pytest.raises(
+        TypeCheckError,
+        dummymodule.BaseWithAnnotatedNew.__new__,
+        dummymodule.ChildWithAnnotatedNew,
+        object(),
+    ).match(
+        r'argument "other" \(object\) is not an instance of '
+        r"dummymodule\.BaseWithAnnotatedNew"
+    )
+
+
+def test_new_explicit_class_name_during_enum_construction(dummymodule):
+    assert dummymodule.EnumWithAnnotatedNew.member.value == 1
+
+
 @pytest.mark.xfail(reason="No workaround for this has been implemented yet")
 def test_inner_class_method(dummymodule):
     retval = dummymodule.Outer().create_inner()
