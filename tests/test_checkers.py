@@ -714,6 +714,19 @@ class TestTypedDict:
 
         check_type({"x": 6, "y": 7, "z": "foo"}, DummyDict)
 
+    def test_readonly_extra_items(self):
+        from typing_extensions import ReadOnly, TypedDict
+
+        class DummyDict(TypedDict, extra_items=ReadOnly[int]):
+            x: int
+
+        check_type({"x": 6, "y": 7}, DummyDict)
+        with pytest.raises(
+            TypeCheckError,
+            match=r"value of key 'y' of dict is not an instance of int",
+        ):
+            check_type({"x": 6, "y": "wrong"}, DummyDict)
+
     def test_extra_items_bad_type(self, typing_provider):
         try:
 
