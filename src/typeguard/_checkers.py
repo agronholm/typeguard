@@ -879,6 +879,17 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because it has no attribute named {attrname!r}"
                 ) from None
+            except Exception as exc:
+                # The attribute lookup raised something other than AttributeError,
+                # so we cannot tell whether the attribute is there. A __getattr__
+                # that raises, or a property whose getter raises, is legal Python,
+                # and letting that exception out would break the promise that
+                # check_type() only raises TypeCheckError.
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} attribute raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
             try:
                 check_type_internal(subject_member, annotation, memo)
@@ -895,6 +906,14 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because it has no method named {attrname!r}"
                 ) from None
+            except Exception as exc:
+                # As above: the lookup failed in a way that does not tell us
+                # whether the method is present.
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} method raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
             if not callable(subject_member):
                 raise TypeCheckError(
@@ -912,6 +931,36 @@ def check_protocol(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because its {attrname!r} method {exc}"
                 ) from None
+        else:
+            # `get_protocol_members` also returns the attributes a protocol body
+            # defines by plain assignment, and the type checkers do not treat those
+            # as members: mypy rejects such a declaration outright ("All protocol
+            # members must have explicitly declared types") and pyright ignores it.
+            # A property is the one remaining kind the spec allows that carries no
+            # annotation -- the protocol body holds a property object, which is not
+            # callable, so neither branch above matched and the member went
+            # unchecked. Narrow this branch to that, so a concrete default in a
+            # protocol body does not turn into a required attribute of every
+            # subject. Left as it was, this made the checker stricter than both
+            # type checkers and stricter than its own base head.
+            if not isinstance(getattr(origin_type, attrname, None), property):
+                continue
+
+            # Require it to be present on the subject, which is the one thing that
+            # can be established without a declared type.
+            try:
+                getattr(value, attrname)
+            except AttributeError:
+                raise TypeCheckError(
+                    f"is not compatible with the {origin_type.__qualname__} "
+                    f"protocol because it has no attribute named {attrname!r}"
+                ) from None
+            except Exception as exc:
+                raise TypeCheckError(
+                    f"could not be checked against the {origin_type.__qualname__} "
+                    f"protocol because reading its {attrname!r} attribute raised "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
 
 
 def check_byteslike(
