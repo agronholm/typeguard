@@ -18,6 +18,7 @@ from typing import (
     Collection,
     Concatenate,
     ContextManager,
+    Counter,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -446,6 +447,33 @@ class TestDict:
                     yield key, self[key]
 
         check_type(CustomDict(a=1), Dict[str, int])
+
+
+class TestCounter:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, {"aa": 1}, Counter[str]).match(
+            "dict is not a Counter"
+        )
+
+    def test_valid(self):
+        check_type(collections.Counter("aabb"), Counter[str])
+
+    def test_empty(self):
+        check_type(collections.Counter(), Counter[str])
+
+    def test_bad_key_type(self):
+        pytest.raises(
+            TypeCheckError, check_type, collections.Counter({1: 2}), Counter[str]
+        ).match("is not an instance of str")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            collections.Counter({"aa": 1, 2: 3}),
+            Counter[str],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("is not an instance of str")
 
 
 class TestTypedDict:

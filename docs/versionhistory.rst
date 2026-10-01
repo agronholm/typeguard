@@ -6,6 +6,8 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of ``Counter`` annotations; the key type was
+  previously ignored, and a plain ``dict`` was accepted as a ``Counter``
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
