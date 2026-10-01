@@ -34,9 +34,12 @@ class CollectionCheckStrategy(Enum):
     This has an effect on the following built-in checkers:
 
     * ``AbstractSet``
+    * ``ChainMap``
+    * ``defaultdict``
     * ``Dict``
     * ``List``
     * ``Mapping``
+    * ``OrderedDict``
     * ``Set``
     * ``Tuple[<type>, ...]`` (arbitrarily sized tuples)
 

@@ -21,10 +21,13 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    ChainMap,
+    DefaultDict,
     Dict,
     ForwardRef,
     List,
     NewType,
+    OrderedDict,
     Set,
     TextIO,
     Tuple,
@@ -217,6 +220,16 @@ def check_callable(
                 )
 
 
+_concrete_mapping_types: dict[Any, type] = {
+    ChainMap: collections.ChainMap,
+    collections.ChainMap: collections.ChainMap,
+    DefaultDict: collections.defaultdict,
+    collections.defaultdict: collections.defaultdict,
+    OrderedDict: collections.OrderedDict,
+    collections.OrderedDict: collections.OrderedDict,
+}
+
+
 def check_mapping(
     value: Any,
     origin_type: Any,
@@ -226,6 +239,9 @@ def check_mapping(
     if origin_type is Dict or origin_type is dict:
         if not isinstance(value, dict):
             raise TypeCheckError("is not a dict")
+    elif concrete_type := _concrete_mapping_types.get(origin_type):
+        if not isinstance(value, concrete_type):
+            raise TypeCheckError(f"is not a {concrete_type.__name__}")
     if origin_type is MutableMapping or origin_type is collections.abc.MutableMapping:
         if not isinstance(value, collections.abc.MutableMapping):
             raise TypeCheckError("is not a mutable mapping")
@@ -1056,6 +1072,12 @@ origin_type_checkers: dict[
     None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
+    collections.ChainMap: check_mapping,
+    ChainMap: check_mapping,
+    collections.defaultdict: check_mapping,
+    DefaultDict: check_mapping,
+    collections.OrderedDict: check_mapping,
+    OrderedDict: check_mapping,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
