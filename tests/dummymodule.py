@@ -1,7 +1,7 @@
 """Module docstring."""
 
 import sys
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -369,3 +369,112 @@ class ModuleLocalClass:
 
 class TypedDictWithForwardRef(TypedDict):
     x: "ModuleLocalClass"
+
+
+# Regression tests for #586 -- checking annotated locals bound by "for" and "with"
+# targets, not just plain assignments.
+@typechecked
+def for_loop_binding(values: list) -> list:
+    value: int
+    seen = []
+    for value in values:
+        seen.append(value)
+
+    return seen
+
+
+@typechecked
+async def async_for_loop_binding(values) -> list:
+    value: int
+    seen = []
+    async for value in values:
+        seen.append(value)
+
+    return seen
+
+
+@typechecked
+def for_loop_unpacking_binding(pairs: list) -> list:
+    value: int
+    rest: list
+    seen = []
+    for value, *rest in pairs:
+        seen.append((value, rest))
+
+    return seen
+
+
+@typechecked
+def for_loop_later_annotation(values: list):
+    """The annotation is written inside the loop body, so it must not apply
+    retroactively to the loop target itself."""
+    for value in values:
+        value: int
+
+    return value
+
+
+@contextmanager
+def recording_manager(events: list, name: str, value: Any, suppress: bool = False):
+    events.append((name, "enter"))
+    try:
+        yield value
+    except BaseException as exc:
+        events.append((name, "exit", type(exc)))
+        if suppress:
+            return
+        raise
+    else:
+        events.append((name, "exit", None))
+
+
+@asynccontextmanager
+async def async_recording_manager(
+    events: list, name: str, value: Any, suppress: bool = False
+):
+    events.append((name, "enter"))
+    try:
+        yield value
+    except BaseException as exc:
+        events.append((name, "exit", type(exc)))
+        if suppress:
+            return
+        raise
+    else:
+        events.append((name, "exit", None))
+
+
+@typechecked
+def with_binding(first, second) -> tuple:
+    value: int
+    other: str
+    with first as value, second as other:
+        pass
+
+    return value, other
+
+
+@typechecked
+async def async_with_binding(first, second) -> tuple:
+    value: int
+    other: str
+    async with first as value, second as other:
+        pass
+
+    return value, other
+
+
+@typechecked
+def for_loop_attribute_target_binding(obj: DummyClass, values: list) -> None:
+    """A non-``Name`` loop target (here, an attribute target) can't be looked up in
+    the annotated-locals table, so it must be left uninstrumented rather than
+    crashing the transformer."""
+    for obj.bar in values:
+        pass
+
+
+# Module-level "for" and "with" targets must not be instrumented -- only
+# function-local bindings are checked.
+value: int
+for value in ["not an int, but this is module scope"]:  # noqa: B007
+    pass
