@@ -34,18 +34,21 @@ Other limitations
 Local references to nested classes
 ++++++++++++++++++++++++++++++++++
 
-Forward references from methods pointing to non-local nested classes cannot currently be
-resolved::
+When individual methods are instrumented with :func:`@typechecked <typechecked>`, forward
+references pointing to nested classes cannot currently be resolved::
 
     class Outer:
         class Inner:
             pass
 
-        # Cannot be resolved as the name is no longer available
+        # Cannot be resolved by @typechecked as the class does not exist yet when the
+        # method is recompiled
+        @typechecked
         def method(self) -> "Inner":
             return Outer.Inner()
 
-This shortcoming may be resolved in a future release.
+The import hook does not have this limitation because it instruments the complete class
+before compiling it.
 
 Using :func:`@typechecked <typechecked>` on top of other decorators
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
