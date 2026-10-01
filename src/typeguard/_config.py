@@ -35,9 +35,12 @@ class CollectionCheckStrategy(Enum):
 
     * ``AbstractSet``
     * ``Dict``
+    * ``ItemsView``
+    * ``KeysView``
     * ``List``
     * ``Mapping``
     * ``Set``
+    * ``ValuesView``
     * ``Tuple[<type>, ...]`` (arbitrarily sized tuples)
 
     Members:

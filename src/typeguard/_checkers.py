@@ -23,6 +23,8 @@ from typing import (
     Callable,
     Dict,
     ForwardRef,
+    ItemsView,
+    KeysView,
     List,
     NewType,
     Set,
@@ -32,6 +34,7 @@ from typing import (
     TypeGuard,
     TypeVar,
     Union,
+    ValuesView,
 )
 from unittest.mock import Mock
 
@@ -336,6 +339,55 @@ def check_list(
             except TypeCheckError as exc:
                 exc.append_path_element(f"item {i}")
                 raise
+
+
+def check_keys_or_values_view(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    if origin_type in (KeysView, collections.abc.KeysView):
+        if not isinstance(value, collections.abc.KeysView):
+            raise TypeCheckError("is not a keys view")
+    elif not isinstance(value, collections.abc.ValuesView):
+        raise TypeCheckError("is not a values view")
+
+    if args and args != (Any,):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for v in samples:
+            try:
+                check_type_internal(v, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f"[{v!r}]")
+                raise
+
+
+def check_items_view(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    if not isinstance(value, collections.abc.ItemsView):
+        raise TypeCheckError("is not an items view")
+
+    if args:
+        key_type, value_type = args
+        if key_type is not Any or value_type is not Any:
+            samples = memo.config.collection_check_strategy.iterate_samples(value)
+            for k, v in samples:
+                try:
+                    check_type_internal(k, key_type, memo)
+                except TypeCheckError as exc:
+                    exc.append_path_element(f"key {k!r}")
+                    raise
+
+                try:
+                    check_type_internal(v, value_type, memo)
+                except TypeCheckError as exc:
+                    exc.append_path_element(f"value of key {k!r}")
+                    raise
 
 
 def check_sequence(
@@ -1048,6 +1100,10 @@ origin_type_checkers: dict[
     float: check_number,
     frozenset: check_set,
     IO: check_io,
+    collections.abc.ItemsView: check_items_view,
+    ItemsView: check_items_view,
+    collections.abc.KeysView: check_keys_or_values_view,
+    KeysView: check_keys_or_values_view,
     list: check_list,
     List: check_list,
     typing.Literal: check_literal,
@@ -1067,6 +1123,8 @@ origin_type_checkers: dict[
     type: check_class,
     Type: check_class,
     TypeGuard: check_typeguard,
+    collections.abc.ValuesView: check_keys_or_values_view,
+    ValuesView: check_keys_or_values_view,
     Union: check_union,
     UnionType: check_uniontype,
     # On some versions of Python, these may simply be re-exports from "typing",

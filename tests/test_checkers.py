@@ -21,8 +21,10 @@ from typing import (
     Dict,
     ForwardRef,
     FrozenSet,
+    ItemsView,
     Iterable,
     Iterator,
+    KeysView,
     List,
     Literal,
     Mapping,
@@ -38,6 +40,7 @@ from typing import (
     TypeGuard,
     TypeVar,
     Union,
+    ValuesView,
 )
 
 import pytest
@@ -759,6 +762,94 @@ class TestList:
             List[int],
             collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("list is not an instance of int")
+
+
+class TestKeysView:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, [1], KeysView[int]).match(
+            "list is not a keys view"
+        )
+
+    def test_first_check_success(self):
+        check_type({"aa": 1, "bb": 2}.keys(), KeysView[str])
+
+    def test_first_check_empty(self):
+        check_type({}.keys(), KeysView[str])
+
+    def test_first_check_fail(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"aa": 1}.keys(), KeysView[int]
+        ).match("dict_keys is not an instance of int")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {1: None, 2: None, "cc": None}.keys(),
+            KeysView[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("dict_keys is not an instance of int")
+
+
+class TestValuesView:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, [1], ValuesView[int]).match(
+            "list is not a values view"
+        )
+
+    def test_keys_view_is_not_a_values_view(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"aa": 1}.keys(), ValuesView[str]
+        ).match("dict_keys is not a values view")
+
+    def test_first_check_success(self):
+        check_type({"aa": 1, "bb": 2}.values(), ValuesView[int])
+
+    def test_first_check_fail(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"aa": 1}.values(), ValuesView[str]
+        ).match("dict_values is not an instance of str")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"aa": 1, "bb": 2, "cc": "x"}.values(),
+            ValuesView[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("dict_values is not an instance of int")
+
+
+class TestItemsView:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, [1], ItemsView[str, int]).match(
+            "list is not an items view"
+        )
+
+    def test_first_check_success(self):
+        check_type({"aa": 1, "bb": 2}.items(), ItemsView[str, int])
+
+    def test_first_check_empty(self):
+        check_type({}.items(), ItemsView[str, int])
+
+    def test_bad_key_type(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"aa": 1}.items(), ItemsView[int, int]
+        ).match("dict_items is not an instance of int")
+
+    def test_bad_value_type(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"aa": 1}.items(), ItemsView[str, str]
+        ).match("dict_items is not an instance of str")
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            {"aa": 1, "bb": "x"}.items(),
+            ItemsView[str, int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("dict_items is not an instance of int")
 
 
 class TestSequence:
