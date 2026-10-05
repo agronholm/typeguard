@@ -23,11 +23,10 @@ def import_dummymodule():
 
     sys.path.insert(0, str(this_dir))
     try:
-        with install_import_hook(["dummymodule"]):
-            with warnings.catch_warnings():
-                warnings.filterwarnings("error", module="typeguard")
-                module = import_module("dummymodule")
-                return module
+        with install_import_hook(["dummymodule"]), warnings.catch_warnings():
+            warnings.filterwarnings("error", module="typeguard")
+            module = import_module("dummymodule")
+            return module
     finally:
         sys.path.remove(str(this_dir))
 

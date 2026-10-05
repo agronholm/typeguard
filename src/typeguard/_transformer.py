@@ -768,7 +768,7 @@ class TypeguardTransformer(NodeTransformer):
 
             if arg_annotations:
                 annotations_dict = Dict(
-                    keys=[Constant(key) for key in arg_annotations.keys()],
+                    keys=[Constant(key) for key in arg_annotations],
                     values=[
                         Tuple([Name(key, ctx=Load()), annotation], ctx=Load())
                         for key, annotation in arg_annotations.items()

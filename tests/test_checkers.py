@@ -280,7 +280,7 @@ class TestLiteral:
         )
 
     def test_literal_nested(self):
-        annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]
+        annotation = Literal[1, "x", "a", "z", 6, 8]
         check_type("z", annotation)
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
             r"int is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
@@ -1729,7 +1729,7 @@ def test_forward_reference_policy(
     policy: ForwardRefPolicy, contextmanager: ContextManager
 ):
     with contextmanager:
-        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)  # noqa: F821
+        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)
 
 
 def test_any():
