@@ -528,13 +528,12 @@ def check_class(
                     return
                 except TypeCheckError as exc:
                     errors[get_type_name(arg)] = exc
-            else:
-                formatted_errors = indent(
-                    "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-                )
-                raise TypeCheckError(
-                    f"did not match any element in the union:\n{formatted_errors}"
-                )
+            formatted_errors = indent(
+                "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+            )
+            raise TypeCheckError(
+                f"did not match any element in the union:\n{formatted_errors}"
+            )
         finally:
             del errors  # avoid creating ref cycle
     else:
@@ -1024,7 +1023,7 @@ def check_type_internal(
     if isclass(origin_type):
         if not isinstance(value, origin_type):
             raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
-    elif type(origin_type) is str:  # noqa: E721
+    elif type(origin_type) is str:
         warnings.warn(
             f"Skipping type check against {origin_type!r}; this looks like a "
             f"string-form forward reference imported from another module",

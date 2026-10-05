@@ -46,7 +46,7 @@ if sys.version_info <= (3, 13):
     @dummy_decorator
     def non_type_checked_decorated_func(x: int, y: str) -> 6:
         # This is to ensure that we avoid using a local variable that's already in use
-        _call_memo = "foo"  # noqa: F841
+        _call_memo = "foo"
         return "foo"
 
 
