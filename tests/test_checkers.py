@@ -41,7 +41,7 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, TypeAliasType, TypeVarTuple, Unpack
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -1123,6 +1123,40 @@ class TestNewType:
         pytest.raises(TypeCheckError, check_type, ["a"], mylist).match(
             r"item 0 of list is not an instance of int"
         )
+
+
+class TestTypeAliasType:
+    K = TypeVar("K")
+    V = TypeVar("V")
+    Boxed = TypeAliasType("Boxed", List[V], type_params=(V,))
+    Swapped = TypeAliasType("Swapped", Dict[V, K], type_params=(K, V))
+    Ts = TypeVarTuple("Ts")
+    Variadic = TypeAliasType("Variadic", Tuple[Unpack[Ts]], type_params=(Ts,))
+
+    def test_parametrized_valid(self):
+        check_type([1], self.Boxed[int])
+
+    def test_parametrized_bad_value(self):
+        pytest.raises(TypeCheckError, check_type, ["a"], self.Boxed[int]).match(
+            r"item 0 of list is not an instance of int"
+        )
+
+    def test_parametrized_nested_bad_value(self):
+        pytest.raises(
+            TypeCheckError, check_type, {"k": ["a"]}, Dict[str, self.Boxed[int]]
+        ).match(r"item 0 of value of key 'k' of dict is not an instance of int")
+
+    def test_parametrized_param_order(self):
+        check_type({"a": 1}, self.Swapped[int, str])
+        pytest.raises(
+            TypeCheckError, check_type, {1: "a"}, self.Swapped[int, str]
+        ).match(r"key 1 of dict is not an instance of str")
+
+    def test_parametrized_variadic(self):
+        check_type((1, "a"), self.Variadic[int, str])
+        pytest.raises(
+            TypeCheckError, check_type, (1, 2), self.Variadic[int, str]
+        ).match(r"item 1 of tuple is not an instance of str")
 
 
 class TestType:

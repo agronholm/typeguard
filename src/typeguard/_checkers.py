@@ -953,6 +953,25 @@ def check_paramspec(
     pass  # No-op for now
 
 
+def substitute_type_alias_args(alias: Any, args: tuple[Any, ...]) -> Any:
+    value = alias.__value__
+    params = getattr(value, "__parameters__", ())
+    if not params:
+        return value
+    elif params == alias.__type_params__:
+        return value[args]
+    elif any(
+        isinstance(param, typing_extensions.TypeVarTuple)
+        for param in alias.__type_params__
+    ):
+        # A TypeVarTuple absorbs a variable number of arguments, so the arguments
+        # can't be matched to the reordered type parameters by position
+        return Any
+
+    typevar_map = dict(zip(alias.__type_params__, args))
+    return value[tuple(typevar_map.get(param, param) for param in params)]
+
+
 def check_type_internal(
     value: Any,
     annotation: Any,
@@ -987,6 +1006,8 @@ def check_type_internal(
 
     if type(annotation) in type_alias_types:
         annotation = annotation.__value__
+    elif type(alias := get_origin(annotation)) in type_alias_types:
+        annotation = substitute_type_alias_args(alias, get_args(annotation))
 
     if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
