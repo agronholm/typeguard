@@ -953,6 +953,125 @@ def check_paramspec(
     pass  # No-op for now
 
 
+_UNSUBSTITUTED = object()
+
+
+def _bind_type_alias_params(
+    type_params: tuple[Any, ...], args: tuple[Any, ...]
+) -> dict[Any, Any] | None:
+    """Bind alias parameters, letting one TypeVarTuple absorb the extra arguments."""
+    variadic = [
+        index
+        for index, param in enumerate(type_params)
+        if isinstance(param, typing_extensions.TypeVarTuple)
+    ]
+    if len(variadic) != 1:
+        return None
+    index = variadic[0]
+    trailing = len(type_params) - index - 1
+    if len(args) < index + trailing:
+        return None
+
+    stop = len(args) - trailing
+    bound: dict[Any, Any] = {
+        param: args[offset] for offset, param in enumerate(type_params[:index])
+    }
+    bound[type_params[index]] = tuple(args[index:stop])
+    bound.update(
+        {
+            param: args[stop + offset]
+            for offset, param in enumerate(type_params[index + 1 :])
+        }
+    )
+    return bound
+
+
+def _unpack_origins() -> set[Any]:
+    origins = {typing_extensions.Unpack, getattr(typing, "Unpack", None)}
+    origins.discard(None)
+    return origins
+
+
+def _apply_alias_substitution(hint: Any, bound: dict[Any, Any]) -> Any:
+    # On Python 3.10, Unpack[Ts] is a TypeVar. Check it before the TypeVar branch,
+    # or the unpacked arguments are never spliced into the surrounding type.
+    origin = get_origin(hint)
+    unpack_origins = _unpack_origins()
+    if origin in unpack_origins:
+        hint_args = get_args(hint)
+        inner = hint_args[0] if hint_args else None
+        if inner in bound and isinstance(bound[inner], tuple):
+            return bound[inner]
+        return hint
+    if isinstance(hint, typing_extensions.TypeVarTuple):
+        return bound.get(hint, hint)
+    if isinstance(hint, TypeVar):
+        return bound.get(hint, hint)
+    if origin is None:
+        return hint
+
+    hint_args = get_args(hint)
+    rebuilt: list[Any] = []
+    for arg in hint_args:
+        replaced = _apply_alias_substitution(arg, bound)
+        if replaced is _UNSUBSTITUTED:
+            return _UNSUBSTITUTED
+        if get_origin(arg) in unpack_origins and isinstance(replaced, tuple):
+            rebuilt.extend(replaced)
+        else:
+            rebuilt.append(replaced)
+    try:
+        return origin[tuple(rebuilt)]
+    except TypeError:
+        return _UNSUBSTITUTED
+
+
+def _substitute_unpacked_alias(
+    value: Any, type_params: tuple[Any, ...], args: tuple[Any, ...]
+) -> Any:
+    """Expand ``Unpack`` when ``GenericAlias.__getitem__`` cannot.
+
+    On Python 3.10, ``Tuple[Unpack[Ts]][int, str]`` raises ``KeyError`` instead of
+    becoming ``tuple[int, str]``. Rebuilding the alias keeps the check in place.
+    """
+    bound = _bind_type_alias_params(type_params, args)
+    if bound is None:
+        return _UNSUBSTITUTED
+    substituted = _apply_alias_substitution(value, bound)
+    if type(substituted) is tuple:
+        return _UNSUBSTITUTED
+    return substituted
+
+
+def substitute_type_alias_args(alias: Any, args: tuple[Any, ...]) -> Any:
+    value = alias.__value__
+    params = getattr(value, "__parameters__", ())
+    if not params:
+        return value
+    elif params == alias.__type_params__:
+        try:
+            return value[args]
+        except KeyError:
+            if not any(
+                isinstance(param, typing_extensions.TypeVarTuple) for param in params
+            ):
+                raise
+            substituted = _substitute_unpacked_alias(value, params, args)
+            if substituted is _UNSUBSTITUTED:
+                raise
+            return substituted
+    elif any(
+        isinstance(param, typing_extensions.TypeVarTuple)
+        for param in alias.__type_params__
+    ):
+        # A TypeVarTuple absorbs a variable number of arguments, so the arguments
+        # can't be matched to the reordered type parameters by position
+        return Any
+
+    typevar_map = dict(zip(alias.__type_params__, args))
+    return value[tuple(typevar_map.get(param, param) for param in params)]
+
+
 def check_type_internal(
     value: Any,
     annotation: Any,
@@ -987,6 +1106,8 @@ def check_type_internal(
 
     if type(annotation) in type_alias_types:
         annotation = annotation.__value__
+    elif type(alias := get_origin(annotation)) in type_alias_types:
+        annotation = substitute_type_alias_args(alias, get_args(annotation))
 
     if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
