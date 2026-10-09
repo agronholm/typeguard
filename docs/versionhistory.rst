@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed runtime ``NameError`` for dotted imports and multi-level annotations that
+  refer to imports guarded by ``TYPE_CHECKING`` (PR by @adenzhou1350)
+
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
