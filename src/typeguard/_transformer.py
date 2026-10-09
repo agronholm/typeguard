@@ -187,11 +187,10 @@ class TransformMemo:
             expression.value if isinstance(expression, Expr) else expression
         )
 
-        if isinstance(top_expression, Attribute) and isinstance(
-            top_expression.value, Name
-        ):
-            name = top_expression.value.id
-        elif isinstance(top_expression, Name):
+        while isinstance(top_expression, Attribute):
+            top_expression = top_expression.value
+
+        if isinstance(top_expression, Name):
             name = top_expression.id
         else:
             return False
@@ -290,7 +289,7 @@ class NameCollector(NodeVisitor):
 
     def visit_Import(self, node: Import) -> None:
         for name in node.names:
-            self.names.add(name.asname or name.name)
+            self.names.add(name.asname or name.name.split(".", 1)[0])
 
     def visit_ImportFrom(self, node: ImportFrom) -> None:
         for name in node.names:
