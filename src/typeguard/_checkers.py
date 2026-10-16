@@ -864,6 +864,14 @@ def check_protocol(
 ) -> None:
     origin_annotations = typing.get_type_hints(origin_type)
     checking_class = isclass(value)
+    # Each protocol implementation defines its own Self scope. Keep this memo
+    # through containers and unions, and rebind only at another protocol boundary.
+    memo = TypeCheckMemo(
+        memo.globals,
+        memo.locals,
+        self_type=value if checking_class else type(value),
+        config=memo.config,
+    )
     for attrname in sorted(typing_extensions.get_protocol_members(origin_type)):
         if (annotation := origin_annotations.get(attrname)) is not None:
             if checking_class and typing.get_origin(annotation) is not typing.ClassVar:
@@ -881,6 +889,9 @@ def check_protocol(
                 ) from None
 
             try:
+                if typing.get_origin(annotation) is typing.ClassVar:
+                    annotation = get_args(annotation)[0]
+
                 check_type_internal(subject_member, annotation, memo)
             except TypeCheckError as exc:
                 raise TypeCheckError(

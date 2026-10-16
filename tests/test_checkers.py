@@ -41,17 +41,19 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, Self
 
 from typeguard import (
     CollectionCheckStrategy,
     ForwardRefPolicy,
+    TypeCheckConfiguration,
     TypeCheckError,
     TypeCheckMemo,
     TypeHintWarning,
     check_type,
     check_type_internal,
     suppress_type_checks,
+    typechecked,
 )
 from typeguard._checkers import _sentinel_types, is_typeddict
 from typeguard._utils import qualified_name
@@ -1443,6 +1445,241 @@ class TestProtocol:
             bar = 3
 
         check_type(Present, type[MyProtocol])
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_classvar_value_valid(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            bar: typing_provider.ClassVar[int]
+
+        class Present:
+            bar = 3
+
+        subject = Present() if instantiate else Present
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        assert check_type(subject, annotation) is subject
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    @pytest.mark.parametrize("value", ["wrong", None])
+    def test_classvar_value_invalid(
+        self, typing_provider: Any, instantiate: bool, value: Any
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            bar: typing_provider.ClassVar[int]
+
+        class Present:
+            bar = value
+
+        subject = Present() if instantiate else Present
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        with pytest.raises(
+            TypeCheckError,
+            match="because its 'bar' attribute is not an instance of int",
+        ):
+            check_type(subject, annotation)
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_classvar_value_missing(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            bar: typing_provider.ClassVar[int]
+
+        class Missing:
+            pass
+
+        subject = Missing() if instantiate else Missing
+        annotation = MyProtocol if instantiate else type[MyProtocol]
+        with pytest.raises(TypeCheckError, match="has no attribute named 'bar'"):
+            check_type(subject, annotation)
+
+    @pytest.mark.parametrize(
+        "member_annotation, member_kind",
+        [
+            pytest.param(Self, "instance", id="self"),
+            pytest.param(type[Self], "class", id="type-self"),
+            pytest.param(Self | None, "instance", id="optional-self"),
+            pytest.param(Self | None, "none", id="optional-none"),
+            pytest.param(list[Self], "list", id="list-self"),
+            pytest.param(int, "int", id="int"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "context", ["instance", "class", "method-instance", "method-class"]
+    )
+    @pytest.mark.parametrize("valid", [True, False], ids=["valid", "invalid"])
+    def test_classvar_context(
+        self,
+        typing_provider: Any,
+        member_annotation: Any,
+        member_kind: str,
+        context: str,
+        valid: bool,
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            bar: typing_provider.ClassVar[member_annotation]
+
+        class Present:
+            pass
+
+        values = {
+            "instance": Present(),
+            "class": Present,
+            "none": None,
+            "list": [Present()],
+            "int": 3,
+        }
+        # Keep the container valid so list[Self] must check its element.
+        if valid:
+            Present.bar = values[member_kind]
+        else:
+            Present.bar = ["wrong"] if member_kind == "list" else "wrong"
+
+        with (
+            nullcontext()
+            if valid
+            else pytest.raises(TypeCheckError, match="because its 'bar' attribute")
+        ):
+            if context == "instance":
+                subject = Present()
+                assert check_type(subject, MyProtocol) is subject
+            elif context == "class":
+                assert check_type(Present, type[MyProtocol]) is Present
+            else:
+
+                class Consumer:
+                    @typechecked
+                    def consume(self, item: MyProtocol, other: Self) -> Self:
+                        # Keep the local protocol in the function's closure.
+                        assert MyProtocol
+                        return other
+
+                    @typechecked
+                    def consume_class(
+                        self, item: type[MyProtocol], other: Self
+                    ) -> Self:
+                        assert MyProtocol
+                        return other
+
+                consumer = Consumer()
+                # The later Self argument and return must retain Consumer's context.
+                if context == "method-instance":
+                    assert consumer.consume(Present(), consumer) is consumer
+                else:
+                    assert consumer.consume_class(Present, consumer) is consumer
+
+    @pytest.mark.parametrize(
+        "nested", [False, True], ids=["one-boundary", "two-boundaries"]
+    )
+    @pytest.mark.parametrize(
+        "context", ["instance", "class", "method-instance", "method-class"]
+    )
+    @pytest.mark.parametrize("inner_value", ["node", "none", "registry", "wrong"])
+    def test_classvar_nested_protocol_self(
+        self, typing_provider: Any, nested: bool, context: str, inner_value: str
+    ) -> None:
+        class Link(typing_provider.Protocol):
+            next: Self | None
+
+        class Node:
+            next: Any
+
+        class BranchProtocol(typing_provider.Protocol):
+            link: Link
+
+        class Branch:
+            link = Node()
+
+        root_annotation = BranchProtocol if nested else Link
+
+        class RegistryProtocol(typing_provider.Protocol):
+            root: typing_provider.ClassVar[root_annotation]
+            z_owner: typing_provider.ClassVar[type[Self]]
+
+        class Registry:
+            root = Branch() if nested else Branch.link
+
+        Registry.z_owner = Registry
+        Branch.link.next = {
+            "node": Node(),
+            "none": None,
+            # The outer implementation must not satisfy the inner protocol's Self.
+            "registry": Registry(),
+            "wrong": "wrong",
+        }[inner_value]
+
+        with (
+            nullcontext()
+            if inner_value in ("node", "none")
+            else pytest.raises(
+                TypeCheckError,
+                match="because its 'next' attribute did not match any element",
+            )
+        ):
+            if context == "instance":
+                subject = Registry()
+                assert check_type(subject, RegistryProtocol) is subject
+            elif context == "class":
+                assert check_type(Registry, type[RegistryProtocol]) is Registry
+            else:
+
+                class Consumer:
+                    @typechecked
+                    def consume(self, item: RegistryProtocol, other: Self) -> Self:
+                        assert RegistryProtocol
+                        return other
+
+                    @typechecked
+                    def consume_class(
+                        self, item: type[RegistryProtocol], other: Self
+                    ) -> Self:
+                        assert RegistryProtocol
+                        return other
+
+                consumer = Consumer()
+                if context == "method-instance":
+                    assert consumer.consume(Registry(), consumer) is consumer
+                else:
+                    assert consumer.consume_class(Registry, consumer) is consumer
+
+    @pytest.mark.parametrize("valid", [True, False], ids=["valid", "invalid"])
+    def test_nested_protocol_memo_preserved(self, valid: bool) -> None:
+        class Link(Protocol):
+            next: list[Self]
+
+        class Node:
+            next: list[Any]
+
+        class RegistryProtocol(Protocol):
+            root: ClassVar[Link]
+
+        class Registry:
+            root = Node()
+
+        class Consumer:
+            pass
+
+        # ALL_ITEMS must survive both protocol boundaries to check the second item.
+        Registry.root.next = [Node(), Node() if valid else Registry()]
+        globals_dict, locals_dict = globals(), locals()
+        config = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        memo = TypeCheckMemo(
+            globals_dict, locals_dict, self_type=Consumer, config=config
+        )
+        with (
+            nullcontext()
+            if valid
+            else pytest.raises(TypeCheckError, match="'next' attribute item 1")
+        ):
+            check_type_internal(Registry(), RegistryProtocol, memo)
+
+        assert memo.globals is globals_dict
+        assert memo.locals is locals_dict
+        assert memo.config is config
+        assert memo.self_type is Consumer
 
     def test_missing_method(self) -> None:
         class MyProtocol(Protocol):
