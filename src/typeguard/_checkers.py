@@ -856,7 +856,42 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
             )
 
 
+class _ProtocolCheckMemo(TypeCheckMemo):
+    __slots__ = ("active_checks",)
+
+    active_checks: set[tuple[int, int]]
+
+
 def check_protocol(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    pair = (id(value), id(origin_type))
+    active_checks = (
+        memo.active_checks if isinstance(memo, _ProtocolCheckMemo) else set()
+    )
+    if pair in active_checks:
+        return
+
+    # Each protocol implementation defines its own Self scope, but shares the
+    # active pairs with nested protocol checks without changing the caller's memo.
+    memo = _ProtocolCheckMemo(
+        memo.globals,
+        memo.locals,
+        self_type=value if isclass(value) else type(value),
+        config=memo.config,
+    )
+    memo.active_checks = active_checks
+    active_checks.add(pair)
+    try:
+        _check_protocol(value, origin_type, args, memo)
+    finally:
+        active_checks.remove(pair)
+
+
+def _check_protocol(
     value: Any,
     origin_type: Any,
     args: tuple[Any, ...],
@@ -864,14 +899,6 @@ def check_protocol(
 ) -> None:
     origin_annotations = typing.get_type_hints(origin_type)
     checking_class = isclass(value)
-    # Each protocol implementation defines its own Self scope. Keep this memo
-    # through containers and unions, and rebind only at another protocol boundary.
-    memo = TypeCheckMemo(
-        memo.globals,
-        memo.locals,
-        self_type=value if checking_class else type(value),
-        config=memo.config,
-    )
     for attrname in sorted(typing_extensions.get_protocol_members(origin_type)):
         if (annotation := origin_annotations.get(attrname)) is not None:
             if checking_class and typing.get_origin(annotation) is not typing.ClassVar:

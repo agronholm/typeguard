@@ -2,6 +2,7 @@ import collections.abc
 import sys
 import types
 from contextlib import nullcontext
+from contextvars import copy_context
 from datetime import timedelta
 from functools import partial
 from io import BytesIO, StringIO
@@ -1642,6 +1643,148 @@ class TestProtocol:
                     assert consumer.consume(Registry(), consumer) is consumer
                 else:
                     assert consumer.consume_class(Registry, consumer) is consumer
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    @pytest.mark.parametrize("cyclic", [False, True], ids=["finite", "cyclic"])
+    def test_classvar_recursive_protocol(
+        self, typing_provider: Any, instantiate: bool, cyclic: bool
+    ) -> None:
+        class RecursiveProtocol(typing_provider.Protocol):
+            default: typing_provider.ClassVar[Any]
+            z_count: typing_provider.ClassVar[int]
+
+        # Bind the local protocol after its definition to avoid a global forward ref.
+        RecursiveProtocol.__annotations__["default"] = typing_provider.ClassVar[
+            RecursiveProtocol | None
+        ]
+
+        class Leaf:
+            default = None
+            z_count = 1
+
+        class Present:
+            default = None
+            z_count = 1
+
+        Present.default = Present() if cyclic else Leaf()
+        subject = Present() if instantiate else Present
+        annotation = RecursiveProtocol if instantiate else type[RecursiveProtocol]
+        assert check_type(subject, annotation) is subject
+
+        # An active cycle must not bypass later fields, and completed checks must
+        # not leave either successful or failed pairs cached for the next call.
+        Present.z_count = "wrong"
+        for _ in range(2):
+            with pytest.raises(TypeCheckError, match="'z_count' attribute"):
+                check_type(subject, annotation)
+
+        Present.z_count = 1
+        assert check_type(subject, annotation) is subject
+        if not cyclic:
+            # A different object checked against the same protocol still needs
+            # validation even while the outer object/protocol pair is active.
+            Leaf.z_count = "wrong"
+            with pytest.raises(TypeCheckError, match="'z_count' attribute"):
+                check_type(subject, annotation)
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_classvar_recursive_nested_self_memo(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class Link(typing_provider.Protocol):
+            parent: Any
+            z_next: list[Self]
+
+        class RegistryProtocol(typing_provider.Protocol):
+            root: typing_provider.ClassVar[Link]
+            z_owner: typing_provider.ClassVar[type[Self]]
+
+        Link.__annotations__["parent"] = RegistryProtocol
+
+        class Node:
+            pass
+
+        class Registry:
+            root = Node()
+
+        class Consumer:
+            pass
+
+        subject = Registry() if instantiate else Registry
+        annotation = RegistryProtocol if instantiate else type[RegistryProtocol]
+        Registry.root.parent = subject
+        Registry.root.z_next = [Node(), Node()]
+        Registry.z_owner = Registry
+        globals_dict, locals_dict = globals(), locals()
+        config = TypeCheckConfiguration(
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS
+        )
+        memo = TypeCheckMemo(
+            globals_dict, locals_dict, self_type=Consumer, config=config
+        )
+        try:
+            check_type_internal(subject, annotation, memo)
+            Registry.root.z_next[1] = Registry()
+            with pytest.raises(TypeCheckError, match="'z_next' attribute item 1"):
+                check_type_internal(subject, annotation, memo)
+
+            Registry.root.z_next[1] = Node()
+            Registry.z_owner = Node
+            with pytest.raises(TypeCheckError, match="'z_owner' attribute"):
+                check_type_internal(subject, annotation, memo)
+
+            Registry.z_owner = Registry
+            check_type_internal(subject, annotation, memo)
+        finally:
+            assert memo.globals is globals_dict
+            assert memo.locals is locals_dict
+            assert memo.config is config
+            assert memo.self_type is Consumer
+
+    def test_classvar_recursive_same_object_different_protocol(
+        self, typing_provider: Any
+    ) -> None:
+        class InnerProtocol(typing_provider.Protocol):
+            parent: typing_provider.ClassVar[Any]
+            z_count: typing_provider.ClassVar[int]
+
+        class OuterProtocol(typing_provider.Protocol):
+            child: typing_provider.ClassVar[InnerProtocol]
+
+        InnerProtocol.__annotations__["parent"] = OuterProtocol
+
+        class Present:
+            z_count = "wrong"
+
+        subject = Present()
+        Present.child = Present.parent = subject
+        with pytest.raises(TypeCheckError, match="'z_count' attribute"):
+            check_type(subject, OuterProtocol)
+
+        Present.z_count = 1
+        assert check_type(subject, OuterProtocol) is subject
+
+    def test_protocol_recursion_state_does_not_escape_context(
+        self, typing_provider: Any
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            count: typing_provider.ClassVar[int]
+
+        contexts = []
+
+        class Present:
+            value = 1
+
+            @property
+            def count(self) -> int:
+                contexts.append(copy_context())
+                return self.value
+
+        subject = Present()
+        check_type(subject, MyProtocol)
+        subject.value = "wrong"
+        with pytest.raises(TypeCheckError, match="'count' attribute"):
+            contexts[0].run(check_type, subject, MyProtocol)
 
     @pytest.mark.parametrize("valid", [True, False], ids=["valid", "invalid"])
     def test_nested_protocol_memo_preserved(self, valid: bool) -> None:
