@@ -211,7 +211,9 @@ The following types from the standard library have specialized support:
    * - :class:`typing.TypeGuard`
      - Checked as :class:`bool`
    * - :class:`typing.TypedDict`
-     - Contents are typechecked; On Python 3.8 and earlier, ``total`` from superclasses
+     - Contents are typechecked, including fields with ``Annotated`` metadata around
+       ``Required``, ``NotRequired`` or ``ReadOnly`` qualifiers. Metadata is preserved
+       for custom type checkers. On Python 3.8 and earlier, ``total`` from superclasses
        is not respected (see `#101`_ for more information); On Python 3.9.0, false
        positives can happen when constructing :class:`typing.TypedDict` classes using
        old-style syntax (see `issue 42059`_)

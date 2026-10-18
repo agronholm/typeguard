@@ -53,7 +53,11 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
-from typeguard._checkers import _sentinel_types, is_typeddict
+from typeguard._checkers import (
+    _sentinel_types,
+    checker_lookup_functions,
+    is_typeddict,
+)
 from typeguard._utils import qualified_name
 
 from . import (
@@ -449,6 +453,70 @@ class TestDict:
 
 
 class TestTypedDict:
+    @pytest.mark.parametrize("qualifier_name", ["Required", "NotRequired", "ReadOnly"])
+    @pytest.mark.parametrize("annotated_outer", [False, True], ids=["inner", "outer"])
+    @pytest.mark.parametrize("as_string", [False, True], ids=["concrete", "forwardref"])
+    @pytest.mark.parametrize("total", [False, True])
+    def test_annotated_qualifier(
+        self, typing_provider, qualifier_name, annotated_outer, as_string, total
+    ):
+        try:
+            qualifier = getattr(typing_provider, qualifier_name)
+        except AttributeError:
+            pytest.skip(f"{qualifier_name!r} not found in {typing_provider.__name__!r}")
+
+        annotation = (
+            Annotated[qualifier[int], "metadata"]
+            if annotated_outer
+            else qualifier[Annotated[int, "metadata"]]
+        )
+        if as_string:
+            annotation = (
+                "Annotated[qualifier[int], 'metadata']"
+                if annotated_outer
+                else "qualifier[Annotated[int, 'metadata']]"
+            )
+
+        dummy_dict = typing_provider.TypedDict(
+            "DummyDict", {"x": annotation}, total=total
+        )
+        check_type({"x": 1}, dummy_dict)
+        with pytest.raises(TypeCheckError, match="is not an instance of int"):
+            check_type({"x": "foo"}, dummy_dict)
+
+        required = qualifier_name == "Required" or (
+            qualifier_name == "ReadOnly" and total
+        )
+        if required:
+            with pytest.raises(TypeCheckError, match="is missing required key"):
+                check_type({}, dummy_dict)
+        else:
+            check_type({}, dummy_dict)
+
+    @pytest.mark.parametrize("qualifier_name", ["Required", "NotRequired", "ReadOnly"])
+    def test_annotated_qualifier_metadata(
+        self, typing_provider, qualifier_name, monkeypatch
+    ):
+        try:
+            qualifier = getattr(typing_provider, qualifier_name)
+        except AttributeError:
+            pytest.skip(f"{qualifier_name!r} not found in {typing_provider.__name__!r}")
+
+        seen = []
+
+        def lookup(origin, args, extras):
+            if origin is int:
+                seen.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup, *checker_lookup_functions],
+        )
+        annotation = Annotated[qualifier[Annotated[int, "inner"]], "outer"]
+        dummy_dict = typing_provider.TypedDict("DummyDict", {"x": annotation})
+        check_type({"x": 1}, dummy_dict)
+        assert seen == [("inner", "outer")]
+
     @pytest.mark.parametrize(
         "value, total, error_re",
         [
