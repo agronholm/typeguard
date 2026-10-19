@@ -1158,6 +1158,20 @@ class TestTypeAliasType:
             TypeCheckError, check_type, (1, 2), self.Variadic[int, str]
         ).match(r"item 1 of tuple is not an instance of str")
 
+    def test_identity_alias_rejects_wrong_type(self):
+        Identity = TypeAliasType("Identity", self.V, type_params=(self.V,))
+        check_type(1, Identity[int])
+        pytest.raises(TypeCheckError, check_type, "bad", Identity[int]).match(
+            r"is not an instance of int"
+        )
+
+    def test_nested_alias_rejects_wrong_item(self):
+        Outer = TypeAliasType("Outer", self.Boxed[self.V], type_params=(self.V,))
+        check_type([1], Outer[int])
+        pytest.raises(TypeCheckError, check_type, ["bad"], Outer[int]).match(
+            r"item 0 of list is not an instance of int"
+        )
+
 
 class TestType:
     @pytest.mark.parametrize("annotation", [pytest.param(Type), pytest.param(type)])
