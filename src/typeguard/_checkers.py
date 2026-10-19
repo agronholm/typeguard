@@ -1045,6 +1045,10 @@ def _substitute_unpacked_alias(
 
 def substitute_type_alias_args(alias: Any, args: tuple[Any, ...]) -> Any:
     value = alias.__value__
+    if isinstance(value, TypeVar):
+        # `type Identity[T] = T` stores the type variable itself. It has no
+        # `__parameters__`, so the generic-alias path below would leave it unbound.
+        return dict(zip(alias.__type_params__, args)).get(value, value)
     params = getattr(value, "__parameters__", ())
     if not params:
         return value
@@ -1104,10 +1108,28 @@ def check_type_internal(
 
             return
 
-    if type(annotation) in type_alias_types:
-        annotation = annotation.__value__
-    elif type(alias := get_origin(annotation)) in type_alias_types:
-        annotation = substitute_type_alias_args(alias, get_args(annotation))
+    # A nested alias such as `type Outer[T] = Boxed[T]` is still an alias after
+    # one substitution. Walk until the value is a concrete annotation. A cycle
+    # stops instead of recursing.
+    seen_aliases: set[tuple[int, tuple[Any, ...]]] = set()
+    while True:
+        if type(annotation) in type_alias_types:
+            key = (id(annotation), ())
+            if key in seen_aliases:
+                return
+            seen_aliases.add(key)
+            annotation = annotation.__value__
+            continue
+        alias = get_origin(annotation)
+        if type(alias) in type_alias_types:
+            args = get_args(annotation)
+            key = (id(alias), args)
+            if key in seen_aliases:
+                return
+            seen_aliases.add(key)
+            annotation = substitute_type_alias_args(alias, args)
+            continue
+        break
 
     if annotation is Any or annotation is SubclassableAny or isinstance(value, Mock):
         return
