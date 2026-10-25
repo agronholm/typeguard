@@ -10,6 +10,10 @@ This library adheres to
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
 
+- Fixed a false ``TypeCheckError`` (or a leaked ``ValueError`` from a custom
+  ``__eq__``) when checking a callable whose keyword-only parameters have default
+  values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
+  of ``is``
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
