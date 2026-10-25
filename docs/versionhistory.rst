@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
+  inside a function without a return annotation; it now skips the check, matching
+  how ``check_argument_types()`` treats unannotated parameters
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)

@@ -65,6 +65,12 @@ class TestCheckReturnType:
 
         foo()
 
+    def test_no_return_annotation(self) -> None:
+        def foo():
+            return check_return_type(0)
+
+        assert foo() == 0
+
     def test_failure(self) -> None:
         def foo() -> int:
             return check_return_type("foo")
