@@ -182,7 +182,7 @@ def check_callable(
                 param.name
                 for param in signature.parameters.values()
                 if param.kind == Parameter.KEYWORD_ONLY
-                and param.default == Parameter.empty
+                and param.default is Parameter.empty
             ]
             if unfulfilled_kwonlyargs:
                 raise TypeCheckError(
