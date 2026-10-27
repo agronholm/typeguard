@@ -8,6 +8,7 @@ This library adheres to
 
 - Fixed non-parametrized type aliases wrapped in ``Annotated`` skipping type
   checking, including aliases whose values have their own ``Annotated`` metadata
+  (`#610 <https://github.com/agronholm/typeguard/pull/610>`_; PR by @jwalith4418-Mj)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
