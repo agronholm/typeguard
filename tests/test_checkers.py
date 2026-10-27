@@ -1696,6 +1696,36 @@ class TestAnnotated:
             "int is not an instance of str"
         )
 
+    @pytest.mark.parametrize("alias_value", [int, Annotated[int, "inner"]])
+    def test_type_alias(self, typing_provider, alias_value):
+        if not hasattr(typing_provider, "TypeAliasType"):
+            pytest.skip("TypeAliasType is unavailable")
+
+        alias = typing_provider.TypeAliasType("Alias", alias_value)
+        annotation = Annotated[alias, "outer"]
+        assert check_type(1, annotation) == 1
+        with pytest.raises(TypeCheckError, match="str is not an instance of int"):
+            check_type("invalid", annotation)
+
+    def test_type_alias_metadata(self, typing_provider, monkeypatch):
+        if not hasattr(typing_provider, "TypeAliasType"):
+            pytest.skip("TypeAliasType is unavailable")
+
+        alias = typing_provider.TypeAliasType("Alias", Annotated[int, "inner"])
+        seen = []
+
+        def lookup(origin_type, args, extras):
+            seen.append((origin_type, extras))
+
+        from typeguard import checker_lookup_functions
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup, *checker_lookup_functions],
+        )
+        check_type(1, Annotated[alias, "outer"])
+        assert seen == [(alias, ("outer",)), (int, ("inner",))]
+
 
 class TestLiteralString:
     def test_valid(self):
