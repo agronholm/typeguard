@@ -61,7 +61,7 @@ To get your changes merged to the main codebase, you need a Github account.
 #. Fork the repository (if you don't have your own fork of it yet) by navigating to the
    `main Typeguard repository`_ and clicking on "Fork" near the top right corner.
 #. Clone the forked repository to your local machine with
-   ``git clone git@github.com/yourusername/typeguard``.
+   ``git clone git@github.com:yourusername/typeguard.git``.
 #. Create a branch for your pull request, like ``git checkout -b myfixname``
 #. Make the desired changes to the code base.
 #. Commit your changes locally. If your changes close an existing issue, add the text
