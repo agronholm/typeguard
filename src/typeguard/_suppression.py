@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import update_wrapper
+from inspect import iscoroutinefunction
 from threading import Lock
-from typing import ContextManager, ParamSpec, TypeVar, overload
+from typing import Any, ContextManager, ParamSpec, TypeVar, cast, overload
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -37,7 +38,8 @@ def suppress_type_checks(
     nested.
 
     When used as a decorator, all type checking is suppressed while the function is
-    running.
+    running. Coroutine functions are suppressed while being awaited, including across
+    suspension points.
 
     Type checking will resume once no more context managers are active and no decorated
     functions are running.
@@ -74,6 +76,15 @@ def suppress_type_checks(
     if func is None:
         # Context manager mode
         return contextmanager(cm)()
+    elif iscoroutinefunction(func):
+        async_func = func
+
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
+            with contextmanager(cm)():
+                return await async_func(*args, **kwargs)
+
+        update_wrapper(async_wrapper, func)
+        return cast(Callable[P, T], async_wrapper)
     else:
         # Decorator mode
         update_wrapper(wrapper, func)

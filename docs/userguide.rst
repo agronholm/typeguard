@@ -270,8 +270,13 @@ skip the checks::
     def my_suppressed_function(x: int) -> None:
         ...
 
+The decorator also supports coroutine functions. Suppression starts when the coroutine
+is awaited, not when it is created, and lasts until it completes, raises an exception or
+is cancelled. It remains active while the coroutine is suspended at an ``await``.
+
 Suppression state is tracked globally. Suppression ends only when all the context
-managers have exited and all calls to decorated functions have returned.
+managers have exited and all calls to decorated functions have completed. It is not
+isolated to the current thread or asynchronous task.
 
 Permanently suppressing type checks for selected functions
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
