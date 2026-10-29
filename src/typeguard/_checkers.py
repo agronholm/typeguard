@@ -550,6 +550,15 @@ def check_class(
             )
 
 
+def check_type_alias(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    check_type_internal(value, origin_type.__value__, memo)
+
+
 def check_newtype(
     value: Any,
     origin_type: Any,
@@ -1109,6 +1118,8 @@ def builtin_checker_lookup(
         return check_paramspec
     elif isinstance(origin_type, TypeVar):
         return check_typevar
+    elif type(origin_type) in type_alias_types and not args:
+        return check_type_alias
     elif origin_type.__class__ is NewType:
         return check_newtype
     elif isinstance(origin_type, _sentinel_types):
