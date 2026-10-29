@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added checks for previously annotated local names bound by ``for``,
+  ``with ... as`` and their async variants, including unpacked targets
+  (`#586 <https://github.com/agronholm/typeguard/issues/586>`_)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)

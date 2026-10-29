@@ -8,7 +8,9 @@ from ast import (
     Add,
     AnnAssign,
     Assign,
+    AsyncFor,
     AsyncFunctionDef,
+    AsyncWith,
     Attribute,
     AugAssign,
     BinOp,
@@ -23,6 +25,7 @@ from ast import (
     Expr,
     Expression,
     FloorDiv,
+    For,
     FunctionDef,
     If,
     Import,
@@ -47,6 +50,7 @@ from ast import (
     Sub,
     Subscript,
     Tuple,
+    With,
     Yield,
     YieldFrom,
     alias,
@@ -54,6 +58,7 @@ from ast import (
     expr,
     fix_missing_locations,
     keyword,
+    stmt,
     walk,
 )
 from collections import defaultdict
@@ -1141,6 +1146,102 @@ class TypeguardTransformer(NodeTransformer):
                 )
 
         return node
+
+    def _binding_checks(self, target: expr) -> list[stmt]:
+        """
+        Build statements that check a previously annotated local name right after it
+        has been natively bound by something other than an assignment expression (a
+        ``for`` or ``with`` target). Unpacking targets are recursed into so that each
+        bound name gets its own check, mirroring how ``visit_Assign`` handles tuple
+        unpacking.
+
+        """
+        if not isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef)):
+            return []
+
+        if isinstance(target, (Tuple, List)):
+            checks: list[stmt] = []
+            for elt in target.elts:
+                checks.extend(self._binding_checks(elt))
+
+            return checks
+        elif isinstance(target, Starred):
+            return self._binding_checks(target.value)
+        elif not isinstance(target, Name):
+            return []
+
+        self._memo.ignored_names.add(target.id)
+        annotation = self._memo.variable_annotations.get(target.id)
+        if annotation is None:
+            return []
+
+        func_name = self._get_import(
+            "typeguard._functions", "check_variable_assignment"
+        )
+        check_call = Call(
+            func_name,
+            [
+                Name(target.id, ctx=Load()),
+                List(
+                    [Tuple([Constant(target.id), annotation], ctx=Load())],
+                    ctx=Load(),
+                ),
+                self._memo.get_memo_name(),
+            ],
+            [],
+        )
+        return [copy_location(Expr(check_call), target)]
+
+    def visit_For(self, node: For | AsyncFor) -> For | AsyncFor:
+        """
+        This injects type checks for previously annotated local names bound by a
+        ``for`` loop's target, run once per iteration right before the loop body.
+
+        Only annotations already recorded before the loop is visited apply -- an
+        annotation written inside the loop body does not retroactively apply to the
+        loop target.
+
+        """
+        checks = self._binding_checks(node.target)
+        self.generic_visit(node)
+        node.body[:0] = checks
+        return node
+
+    visit_AsyncFor = visit_For
+
+    def visit_With(self, node: With | AsyncWith) -> With | AsyncWith:
+        """
+        This injects type checks for previously annotated local names bound by a
+        ``with`` statement's ``as`` targets.
+
+        A ``with a, b:`` statement is equivalent to nesting ``with a:`` and
+        ``with b:``, so each binding's check needs to run, and is allowed to raise,
+        before the next context manager's ``__enter__``/``__aenter__`` is called --
+        otherwise a failed check on ``a`` wouldn't prevent ``b`` from being entered.
+        The statement is therefore rebuilt as a chain of single-item ``with``
+        statements, one per item, with each item's checks inserted at the start of
+        the body it now wraps.
+
+        """
+        item_checks = [
+            self._binding_checks(item.optional_vars) if item.optional_vars else []
+            for item in node.items
+        ]
+        self.generic_visit(node)
+        if not any(item_checks):
+            return node
+
+        body = node.body
+        for item, checks in reversed(list(zip(node.items, item_checks))):
+            nested = copy_location(
+                type(node)(items=[item], body=[*checks, *body], type_comment=None),
+                node,
+            )
+            body = [nested]
+
+        return nested
+
+    visit_AsyncWith = visit_With
 
     def visit_NamedExpr(self, node: NamedExpr) -> Any:
         """This injects a type check into an assignment expression (a := foo())."""

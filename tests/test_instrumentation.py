@@ -310,6 +310,141 @@ def test_unpacking_assign_star_no_annotation_fail(dummymodule):
         dummymodule.unpacking_assign_star_no_annotation((1, b"abc", b"bah", b"foo"))
 
 
+def test_for_loop_binding(dummymodule):
+    assert dummymodule.for_loop_binding([1, 2, 3]) == [1, 2, 3]
+
+
+def test_for_loop_binding_fail(dummymodule):
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to value \(str\) is not an instance of int",
+    ):
+        dummymodule.for_loop_binding([1, "bad"])
+
+
+def test_async_for_loop_binding(dummymodule):
+    async def values():
+        for v in (1, 2):
+            yield v
+
+    assert asyncio.run(dummymodule.async_for_loop_binding(values())) == [1, 2]
+
+
+def test_async_for_loop_binding_fail(dummymodule):
+    async def values():
+        for v in (1, "bad"):
+            yield v
+
+    pytest.raises(
+        TypeCheckError, asyncio.run, dummymodule.async_for_loop_binding(values())
+    ).match(r"value assigned to value \(str\) is not an instance of int")
+
+
+def test_for_loop_unpacking_binding(dummymodule):
+    assert dummymodule.for_loop_unpacking_binding([(1, "a", "b")]) == [(1, ["a", "b"])]
+
+
+def test_for_loop_unpacking_binding_fail(dummymodule):
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to value \(str\) is not an instance of int",
+    ):
+        dummymodule.for_loop_unpacking_binding([("bad", "a")])
+
+
+def test_for_loop_later_annotation_not_retroactive(dummymodule):
+    """A ``value: int`` annotation inside the loop body must not retroactively
+    apply to the loop target bound before it, so a non-int value must pass through
+    unchecked (regression test for #586)."""
+    assert dummymodule.for_loop_later_annotation(["unchecked"]) == "unchecked"
+
+
+def test_with_binding(dummymodule):
+    events: list = []
+    first = dummymodule.recording_manager(events, "first", 1)
+    second = dummymodule.recording_manager(events, "second", "ok")
+    assert dummymodule.with_binding(first, second) == (1, "ok")
+    assert events == [
+        ("first", "enter"),
+        ("second", "enter"),
+        ("second", "exit", None),
+        ("first", "exit", None),
+    ]
+
+
+def test_with_binding_first_target_fails_before_second_manager_entered(dummymodule):
+    """If the first ``as`` target's check fails, the second context manager must
+    never be entered at all -- it's equivalent to nested ``with`` blocks (regression
+    test for #586)."""
+    events: list = []
+    first = dummymodule.recording_manager(events, "first", "bad")
+    second = dummymodule.recording_manager(events, "second", "ok")
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to value \(str\) is not an instance of int",
+    ):
+        dummymodule.with_binding(first, second)
+
+    assert events == [("first", "enter"), ("first", "exit", TypeCheckError)]
+
+
+def test_with_binding_second_target_fails(dummymodule):
+    events: list = []
+    first = dummymodule.recording_manager(events, "first", 1)
+    second = dummymodule.recording_manager(events, "second", 2)
+    with pytest.raises(
+        TypeCheckError,
+        match=r"value assigned to other \(int\) is not an instance of str",
+    ):
+        dummymodule.with_binding(first, second)
+
+    assert events == [
+        ("first", "enter"),
+        ("second", "enter"),
+        ("second", "exit", TypeCheckError),
+        ("first", "exit", TypeCheckError),
+    ]
+
+
+def test_async_with_binding(dummymodule):
+    events: list = []
+    first = dummymodule.async_recording_manager(events, "first", 1)
+    second = dummymodule.async_recording_manager(events, "second", "ok")
+    assert asyncio.run(dummymodule.async_with_binding(first, second)) == (1, "ok")
+    assert events == [
+        ("first", "enter"),
+        ("second", "enter"),
+        ("second", "exit", None),
+        ("first", "exit", None),
+    ]
+
+
+def test_async_with_binding_fail(dummymodule):
+    events: list = []
+    first = dummymodule.async_recording_manager(events, "first", "bad")
+    second = dummymodule.async_recording_manager(events, "second", "ok")
+    pytest.raises(
+        TypeCheckError, asyncio.run, dummymodule.async_with_binding(first, second)
+    ).match(r"value assigned to value \(str\) is not an instance of int")
+    assert events == [("first", "enter"), ("first", "exit", TypeCheckError)]
+
+
+def test_for_loop_attribute_target_binding_not_instrumented(dummymodule):
+    """A non-``Name`` loop target is left uninstrumented rather than crashing the
+    transformer or the running function."""
+    obj = dummymodule.DummyClass()
+    dummymodule.for_loop_attribute_target_binding(obj, [1, "two", 3.0])
+    assert obj.bar == 3.0
+
+
+def test_module_level_for_loop_not_instrumented(dummymodule):
+    """A module-scope ``for`` target must not be instrumented -- only checks
+    inside functions are supported. ``dummymodule`` itself has one that binds an
+    ``int``-annotated name to a non-int value; successfully importing it (done by
+    the fixture) is the test."""
+    assert dummymodule.value == "not an int, but this is module scope"
+
+
 class TestOptionsOverride:
     def test_forward_ref_policy(self, dummymodule):
         with pytest.raises(NameError, match="name 'NonexistentType' is not defined"):
