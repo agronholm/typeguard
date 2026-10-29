@@ -179,6 +179,10 @@ recognizes module-level imports guarded by ``if typing.TYPE_CHECKING:`` or
 such blocks on the module level will be replaced in calls to internal type checking
 functions with :data:`~typing.Any`.
 
+This also applies to dotted imports such as ``import xml.dom`` and annotations
+such as ``xml.dom.Node``: the imported name is ``xml`` unless an explicit alias
+is provided.
+
 Using the pytest plugin
 -----------------------
 

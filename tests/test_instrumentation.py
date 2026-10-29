@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import sys
 import warnings
+from contextlib import nullcontext
 from importlib import import_module
 from importlib.util import cache_from_source
 from pathlib import Path
@@ -98,6 +99,56 @@ def test_type_checked_func_error(dummymodule):
     pytest.raises(TypeCheckError, dummymodule.type_checked_func, 2, "3").match(
         r'argument "y" \(str\) is not an instance of int'
     )
+
+
+@pytest.mark.parametrize(
+    "import_statement, annotation",
+    [
+        ("import xml.dom", "xml.dom.Node"),
+        ("import xml", "xml.dom.Node"),
+        ("import xml.dom as dom", "dom.Node"),
+        ("from xml import dom", "dom.Node"),
+    ],
+)
+@pytest.mark.parametrize("typechecking_only", [False, True])
+def test_typechecking_dotted_import(
+    import_statement, annotation, typechecking_only, method, tmp_path, monkeypatch
+):
+    from xml.dom import Node
+
+    module_name = "typeguard_test_dotted_import"
+    imports = (
+        f"if TYPE_CHECKING:\n    {import_statement}\n"
+        if typechecking_only
+        else f"{import_statement}\n"
+    )
+    decorator = "@typechecked\n" if method == "typechecked" else ""
+    (tmp_path / f"{module_name}.py").write_text(
+        "from __future__ import annotations\n"
+        "from typing import TYPE_CHECKING\n"
+        "from typeguard import typechecked\n"
+        f"{imports}\n"
+        f"{decorator}def foo(value: {annotation}) -> {annotation}:\n"
+        "    return value\n"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    context = (
+        install_import_hook([module_name]) if method == "importhook" else nullcontext()
+    )
+    try:
+        with context:
+            module = import_module(module_name)
+
+        value = Node()
+        assert module.foo(value) is value
+        if typechecking_only:
+            other = object()
+            assert module.foo(other) is other
+        else:
+            with pytest.raises(TypeCheckError, match='argument "value"'):
+                module.foo(object())
+    finally:
+        sys.modules.pop(module_name, None)
 
 
 def test_non_type_checked_func(dummymodule):
