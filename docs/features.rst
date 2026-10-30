@@ -196,7 +196,8 @@ The following types from the standard library have specialized support:
        | :class:`frozenset`
        | :class:`typing.Set`
        | :class:`typing.AbstractSet`
-     - Contents are typechecked
+     - Contents are typechecked. Concrete ``set`` and ``frozenset`` annotations require
+       instances of those types, while ``AbstractSet`` accepts either type.
    * - | :class:`typing.Sequence`
        | :class:`collections.abc.Sequence`
      - Contents are typechecked

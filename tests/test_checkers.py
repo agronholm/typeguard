@@ -793,6 +793,11 @@ class TestSequence:
 
 
 class TestAbstractSet:
+    @pytest.mark.parametrize("value", [frozenset({1}), {1: "value"}.keys()])
+    @pytest.mark.parametrize("annotation", [AbstractSet[int], collections.abc.Set[int]])
+    def test_immutable_set(self, value, annotation):
+        check_type(value, annotation)
+
     def test_custom_type(self):
         class DummySet(AbstractSet[int]):
             def __contains__(self, x: object) -> bool:
@@ -828,6 +833,21 @@ class TestAbstractSet:
 
 
 class TestSet:
+    @pytest.mark.parametrize("annotation", [set, Set, set[int], Set[int]])
+    @pytest.mark.parametrize(
+        "value", [frozenset(), frozenset({1}), {1: "value"}.keys()]
+    )
+    def test_non_set(self, value, annotation):
+        with pytest.raises(TypeCheckError, match="is not a set"):
+            check_type(value, annotation)
+
+    @pytest.mark.parametrize("annotation", [set, Set, set[int], Set[int]])
+    def test_subclass(self, annotation):
+        class CustomSet(set):
+            pass
+
+        check_type(CustomSet({1}), annotation)
+
     def test_bad_type(self):
         pytest.raises(TypeCheckError, check_type, 5, Set[int]).match("int is not a set")
 
