@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed a false ``TypeCheckError`` (or a leaked ``ValueError`` from a custom
+  ``__eq__``) when checking a callable whose keyword-only parameters have default
+  values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
+  of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
