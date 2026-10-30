@@ -6,6 +6,13 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed a ``Protocol`` member declared as a ``property`` being skipped by the checker
+  entirely, so a value that did not have that attribute at all was accepted
+  (`#598 <https://github.com/agronholm/typeguard/pull/598>`_; PR by @feiiiiii5)
+- Fixed an exception other than ``AttributeError`` raised while reading a ``Protocol``
+  member (a ``__getattr__`` that raises, or a property whose getter raises) escaping
+  ``check_type()`` instead of being reported as ``TypeCheckError``
+  (`#598 <https://github.com/agronholm/typeguard/pull/598>`_; PR by @feiiiiii5)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
