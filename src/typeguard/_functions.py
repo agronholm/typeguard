@@ -203,6 +203,10 @@ def check_return_type(retval: T) -> T:
     func = find_function(frame)
     memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
     type_hints = get_type_hints(func, frame.f_globals, frame.f_locals)
+    if "return" not in type_hints:
+        # No return annotation, so there is nothing to check against - the same
+        # treatment unannotated parameters get in check_argument_types()
+        return retval
     return check_return_type_internal(func.__name__, retval, type_hints["return"], memo)
 
 
