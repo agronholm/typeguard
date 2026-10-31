@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
+  (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
+
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)

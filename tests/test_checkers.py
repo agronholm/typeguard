@@ -27,6 +27,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    NamedTuple,
     ParamSpec,
     Protocol,
     Sequence,
@@ -950,6 +951,21 @@ class TestTuple:
 
 
 class TestNamedTuple:
+    def test_empty_valid(self):
+        class Empty(NamedTuple):
+            pass
+
+        value = Empty()
+        assert check_type(value, Empty) is value
+
+    @pytest.mark.parametrize("value", [(), (1,), Employee("bob", 1)])
+    def test_empty_type_mismatch(self, value):
+        class Empty(NamedTuple):
+            pass
+
+        with pytest.raises(TypeCheckError, match="is not a named tuple of type"):
+            check_type(value, Empty)
+
     def test_valid(self):
         check_type(Employee("bob", 1), Employee)
 
