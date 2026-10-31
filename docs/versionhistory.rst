@@ -4,6 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
+  (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
