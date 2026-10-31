@@ -856,7 +856,42 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
             )
 
 
+class _ProtocolCheckMemo(TypeCheckMemo):
+    __slots__ = ("active_checks",)
+
+    active_checks: set[tuple[int, int]]
+
+
 def check_protocol(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    pair = (id(value), id(origin_type))
+    active_checks = (
+        memo.active_checks if isinstance(memo, _ProtocolCheckMemo) else set()
+    )
+    if pair in active_checks:
+        return
+
+    # Each protocol implementation defines its own Self scope, but shares the
+    # active pairs with nested protocol checks without changing the caller's memo.
+    memo = _ProtocolCheckMemo(
+        memo.globals,
+        memo.locals,
+        self_type=value if isclass(value) else type(value),
+        config=memo.config,
+    )
+    memo.active_checks = active_checks
+    active_checks.add(pair)
+    try:
+        _check_protocol(value, origin_type, args, memo)
+    finally:
+        active_checks.remove(pair)
+
+
+def _check_protocol(
     value: Any,
     origin_type: Any,
     args: tuple[Any, ...],
@@ -881,6 +916,9 @@ def check_protocol(
                 ) from None
 
             try:
+                if typing.get_origin(annotation) is typing.ClassVar:
+                    annotation = get_args(annotation)[0]
+
                 check_type_internal(subject_member, annotation, memo)
             except TypeCheckError as exc:
                 raise TypeCheckError(

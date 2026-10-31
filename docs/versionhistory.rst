@@ -6,6 +6,8 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed protocol ``ClassVar`` attributes being checked for presence without checking
+  their value types
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
