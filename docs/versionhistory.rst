@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added support for checking ``TypeIs`` return values as booleans
+  (`#616 <https://github.com/agronholm/typeguard/pull/616>`_; PR by @Skytuhua)
+
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
