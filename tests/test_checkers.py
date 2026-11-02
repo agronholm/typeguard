@@ -1717,6 +1717,23 @@ class TestTypeGuard:
         )
 
 
+class TestTypeIs:
+    @pytest.mark.parametrize("value", [True, False])
+    def test_valid(self, value, typing_provider):
+        if not hasattr(typing_provider, "TypeIs"):
+            pytest.skip(f"'TypeIs' not found in {typing_provider.__name__!r}")
+
+        check_type(value, typing_provider.TypeIs[int])
+
+    @pytest.mark.parametrize("value", [1, "truthy", None])
+    def test_fail(self, value, typing_provider):
+        if not hasattr(typing_provider, "TypeIs"):
+            pytest.skip(f"'TypeIs' not found in {typing_provider.__name__!r}")
+
+        with pytest.raises(TypeCheckError, match="is not an instance of bool"):
+            check_type(value, typing_provider.TypeIs[int])
+
+
 @pytest.mark.parametrize(
     "policy, contextmanager",
     [

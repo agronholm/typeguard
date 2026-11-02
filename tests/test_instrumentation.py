@@ -100,6 +100,19 @@ def test_type_checked_func_error(dummymodule):
     )
 
 
+@pytest.mark.parametrize("value", [True, False])
+def test_typeis_return_valid(dummymodule, value):
+    assert dummymodule.typeis_func(value) is value
+
+
+@pytest.mark.parametrize("value", [1, "truthy", None])
+def test_typeis_return_invalid(dummymodule, value):
+    with pytest.raises(
+        TypeCheckError, match=r"the return value .* is not an instance of bool"
+    ):
+        dummymodule.typeis_func(value)
+
+
 def test_non_type_checked_func(dummymodule):
     assert dummymodule.non_type_checked_func("bah", 9) == "foo"
 
