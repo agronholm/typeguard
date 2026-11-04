@@ -67,7 +67,15 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         )
 
     target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
-    module_source = inspect.getsource(sys.modules[f.__module__])
+    try:
+        module_source = inspect.getsource(sys.modules[f.__module__])
+    except (OSError, TypeError):
+        return (
+            "cannot get the source code of the module containing the function "
+            "(functions defined in a REPL, an interactive shell such as IPython or "
+            "Jupyter, or exec()ed code cannot be instrumented)"
+        )
+
     module_ast = ast.parse(module_source)
     instrumentor = TypeguardTransformer(target_path, f.__code__.co_firstlineno)
     instrumentor.visit(module_ast)

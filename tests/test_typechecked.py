@@ -4,6 +4,7 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
+from types import ModuleType
 from typing import (
     Any,
     AsyncGenerator,
@@ -19,7 +20,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, typechecked
+from typeguard import InstrumentationWarning, TypeCheckError, typechecked
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -707,6 +708,31 @@ def test_duplicate_function():
 
     assert foo1() == [0, 1, 2, 3, 4]
     assert foo() == [5, 6, 7, 8, 9]
+
+
+def test_module_source_unavailable():
+    """
+    Test that a function defined in a module with no retrievable source (a REPL,
+    IPython/Jupyter or exec()ed code) emits a warning instead of raising.
+
+    """
+
+    def foo(bar: str) -> str:
+        return bar
+
+    module = ModuleType("test_module_source_unavailable_module")
+    sys.modules[module.__name__] = module
+    try:
+        foo.__module__ = module.__name__
+
+        with pytest.warns(
+            InstrumentationWarning, match="cannot get the source code of the module"
+        ):
+            retval = typechecked(foo)
+
+        assert retval is foo
+    finally:
+        del sys.modules[module.__name__]
 
 
 class TestAssignmentExpression:

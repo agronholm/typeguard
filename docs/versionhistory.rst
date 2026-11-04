@@ -22,6 +22,10 @@ This library adheres to
   (`#489 <https://github.com/agronholm/typeguard/issues/489>`_; PR by @ShipitAndPray)
 - Fixed compatibility with Python 3.15
   (`#554 <https://github.com/agronholm/typeguard/pull/554>`_; PR by @hrnciar)
+- Fixed ``@typechecked`` raising ``TypeError`` instead of emitting
+  ``InstrumentationWarning`` when the source code of the target function's module is
+  unavailable (as in a REPL, IPython/Jupyter, or ``exec()``\ ed code)
+  (`#364 <https://github.com/agronholm/typeguard/issues/364>`_)
 - Fixed an assignment expression against an annotated name (``x: int``, then
   ``if (x := ...)``) being instrumented as an unpacking target, which raised
   ``TypeError`` for a non-iterable value and silently replaced an iterable value with
