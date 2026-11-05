@@ -156,6 +156,12 @@ def test_local_class_instance(dummymodule):
     )
 
 
+def test_new_forward_ref_class_name_not_bound_to_subclass(dummymodule):
+    instance = dummymodule.NewForwardRefSub()
+    assert instance.class_name_resolved_to_base
+    assert not instance.class_name_resolved_to_subclass
+
+
 def test_contextmanager(dummymodule):
     with dummymodule.dummy_context_manager() as value:
         assert value == 1
