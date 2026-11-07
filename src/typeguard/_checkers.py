@@ -21,6 +21,7 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    Counter,
     Dict,
     ForwardRef,
     List,
@@ -215,6 +216,26 @@ def check_callable(
                     f"{len(argument_types)} but {num_positional_args} argument(s) "
                     f"declared"
                 )
+
+
+def check_counter(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    if not isinstance(value, collections.Counter):
+        raise TypeCheckError("is not a Counter")
+
+    # Counter takes a single argument for the key; the values are always ints
+    if args and args != (Any,):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for key in samples:
+            try:
+                check_type_internal(key, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f"key {key!r}")
+                raise
 
 
 def check_mapping(
@@ -1054,6 +1075,8 @@ origin_type_checkers: dict[
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
+    collections.Counter: check_counter,
+    Counter: check_counter,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
     Sequence: check_sequence,
