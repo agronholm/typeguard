@@ -21,6 +21,7 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    Deque,
     Dict,
     ForwardRef,
     List,
@@ -327,6 +328,25 @@ def check_list(
 ) -> None:
     if not isinstance(value, list):
         raise TypeCheckError("is not a list")
+
+    if args and args != (Any,):
+        samples = memo.config.collection_check_strategy.iterate_samples(value)
+        for i, v in enumerate(samples):
+            try:
+                check_type_internal(v, args[0], memo)
+            except TypeCheckError as exc:
+                exc.append_path_element(f"item {i}")
+                raise
+
+
+def check_deque(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    if not isinstance(value, collections.deque):
+        raise TypeCheckError("is not a deque")
 
     if args and args != (Any,):
         samples = memo.config.collection_check_strategy.iterate_samples(value)
@@ -1056,6 +1076,8 @@ origin_type_checkers: dict[
     None: check_none,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
+    collections.deque: check_deque,
+    Deque: check_deque,
     Sequence: check_sequence,
     collections.abc.Sequence: check_sequence,
     collections.abc.Set: check_set,
