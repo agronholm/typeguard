@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of ``Pattern`` and ``Match`` annotations; the ``str``/``bytes``
+  argument was previously ignored, so ``Pattern[str]`` accepted a pattern compiled from
+  bytes, and neither was checked against the wrong kind of object
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
