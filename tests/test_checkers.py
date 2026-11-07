@@ -14,10 +14,12 @@ from typing import (
     AnyStr,
     BinaryIO,
     Callable,
+    ChainMap,
     ClassVar,
     Collection,
     Concatenate,
     ContextManager,
+    DefaultDict,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -27,6 +29,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    OrderedDict,
     ParamSpec,
     Protocol,
     Sequence,
@@ -446,6 +449,51 @@ class TestDict:
                     yield key, self[key]
 
         check_type(CustomDict(a=1), Dict[str, int])
+
+
+class TestMappingSubclasses:
+    @pytest.mark.parametrize(
+        ("annotation", "factory", "type_name"),
+        [
+            pytest.param(ChainMap, collections.ChainMap, "ChainMap", id="chainmap"),
+            pytest.param(
+                DefaultDict,
+                lambda d: collections.defaultdict(int, d),
+                "defaultdict",
+                id="defaultdict",
+            ),
+            pytest.param(
+                OrderedDict, collections.OrderedDict, "OrderedDict", id="ordereddict"
+            ),
+        ],
+    )
+    class TestEach:
+        def test_valid(self, annotation, factory, type_name):
+            check_type(factory({"aa": 1}), annotation[str, int])
+
+        def test_bad_key_type(self, annotation, factory, type_name):
+            pytest.raises(
+                TypeCheckError, check_type, factory({1: 2}), annotation[str, int]
+            ).match("is not an instance of str")
+
+        def test_bad_value_type(self, annotation, factory, type_name):
+            pytest.raises(
+                TypeCheckError, check_type, factory({"aa": "bb"}), annotation[str, int]
+            ).match("is not an instance of int")
+
+        def test_plain_dict_is_rejected(self, annotation, factory, type_name):
+            pytest.raises(
+                TypeCheckError, check_type, {"aa": 1}, annotation[str, int]
+            ).match(f"dict is not a {type_name}")
+
+        def test_full_check_fail(self, annotation, factory, type_name):
+            pytest.raises(
+                TypeCheckError,
+                check_type,
+                factory({"aa": 1, "bb": "x"}),
+                annotation[str, int],
+                collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+            ).match("is not an instance of int")
 
 
 class TestTypedDict:

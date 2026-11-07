@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of ``ChainMap``, ``defaultdict`` and
+  ``OrderedDict`` annotations; the key and value types were previously ignored, and a
+  plain ``dict`` was accepted for any of them
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
