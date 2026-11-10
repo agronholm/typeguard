@@ -769,57 +769,22 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
     if protocol_has_varkwargs and not subject_has_varkwargs:
         raise TypeCheckError("should accept variable keyword arguments but doesn't")
 
-    # Check that the callable has at least the expect amount of positional-only
-    # arguments (and no extra positional-only arguments without default values)
-    if not has_varargs:
-        protocol_args = [
-            param
-            for param in protocol_sig.parameters.values()
-            if param.kind
-            in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
-        ]
-        subject_args = [
-            param
-            for param in subject_sig.parameters.values()
-            if param.kind
-            in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
-        ]
+    protocol_args = [
+        param
+        for param in protocol_sig.parameters.values()
+        if param.kind in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+    ]
+    subject_args = [
+        param
+        for param in subject_sig.parameters.values()
+        if param.kind in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+    ]
 
-        # Remove the "self" parameter from the protocol arguments to match
-        if protocol_type == "instance" and protocol_args:
-            protocol_args.pop(0)
-
-        # Remove the "self" parameter from the subject arguments to match
-        if subject_type == "instance" and subject_args:
-            subject_args.pop(0)
-
-        for protocol_arg, subject_arg in zip_longest(protocol_args, subject_args):
-            if protocol_arg is None:
-                if subject_arg.default is Parameter.empty:
-                    raise TypeCheckError("has too many mandatory positional arguments")
-
-                break
-
-            if subject_arg is None:
-                raise TypeCheckError("has too few positional arguments")
-
-            if (
-                protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
-                and subject_arg.kind is Parameter.POSITIONAL_ONLY
-            ):
-                raise TypeCheckError(
-                    f"has an argument ({subject_arg.name}) that should not be "
-                    f"positional-only"
-                )
-
-            if (
-                protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
-                and protocol_arg.name != subject_arg.name
-            ):
-                raise TypeCheckError(
-                    f"has a positional argument ({subject_arg.name}) that should be "
-                    f"named {protocol_arg.name!r} at this position"
-                )
+    # Remove the "self" parameters from instance methods before matching arguments.
+    if protocol_type == "instance" and protocol_args:
+        protocol_args.pop(0)
+    if subject_type == "instance" and subject_args:
+        subject_args.pop(0)
 
     protocol_kwonlyargs = {
         param.name: param
@@ -831,6 +796,71 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
         for param in subject_sig.parameters.values()
         if param.kind is Parameter.KEYWORD_ONLY
     }
+    for index, subject_arg in enumerate(subject_args):
+        if (
+            subject_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+            and subject_arg.name in protocol_kwonlyargs
+        ):
+            # A protocol positional argument must never also fill a keyword target.
+            if expected_varargs or index < len(protocol_args):
+                raise TypeCheckError(
+                    f"has a positional argument ({subject_arg.name}) that conflicts "
+                    "with a keyword-only argument in the protocol"
+                )
+
+            subject_kwonlyargs[subject_arg.name] = subject_arg
+
+    for protocol_arg, subject_arg in zip_longest(protocol_args, subject_args):
+        if protocol_arg is None:
+            if subject_arg.name in subject_kwonlyargs:
+                continue
+            if subject_arg.default is Parameter.empty:
+                raise TypeCheckError("has too many mandatory positional arguments")
+
+            continue
+
+        if subject_arg is None:
+            if has_varargs:
+                break
+
+            raise TypeCheckError("has too few positional arguments")
+
+        if (
+            protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+            and subject_arg.kind is Parameter.POSITIONAL_ONLY
+        ):
+            raise TypeCheckError(
+                f"has an argument ({subject_arg.name}) that should not be "
+                f"positional-only"
+            )
+
+        if (
+            protocol_has_varkwargs
+            and protocol_arg.kind is Parameter.POSITIONAL_ONLY
+            and subject_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+        ):
+            raise TypeCheckError(
+                f"has an argument ({subject_arg.name}) that should be positional-only"
+            )
+
+        if (
+            protocol_arg.kind is Parameter.POSITIONAL_OR_KEYWORD
+            and protocol_arg.name != subject_arg.name
+        ):
+            raise TypeCheckError(
+                f"has a positional argument ({subject_arg.name}) that should be "
+                f"named {protocol_arg.name!r} at this position"
+            )
+
+        if (
+            protocol_arg.default is not Parameter.empty
+            and subject_arg.default is Parameter.empty
+        ):
+            raise TypeCheckError(
+                f"has a mandatory argument ({subject_arg.name}) that is optional "
+                "in the protocol"
+            )
+
     if not subject_has_varkwargs:
         # Check that the signature has at least the required keyword-only arguments, and
         # no extra mandatory keyword-only arguments
@@ -843,17 +873,25 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
                 "is missing keyword-only arguments: " + ", ".join(missing_kwonlyargs)
             )
 
-    if not protocol_has_varkwargs:
-        if extra_kwonlyargs := [
-            param.name
-            for param in subject_kwonlyargs.values()
-            if param.default is Parameter.empty
-            and param.name not in protocol_kwonlyargs
-        ]:
+    for name, protocol_arg in protocol_kwonlyargs.items():
+        if (
+            protocol_arg.default is not Parameter.empty
+            and (subject_kwarg := subject_kwonlyargs.get(name)) is not None
+            and subject_kwarg.default is Parameter.empty
+        ):
             raise TypeCheckError(
-                "has mandatory keyword-only arguments not present in the protocol: "
-                + ", ".join(extra_kwonlyargs)
+                f"has a mandatory argument ({name}) that is optional in the protocol"
             )
+
+    if extra_kwonlyargs := [
+        param.name
+        for param in subject_kwonlyargs.values()
+        if param.default is Parameter.empty and param.name not in protocol_kwonlyargs
+    ]:
+        raise TypeCheckError(
+            "has mandatory keyword-only arguments not present in the protocol: "
+            + ", ".join(extra_kwonlyargs)
+        )
 
 
 def check_protocol(

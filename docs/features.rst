@@ -65,6 +65,10 @@ As of version 4.3.0, Typeguard can check instances and classes against Protocols
 regardless of whether they were annotated with
 :func:`@runtime_checkable <typing.runtime_checkable>`.
 
+Protocol keyword-only parameters can be implemented as positional-or-keyword
+parameters, provided the implementation accepts every call permitted by the protocol.
+In particular, optional protocol parameters must also be optional in the implementation.
+
 The only current limitation is that argument annotations are not checked for
 compatibility, however this should be covered by static type checkers pretty well.
 
