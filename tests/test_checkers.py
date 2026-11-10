@@ -52,6 +52,7 @@ from typeguard import (
     check_type,
     check_type_internal,
     suppress_type_checks,
+    typechecked,
 )
 from typeguard._checkers import _sentinel_types, is_typeddict
 from typeguard._utils import qualified_name
@@ -1312,6 +1313,271 @@ class TestIntersectingProtocol:
 
 
 class TestProtocol:
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    @pytest.mark.parametrize("default", [False, True], ids=["required", "defaulted"])
+    def test_keyword_only_as_standard(
+        self, typing_provider: Any, instantiate: bool, default: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            def meth(self, *, value: int) -> int:
+                pass
+
+        class Foo:
+            if default:
+
+                def meth(self, value: int = 0) -> int:
+                    return value
+            else:
+
+                def meth(self, value: int) -> int:
+                    return value
+
+        @typechecked
+        def consume(subject: MyProtocol) -> int:
+            return subject.meth(value=7)
+
+        assert Foo().meth(value=7) == 7
+        assert consume(Foo()) == 7
+        if instantiate:
+            check_type(Foo(), MyProtocol)
+        else:
+            check_type(Foo, type[MyProtocol])
+
+    @pytest.mark.parametrize("instantiate", [True, False], ids=["instance", "class"])
+    def test_keyword_only_as_standard_class_and_static(
+        self, typing_provider: Any, instantiate: bool
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            @staticmethod
+            def static_meth(*, value: int) -> int:
+                pass
+
+            @classmethod
+            def class_meth(cls, *, value: int) -> int:
+                pass
+
+        class Foo:
+            @staticmethod
+            def static_meth(value: int) -> int:
+                return value
+
+            @classmethod
+            def class_meth(cls, value: int = 0) -> int:
+                return value
+
+        assert Foo.static_meth(value=7) == Foo.class_meth(value=7) == 7
+        if instantiate:
+            check_type(Foo(), MyProtocol)
+        else:
+            check_type(Foo, type[MyProtocol])
+
+    @pytest.mark.parametrize(
+        "protocol_method, subject_method, compatible",
+        [
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, *, value: None,
+                True,
+                id="keyword-only",
+            ),
+            pytest.param(
+                lambda self, *, value=0: None,
+                lambda self, *, value: None,
+                False,
+                id="optional-to-required-keyword-only",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, value=0, /, **kwargs: None,
+                True,
+                id="optional-positional-only-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, value, /, **kwargs: None,
+                False,
+                id="required-positional-only-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, x=0, *, value: None,
+                lambda self, x=0, value=0: None,
+                True,
+                id="mixed-optional",
+            ),
+            pytest.param(
+                lambda self, x, *, value: None,
+                lambda self, x, value, *args, **kwargs: None,
+                True,
+                id="mixed-with-variadics",
+            ),
+            pytest.param(
+                lambda self, *args, value: None,
+                lambda self, *args, value: None,
+                True,
+                id="both-varargs",
+            ),
+            pytest.param(
+                lambda self, *args, value: None,
+                lambda self, *args, **kwargs: None,
+                True,
+                id="both-variadics",
+            ),
+            pytest.param(
+                lambda self, **kwargs: None,
+                lambda self, *, extra, **kwargs: None,
+                False,
+                id="extra-required-keyword-without-conversion",
+            ),
+            pytest.param(
+                lambda self, **kwargs: None,
+                lambda self, *, extra=0, **kwargs: None,
+                True,
+                id="extra-optional-keyword-without-conversion",
+            ),
+            pytest.param(
+                lambda self, *, value, **kwargs: None,
+                lambda self, *, value, extra, **kwargs: None,
+                False,
+                id="extra-required-keyword-without-standard",
+            ),
+            pytest.param(
+                lambda self, *, value, **kwargs: None,
+                lambda self, value, *, extra, **kwargs: None,
+                False,
+                id="extra-required-keyword-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value, **kwargs: None,
+                lambda self, value, *, extra=0, **kwargs: None,
+                True,
+                id="extra-optional-keyword-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value=0: None,
+                lambda self, value=0: None,
+                True,
+                id="optional",
+            ),
+            pytest.param(
+                lambda self, *, value=0: None,
+                lambda self, value: None,
+                False,
+                id="optional-to-required",
+            ),
+            pytest.param(
+                lambda self, *, value=0: None,
+                lambda self, value, **kwargs: None,
+                False,
+                id="optional-to-required-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, value, /: None,
+                False,
+                id="positional-only",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, extra, value: None,
+                False,
+                id="extra-required",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, extra, value, *args: None,
+                False,
+                id="extra-required-with-varargs",
+            ),
+            pytest.param(
+                lambda self, x, *, value: None,
+                lambda self, x, value: None,
+                True,
+                id="mixed",
+            ),
+            pytest.param(
+                lambda self, x, *, value: None,
+                lambda self, value, x: None,
+                False,
+                id="mixed-wrong-order",
+            ),
+            pytest.param(
+                lambda self, x, /, *, value: None,
+                lambda self, value, x=0: None,
+                False,
+                id="mixed-positional-keyword-collision",
+            ),
+            pytest.param(
+                lambda self, x, /, *, value, **kwargs: None,
+                lambda self, x, value, **kwargs: None,
+                False,
+                id="positional-only-name-in-kwargs",
+            ),
+            pytest.param(
+                lambda self, x=0, *, value: None,
+                lambda self, x, value: None,
+                False,
+                id="mixed-optional-to-required",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, value, *args: None,
+                True,
+                id="subject-varargs",
+            ),
+            pytest.param(
+                lambda self, *args, value: None,
+                lambda self, value, *args: None,
+                False,
+                id="protocol-varargs-collision",
+            ),
+            pytest.param(
+                lambda self, *args, value: None,
+                lambda self, value=0, *args, **kwargs: None,
+                False,
+                id="protocol-varargs-collision-with-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, **kwargs: None,
+                True,
+                id="subject-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value, **kwargs: None,
+                lambda self, value, **kwargs: None,
+                True,
+                id="both-kwargs",
+            ),
+            pytest.param(
+                lambda self, *, value: None,
+                lambda self, value, **kwargs: None,
+                True,
+                id="subject-standard-and-kwargs",
+            ),
+            pytest.param(
+                lambda self, x, *, value: None,
+                lambda self, value, *args, **kwargs: None,
+                False,
+                id="mixed-collision-with-variadics",
+            ),
+        ],
+    )
+    def test_keyword_only_as_standard_compatibility(
+        self,
+        typing_provider: Any,
+        protocol_method: Callable[..., None],
+        subject_method: Callable[..., None],
+        compatible: bool,
+    ) -> None:
+        class MyProtocol(typing_provider.Protocol):
+            meth = protocol_method
+
+        class Foo:
+            meth = subject_method
+
+        with nullcontext() if compatible else pytest.raises(TypeCheckError):
+            check_type(Foo(), MyProtocol)
+
     @pytest.mark.parametrize(
         "instantiate",
         [pytest.param(True, id="instance"), pytest.param(False, id="class")],
