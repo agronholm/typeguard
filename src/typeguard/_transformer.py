@@ -513,7 +513,8 @@ class TypeguardTransformer(NodeTransformer):
 
         Only the target function's code object is taken from the compiled module, so
         definitions beside the path in the module or in a class body are never needed.
-        Function bodies are kept whole: a nested target may close over their locals.
+        Definitions directly inside a function are always kept, as a nested target may
+        close over them; a class nested in a function is still pruned along the path.
 
         """
         if self._target_path is None:

@@ -561,6 +561,30 @@ def test_nested_function_keeps_closure_over_sibling_function():
         target("1")
 
 
+def test_method_with_siblings_keeps_super_and_enclosing_closure():
+    def outer():
+        offset = 1
+
+        class Base:
+            def value(self, x: int) -> int:
+                return x
+
+        class Child(Base):
+            def other(self) -> int:
+                return 0
+
+            @typechecked
+            def value(self, x: int) -> int:
+                return super().value(x) + offset
+
+        return Child()
+
+    child = outer()
+    assert child.value(1) == 2
+    with pytest.raises(TypeCheckError):
+        child.value("1")
+
+
 def test_retain_dunder_attributes():
     @typechecked
     def foo(x: int, y: str = "foo") -> None:

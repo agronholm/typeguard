@@ -615,12 +615,15 @@ def test_method_target_keeps_definitions_sharing_its_name() -> None:
             """
         )
     )
-    TypeguardTransformer(["Foo", "x"], 8).visit(node)
+    setter = node.body[0].body[1]
+    transformer = TypeguardTransformer(["Foo", "x"], setter.decorator_list[0].lineno)
+    transformer.visit(node)
     class_body = node.body[0].body
     assert [(type(item).__name__, item.name) for item in class_body] == [
         ("FunctionDef", "x"),
         ("FunctionDef", "x"),
     ]
+    assert transformer.target_node is setter
 
 
 def test_method_posonlyargs() -> None:
