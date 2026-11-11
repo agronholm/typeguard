@@ -554,6 +554,75 @@ check_return_type_internal
     )
 
 
+def test_method_target_drops_sibling_definitions() -> None:
+    # Only the target is extracted from the compiled code, so siblings along the target
+    # path are left out of the transformed tree; class-level statements stay.
+    node = parse(
+        dedent(
+            """
+            class Foo:
+                attr = 1
+
+                def bar(self, x: int) -> int:
+                    return x
+
+                def foo(self, x: int) -> int:
+                    return x
+
+                class Nested:
+                    def foo(self, x: int) -> int:
+                        return x
+            """
+        )
+    )
+    TypeguardTransformer(["Foo", "foo"]).visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            class Foo:
+                attr = 1
+
+                def foo(self, x: int) -> int:
+                    from typeguard import TypeCheckMemo
+                    from typeguard._functions import check_argument_types_internal, \
+check_return_type_internal
+                    memo = TypeCheckMemo(globals(), locals(), self_type=self.__class__)
+                    check_argument_types_internal('Foo.foo', {'x': (x, int)}, memo)
+                    return check_return_type_internal('Foo.foo', x, int, memo)
+            """
+        ).strip()
+    )
+
+
+def test_method_target_keeps_definitions_sharing_its_name() -> None:
+    # A property's getter and setter share one name; the line number picks the target,
+    # so neither may be dropped as a sibling.
+    node = parse(
+        dedent(
+            """
+            class Foo:
+                @property
+                def x(self) -> int:
+                    return 1
+
+                @x.setter
+                def x(self, value: int) -> None:
+                    pass
+
+                def other(self) -> None:
+                    pass
+            """
+        )
+    )
+    TypeguardTransformer(["Foo", "x"], 8).visit(node)
+    class_body = node.body[0].body
+    assert [(type(item).__name__, item.name) for item in class_body] == [
+        ("FunctionDef", "x"),
+        ("FunctionDef", "x"),
+    ]
+
+
 def test_method_posonlyargs() -> None:
     node = parse(
         dedent(
@@ -818,9 +887,6 @@ self_type=self.__class__)
 {'x': (x, int)}, memo)
                             return check_return_type_internal(\
 'wrapper.<locals>.Foo.Bar.method', x, int, memo)
-
-                        def method2(self, x: int) -> int:
-                            return x
             """
         ).strip()
     )

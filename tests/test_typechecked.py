@@ -544,6 +544,23 @@ def test_staticmethod():
     )
 
 
+def test_nested_function_keeps_closure_over_sibling_function():
+    def outer():
+        def helper() -> int:
+            return 1
+
+        @typechecked
+        def target(x: int) -> int:
+            return x + helper()
+
+        return target
+
+    target = outer()
+    assert target(1) == 2
+    with pytest.raises(TypeCheckError):
+        target("1")
+
+
 def test_retain_dunder_attributes():
     @typechecked
     def foo(x: int, y: str = "foo") -> None:
