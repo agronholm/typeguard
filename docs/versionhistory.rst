@@ -9,6 +9,9 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
+- Fixed parametrized PEP 695 type aliases (like ``Boxed[int]`` for
+  ``type Boxed[T] = list[T]``) being skipped entirely during type checking
+  (`#579 <https://github.com/agronholm/typeguard/issues/579>`_; PR by @Cherith1222)
 
 **4.6.0** (2026-07-26)
 

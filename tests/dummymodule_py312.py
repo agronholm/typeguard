@@ -1,10 +1,16 @@
 from typeguard import typechecked
 
 type Foo = list[int]
+type Boxed[T] = list[T]
 
 
 @typechecked
 def func_using_type_alias(x: Foo) -> int:
+    return x[0]
+
+
+@typechecked
+def func_using_parametrized_type_alias(x: Boxed[int]) -> int:
     return x[0]
 
 

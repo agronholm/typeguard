@@ -444,6 +444,16 @@ class TestTypeAlias:
         ):
             dummymodule_py312.func_using_type_alias(["foo"])
 
+    def test_parametrized_success(self, dummymodule_py312):
+        assert dummymodule_py312.func_using_parametrized_type_alias([1, 2]) == 1
+
+    def test_parametrized_failure(self, dummymodule_py312):
+        with pytest.raises(
+            TypeCheckError,
+            match=r'item 0 of argument "x" \(list\) is not an instance of int',
+        ):
+            dummymodule_py312.func_using_parametrized_type_alias(["foo"])
+
     def test_type_arg_success(self, dummymodule_py312):
         assert dummymodule_py312.func_using_type_of_type_alias(list) is list
 
