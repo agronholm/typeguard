@@ -506,6 +506,30 @@ class TypeguardTransformer(NodeTransformer):
 
         return node
 
+    def _is_off_target_path(self, name: str) -> bool:
+        """
+        Return ``True`` if a class or function named ``name``, defined in the current
+        scope, lies off the target path and can be left out of the transformed tree.
+
+        Only the target function's code object is taken from the compiled module, so
+        definitions beside the path in the module or in a class body are never needed.
+        Definitions directly inside a function are always kept, as a nested target may
+        close over them; a class nested in a function is still pruned along the path.
+
+        """
+        if self._target_path is None:
+            return False
+
+        path = self._memo.path
+        if (
+            len(path) >= len(self._target_path)
+            or path != self._target_path[: len(path)]
+            or isinstance(self._memo.node, (FunctionDef, AsyncFunctionDef))
+        ):
+            return False
+
+        return name != self._target_path[len(path)]
+
     @contextmanager
     def _use_memo(
         self, node: ClassDef | FunctionDef | AsyncFunctionDef
@@ -629,12 +653,8 @@ class TypeguardTransformer(NodeTransformer):
     def visit_ClassDef(self, node: ClassDef) -> ClassDef | None:
         self._memo.local_names.add(node.name)
 
-        # Eliminate top level classes not belonging to the target path
-        if (
-            self._target_path is not None
-            and not self._memo.path
-            and node.name != self._target_path[0]
-        ):
+        # Eliminate classes not belonging to the target path
+        if self._is_off_target_path(node.name):
             return None
 
         with self._use_memo(node):
@@ -663,12 +683,8 @@ class TypeguardTransformer(NodeTransformer):
         """
         self._memo.local_names.add(node.name)
 
-        # Eliminate top level functions not belonging to the target path
-        if (
-            self._target_path is not None
-            and not self._memo.path
-            and node.name != self._target_path[0]
-        ):
+        # Eliminate functions not belonging to the target path
+        if self._is_off_target_path(node.name):
             return None
 
         # Skip instrumentation if we're instrumenting the whole module and the function
