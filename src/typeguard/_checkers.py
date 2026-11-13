@@ -516,7 +516,7 @@ def check_class(
         check_protocol(value, expected_class, (), memo)
     elif isinstance(expected_class, TypeVar):
         check_typevar(value, expected_class, (), memo, subclass_check=True)
-    elif get_origin(expected_class) is Union:
+    elif get_origin(expected_class) in (Union, UnionType):
         errors: dict[str, TypeCheckError] = {}
         try:
             for arg in get_args(expected_class):
