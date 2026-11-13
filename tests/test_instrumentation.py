@@ -280,6 +280,10 @@ def test_unpacking_assign_from_generator(dummymodule):
     assert dummymodule.unpacking_assign_generator() == (1, "foo")
 
 
+def test_unpacking_assign_chained(dummymodule):
+    assert dummymodule.unpacking_assign_chained() == (1, "foo", (1, "foo"))
+
+
 def test_unpacking_assign_star_with_annotation(dummymodule):
     assert dummymodule.unpacking_assign_star_with_annotation() == (
         1,

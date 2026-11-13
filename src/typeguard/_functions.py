@@ -317,7 +317,7 @@ def check_variable_assignment(
             values_to_check = []
 
             # Get all the available values from a generator or arbitrary iterator
-            if not isinstance(value_to_return, list):
+            if not isinstance(value_to_return, Sequence):
                 value_to_return = list(value)
 
             iterator = iter(value_to_return)

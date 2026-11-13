@@ -266,6 +266,13 @@ def unpacking_assign_generator() -> Tuple[int, str]:
 
 
 @typechecked
+def unpacking_assign_chained() -> Tuple[int, str, Tuple[int, str]]:
+    x: int
+    x, y = z = (1, "foo")
+    return x, y, z
+
+
+@typechecked
 def unpacking_assign_star_with_annotation() -> Tuple[int, List[bytes], str]:
     x: int
     z: str
