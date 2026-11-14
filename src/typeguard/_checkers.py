@@ -273,6 +273,9 @@ def check_typed_dict(
             )
             raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
+        if get_origin(argtype) is ReadOnly:
+            argtype = get_args(argtype)[0]
+
         for key in extra_keys:
             argvalue = value[key]
             try:
