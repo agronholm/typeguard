@@ -1185,6 +1185,201 @@ typing.Collection, Sequence]:
             ).strip()
         )
 
+    @pytest.mark.parametrize(
+        "guard_import, guard_test",
+        [
+            ("import typing", "typing.TYPE_CHECKING"),
+            ("from typing_extensions import TYPE_CHECKING", "TYPE_CHECKING"),
+            ("import typing_extensions", "typing_extensions.TYPE_CHECKING"),
+        ],
+    )
+    def test_qualified_and_typing_extensions_guards(
+        self, guard_import: str, guard_test: str
+    ) -> None:
+        node = parse(
+            dedent(
+                f"""
+                {guard_import}
+                if {guard_test}:
+                    from nonexistent import FooBar
+
+                def foo(x: FooBar) -> FooBar:
+                    return x
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                {guard_import}
+                if {guard_test}:
+                    from nonexistent import FooBar
+
+                def foo(x: FooBar) -> FooBar:
+                    return x
+                """
+            ).strip()
+        )
+
+    def test_classes_functions_and_assignments(self) -> None:
+        tuple_target = (
+            "Alias2, Alias3" if sys.version_info >= (3, 11) else "(Alias2, Alias3)"
+        )
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING, TypeAlias, TypedDict
+                if TYPE_CHECKING:
+                    from nonexistent import *
+                    import xml.dom
+                    class Args(TypedDict):
+                        x: int
+
+                    def stub_fn() -> None:
+                        pass
+
+                    async def async_stub_fn() -> None:
+                        pass
+
+                    Alias1 = int
+                    Alias2, Alias3 = (str, bytes)
+                    Alias4: TypeAlias = float
+                    UnboundOnly: TypeAlias
+                    if (WalrusAlias := list):
+                        NestedAlias = dict
+
+                def foo(
+                    a: Args,
+                    b: Alias1,
+                    c: Alias2,
+                    d: Alias3,
+                    e: Alias4,
+                    f: UnboundOnly,
+                    g: WalrusAlias,
+                    h: NestedAlias,
+                    i: stub_fn,
+                    j: async_stub_fn,
+                    k: xml.dom.Node,
+                    x: int,
+                ) -> None:
+                    local_args: Args = {'x': x}
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                f"""
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types_internal
+                from typing import TYPE_CHECKING, TypeAlias, TypedDict
+                if TYPE_CHECKING:
+                    from nonexistent import *
+                    import xml.dom
+
+                    class Args(TypedDict):
+                        x: int
+
+                    def stub_fn() -> None:
+                        pass
+
+                    async def async_stub_fn() -> None:
+                        pass
+                    Alias1 = int
+                    {tuple_target} = (str, bytes)
+                    Alias4: TypeAlias = float
+                    UnboundOnly: TypeAlias
+                    if (WalrusAlias := list):
+                        NestedAlias = dict
+
+                def foo(a: Args, b: Alias1, c: Alias2, d: Alias3, e: Alias4, \
+f: UnboundOnly, g: WalrusAlias, h: NestedAlias, i: stub_fn, j: async_stub_fn, \
+k: xml.dom.Node, x: int) -> None:
+                    memo = TypeCheckMemo(globals(), locals())
+                    check_argument_types_internal('foo', {{'x': (x, int)}}, memo)
+                    local_args: Args = {{'x': x}}
+                """
+            ).strip()
+        )
+
+    def test_else_branch_runtime_bindings(self) -> None:
+        node = parse(
+            dedent(
+                """
+                import sys
+                from typing import TYPE_CHECKING, Any
+                if TYPE_CHECKING:
+                    class RuntimeBound:
+                        pass
+                    class UnboundInElse:
+                        pass
+                    class ElifOnly:
+                        pass
+                    class BothBranchesInElse:
+                        pass
+                else:
+                    RuntimeBound = dict
+                    UnboundInElse: Any
+                    if sys.platform == 'win32':
+                        ElifOnly = int
+                    if sys.platform == 'win32':
+                        BothBranchesInElse = int
+                    else:
+                        BothBranchesInElse = str
+
+                def foo(
+                    a: RuntimeBound,
+                    b: UnboundInElse,
+                    c: ElifOnly,
+                    d: BothBranchesInElse,
+                ) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        transformed = unparse(node)
+        assert (
+            "check_argument_types_internal('foo', "
+            "{'a': (a, RuntimeBound), 'd': (d, BothBranchesInElse)}, memo)"
+        ) in transformed
+
+    @pytest.mark.skipif(sys.version_info < (3, 12), reason="Requires Python 3.12+")
+    def test_pep695_type_alias(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    type Alias = list[int]
+                    type GenericAlias[T] = dict[str, T]
+
+                def foo(x: Alias, y: GenericAlias[int]) -> Alias:
+                    z: Alias = x
+                    return z
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    type Alias = list[int]
+                    type GenericAlias[T] = dict[str, T]
+
+                def foo(x: Alias, y: GenericAlias[int]) -> Alias:
+                    z: Alias = x
+                    return z
+                """
+            ).strip()
+        )
+
 
 class TestAssign:
     def test_annotated_assign(self) -> None:

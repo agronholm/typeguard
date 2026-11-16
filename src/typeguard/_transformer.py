@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import builtins
+import sys
 import typing
 from ast import (
     AST,
@@ -95,6 +96,10 @@ annotated_names = (
     "typing.Annotated",
     "typing_extensions.Annotated",
 )
+typechecking_names = (
+    "typing.TYPE_CHECKING",
+    "typing_extensions.TYPE_CHECKING",
+)
 ignore_decorators = (
     "typing.no_type_check",
     "typeguard.typeguard_ignore",
@@ -187,11 +192,10 @@ class TransformMemo:
             expression.value if isinstance(expression, Expr) else expression
         )
 
-        if isinstance(top_expression, Attribute) and isinstance(
-            top_expression.value, Name
-        ):
-            name = top_expression.value.id
-        elif isinstance(top_expression, Name):
+        while isinstance(top_expression, Attribute):
+            top_expression = top_expression.value
+
+        if isinstance(top_expression, Name):
             name = top_expression.id
         else:
             return False
@@ -285,31 +289,65 @@ class TransformMemo:
 
 
 class NameCollector(NodeVisitor):
-    def __init__(self) -> None:
+    def __init__(self, *, ignore_unbound_annotations: bool = False) -> None:
         self.names: set[str] = set()
+        self._ignore_unbound_annotations = ignore_unbound_annotations
+
+    def _collect_target(self, target: expr) -> None:
+        if isinstance(target, Name):
+            self.names.add(target.id)
+        elif isinstance(target, (Tuple, List)):
+            for elt in target.elts:
+                self._collect_target(elt)
 
     def visit_Import(self, node: Import) -> None:
         for name in node.names:
-            self.names.add(name.asname or name.name)
+            self.names.add(name.asname or name.name.split(".", 1)[0])
 
     def visit_ImportFrom(self, node: ImportFrom) -> None:
         for name in node.names:
-            self.names.add(name.asname or name.name)
+            if name.name != "*":
+                self.names.add(name.asname or name.name)
 
     def visit_Assign(self, node: Assign) -> None:
         for target in node.targets:
-            if isinstance(target, Name):
-                self.names.add(target.id)
+            self._collect_target(target)
+
+    def visit_AnnAssign(self, node: AnnAssign) -> None:
+        if isinstance(node.target, Name) and (
+            node.value is not None or not self._ignore_unbound_annotations
+        ):
+            self.names.add(node.target.id)
 
     def visit_NamedExpr(self, node: NamedExpr) -> Any:
         if isinstance(node.target, Name):
             self.names.add(node.target.id)
 
-    def visit_FunctionDef(self, node: FunctionDef) -> None:
-        pass
+    def visit_FunctionDef(self, node: FunctionDef | AsyncFunctionDef) -> None:
+        self.names.add(node.name)
+
+    def visit_AsyncFunctionDef(self, node: AsyncFunctionDef) -> None:
+        self.names.add(node.name)
 
     def visit_ClassDef(self, node: ClassDef) -> None:
-        pass
+        self.names.add(node.name)
+
+    def visit_If(self, node: If) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
+        elif node.orelse:
+            body_collector = NameCollector(ignore_unbound_annotations=True)
+            for stmt in node.body:
+                body_collector.visit(stmt)
+            orelse_collector = NameCollector(ignore_unbound_annotations=True)
+            for stmt in node.orelse:
+                orelse_collector.visit(stmt)
+            self.names.update(body_collector.names & orelse_collector.names)
+
+    if sys.version_info >= (3, 12):
+
+        def visit_TypeAlias(self, node: ast.TypeAlias) -> None:
+            self.names.add(node.name.id)
 
 
 class GeneratorDetector(NodeVisitor):
@@ -1229,15 +1267,18 @@ class TypeguardTransformer(NodeTransformer):
         "if typing.TYPE_CHECKING:" block, so that they won't be type checked.
 
         """
-        self.generic_visit(node)
-
-        if (
-            self._memo is self._module_memo
-            and isinstance(node.test, Name)
-            and self._memo.name_matches(node.test, "typing.TYPE_CHECKING")
+        if self._memo is self._module_memo and self._memo.name_matches(
+            node.test, *typechecking_names
         ):
             collector = NameCollector()
-            collector.visit(node)
-            self._memo.ignored_names.update(collector.names)
+            for stmt in node.body:
+                collector.visit(stmt)
 
+            runtime_collector = NameCollector(ignore_unbound_annotations=True)
+            for stmt in node.orelse:
+                runtime_collector.visit(stmt)
+
+            self._memo.ignored_names.update(collector.names - runtime_collector.names)
+
+        self.generic_visit(node)
         return node

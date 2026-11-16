@@ -1,6 +1,17 @@
+from typing import TYPE_CHECKING
+
 from typeguard import typechecked
 
+if TYPE_CHECKING:
+    type GuardedAlias = list[int]
+
 type Foo = list[int]
+
+
+@typechecked
+def func_using_guarded_type_alias(x: "GuardedAlias") -> object:
+    y: GuardedAlias = x
+    return y
 
 
 @typechecked

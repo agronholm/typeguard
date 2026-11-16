@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed classes, functions, assignments, ``type`` aliases, ``typing.TYPE_CHECKING``
+  guards and dotted imports in module-level ``if TYPE_CHECKING:`` blocks not being
+  ignored during instrumentation
+  (`#456 <https://github.com/agronholm/typeguard/issues/456>`_; PR by @eldertek)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
