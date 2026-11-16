@@ -41,7 +41,7 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, TypeVarTuple, Unpack
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -75,6 +75,7 @@ else:
     from typing_extensions import Any as SubclassableAny
 
 P = ParamSpec("P")
+Ts = TypeVarTuple("Ts")
 
 
 @pytest.mark.skipif(
@@ -947,6 +948,74 @@ class TestTuple:
         pytest.raises(TypeCheckError, check_type, (1,), annotated_type[()]).match(
             "tuple is not an empty tuple"
         )
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param((1, 2.5), id="empty"),
+            pytest.param((1, "a", "b", 2.5), id="nonempty"),
+        ],
+    )
+    def test_unpacked_variadic(self, annotated_type: Any, value: tuple):
+        check_type(
+            value,
+            annotated_type[int, Unpack[annotated_type[str, ...]], float],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        )
+
+    def test_unpacked_variadic_too_few_elements(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            (1,),
+            annotated_type[int, Unpack[annotated_type[str, ...]], float],
+        ).match(r"tuple has too few elements \(expected at least 2, got 1 instead\)")
+
+    def test_unpacked_variadic_bad_element(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            (1, "a", 2, 2.5),
+            annotated_type[int, Unpack[annotated_type[str, ...]], float],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("item 2 of tuple is not an instance of str")
+
+    def test_unpacked_variadic_bad_trailing_element(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            (1, "a", "b"),
+            annotated_type[int, Unpack[annotated_type[str, ...]], float],
+        ).match("item 2 of tuple is neither float or int")
+
+    def test_unpacked_fixed(self, annotated_type: Any):
+        check_type((1, "a", 2), annotated_type[int, Unpack[annotated_type[str, int]]])
+
+    def test_unpacked_fixed_wrong_number_of_elements(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            (1, "a"),
+            annotated_type[int, Unpack[annotated_type[str, int]]],
+        ).match(r"tuple has wrong number of elements \(expected 3, got 2 instead\)")
+
+    def test_unpacked_typevartuple(self, annotated_type: Any):
+        check_type((1, "a", 2.5), annotated_type[int, Unpack[Ts]])
+
+    def test_unpacked_typevartuple_too_few_elements(self, annotated_type: Any):
+        pytest.raises(
+            TypeCheckError, check_type, (), annotated_type[int, Unpack[Ts]]
+        ).match(r"tuple has too few elements \(expected at least 1, got 0 instead\)")
+
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="Unpacking syntax requires Python 3.11+"
+    )
+    def test_unpacked_star_syntax(self, annotated_type: Any):
+        name = annotated_type.__name__
+        annotation = ForwardRef(f"{name}[int, *{name}[str, ...]]")
+        check_type((1, "a", "b"), annotation)
+        with pytest.raises(TypeCheckError, match="item 1 of tuple is not an instance"):
+            check_type((1, 2), annotation)
 
 
 class TestNamedTuple:
