@@ -391,7 +391,9 @@ def _get_unpacked_tuple_args(param: Any) -> tuple[Any, ...] | None:
         return get_args(param)
 
     origin = get_origin(param)
-    if origin is typing_extensions.Unpack or origin is getattr(typing, "Unpack", None):
+    if origin is not None and (
+        origin is typing_extensions.Unpack or origin is getattr(typing, "Unpack", None)
+    ):
         inner = get_args(param)[0]
         if inner is not Tuple and get_origin(inner) in (tuple, Tuple):
             return get_args(inner)
