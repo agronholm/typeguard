@@ -56,15 +56,14 @@ def _fixture_module(name: str, method: str):
         if instrumented_cached_module_path.exists():
             instrumented_cached_module_path.unlink()
 
-        with install_import_hook([name]):
-            with warnings.catch_warnings():
-                warnings.filterwarnings("error", module="typeguard")
-                if name in sys.modules:
-                    module = import_module(name)
-                    importlib.reload(module)
-                else:
-                    module = import_module(name)
-                return module
+        with install_import_hook([name]), warnings.catch_warnings():
+            warnings.filterwarnings("error", module="typeguard")
+            if name in sys.modules:
+                module = import_module(name)
+                importlib.reload(module)
+            else:
+                module = import_module(name)
+            return module
     finally:
         sys.path.remove(str(this_dir))
 
