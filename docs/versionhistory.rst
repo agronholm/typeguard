@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``Never`` and ``NoReturn`` being ignored when nested inside another type
+  annotation
+  (`#580 <https://github.com/agronholm/typeguard/issues/580>`_)
+
 - Fixed documentation builds failing on references to removed typing APIs and older
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)

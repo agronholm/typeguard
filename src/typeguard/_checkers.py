@@ -103,6 +103,10 @@ _sentinel_types: tuple[type, ...] = (typing_extensions.Sentinel,)
 if sys.version_info >= (3, 15):
     _sentinel_types += (builtins.sentinel,)
 
+_never_types: tuple[Any, ...] = (typing.NoReturn, typing_extensions.Never)
+if sys.version_info >= (3, 11):
+    _never_types += (typing.Never,)
+
 # Lifted from mypy.sharedparse
 BINARY_MAGIC_METHODS = {
     "__add__",
@@ -510,6 +514,8 @@ def check_class(
 
     if expected_class is Any:
         return
+    elif expected_class in _never_types:
+        raise TypeCheckError(f"is not a subclass of {get_type_name(expected_class)}")
     elif expected_class is typing_extensions.Self:
         check_self(value, get_origin(expected_class), get_args(expected_class), memo)
     elif getattr(expected_class, "_is_protocol", False):
@@ -953,6 +959,15 @@ def check_paramspec(
     pass  # No-op for now
 
 
+def check_never(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    raise TypeCheckError(f"is not compatible with {get_type_name(origin_type)}")
+
+
 def check_type_internal(
     value: Any,
     annotation: Any,
@@ -1054,6 +1069,7 @@ origin_type_checkers: dict[
     Mapping: check_mapping,
     MutableMapping: check_mapping,
     None: check_none,
+    typing.NoReturn: check_never,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
     Sequence: check_sequence,
@@ -1074,13 +1090,18 @@ origin_type_checkers: dict[
     # It's best to err on the safe side and just always specify these.
     typing_extensions.Literal: check_literal,
     typing_extensions.LiteralString: check_literal_string,
+    typing_extensions.Never: check_never,
     typing_extensions.Self: check_self,
     typing_extensions.TypeGuard: check_typeguard,
 }
 
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(
-        {typing.LiteralString: check_literal_string, typing.Self: check_self}
+        {
+            typing.LiteralString: check_literal_string,
+            typing.Never: check_never,
+            typing.Self: check_self,
+        }
     )
 
 if sys.version_info >= (3, 12):
