@@ -6,7 +6,7 @@ import sys
 from collections.abc import Sequence
 from functools import partial
 from inspect import isclass, isfunction
-from types import CodeType, FrameType, FunctionType
+from types import CellType, CodeType, FrameType, FunctionType
 from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
 from warnings import warn
 
@@ -19,7 +19,6 @@ from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
 T_CallableOrType = TypeVar("T_CallableOrType", bound=Callable[..., Any])
 
 if TYPE_CHECKING:
-    from typeshed.stdlib.types import _Cell
 
     def typeguard_ignore(arg: T_CallableOrType) -> T_CallableOrType:
         """This decorator is a noop during static type-checking."""
@@ -29,7 +28,7 @@ else:
     from typing import no_type_check as typeguard_ignore  # noqa: F401
 
 
-def make_cell(value: object) -> _Cell:
+def make_cell(value: object) -> CellType:
     return (lambda: value).__closure__[0]  # type: ignore[index]
 
 
@@ -101,7 +100,7 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         frame = cast(FrameType, inspect.currentframe())
         frame = cast(FrameType, frame.f_back)
         frame_locals = cast(FrameType, frame.f_back).f_locals
-        cells: list[_Cell] = []
+        cells: list[CellType] = []
         for key in new_code.co_freevars:
             if key in instrumentor.names_used_in_annotations:
                 # Find the value and make a new cell from it
