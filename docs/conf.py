@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from importlib.metadata import version as get_version
 
 from packaging.version import parse
