@@ -9,7 +9,9 @@ This library adheres to
 - Fixed documentation builds failing on references to removed typing APIs and older
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
-
+- Added the ``argname`` parameter to ``check_type()`` to name the checked value in the
+  error message, like the first argument of ``check_type()`` did before v3.0
+  (`#438 <https://github.com/agronholm/typeguard/issues/438>`_; PR by @cvas22)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)

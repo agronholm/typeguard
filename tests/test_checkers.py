@@ -1800,3 +1800,27 @@ def test_check_against_tuple_success():
 
 def test_check_against_tuple_failure():
     pytest.raises(TypeCheckError, check_type, "aa", (int, bytes))
+
+
+def test_argname():
+    pattern = r"^settings\['timeout'\] \(str\) is not an instance of int$"
+    with pytest.raises(TypeCheckError, match=pattern):
+        check_type("30", int, argname="settings['timeout']")
+
+
+def test_argname_nested():
+    pattern = r"^item 0 of ports \(list\) is not an instance of int$"
+    with pytest.raises(TypeCheckError, match=pattern):
+        check_type(["443", 80], List[int], argname="ports")
+
+
+def test_argname_fail_callback():
+    errors: list[TypeCheckError] = []
+    value = check_type(
+        "30",
+        int,
+        argname="timeout",
+        typecheck_fail_callback=lambda exc, memo: errors.append(exc),
+    )
+    assert value == "30"
+    assert [str(exc) for exc in errors] == ["timeout (str) is not an instance of int"]

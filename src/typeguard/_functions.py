@@ -34,6 +34,7 @@ def check_type(
     forward_ref_policy: ForwardRefPolicy = ...,
     typecheck_fail_callback: TypeCheckFailCallback | None = ...,
     collection_check_strategy: CollectionCheckStrategy = ...,
+    argname: str | None = ...,
 ) -> T: ...
 
 
@@ -45,6 +46,7 @@ def check_type(
     forward_ref_policy: ForwardRefPolicy = ...,
     typecheck_fail_callback: TypeCheckFailCallback | None = ...,
     collection_check_strategy: CollectionCheckStrategy = ...,
+    argname: str | None = ...,
 ) -> Any: ...
 
 
@@ -59,6 +61,7 @@ def check_type(
     collection_check_strategy: CollectionCheckStrategy = (
         TypeCheckConfiguration().collection_check_strategy
     ),
+    argname: str | None = None,
 ) -> Any:
     """
     Ensure that ``value`` matches ``expected_type``.
@@ -86,6 +89,10 @@ def check_type(
         see :attr`TypeCheckConfiguration.typecheck_fail_callback`
     :param collection_check_strategy:
         see :attr:`TypeCheckConfiguration.collection_check_strategy`
+    :param argname: a name for ``value`` to use in the error message, in place of
+        just the type name of the value (for example, ``argname="config"`` turns
+        ``int is not an instance of str`` into
+        ``config (int) is not an instance of str``)
     :return: ``value``, unmodified
     :raises TypeCheckError: if there is a type mismatch
 
@@ -107,7 +114,12 @@ def check_type(
     try:
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
-        exc.append_path_element(qualified_name(value, add_class_prefix=True))
+        qualname = qualified_name(value, add_class_prefix=True)
+        if argname is not None:
+            exc.append_path_element(f"{argname} ({qualname})")
+        else:
+            exc.append_path_element(qualname)
+
         if config.typecheck_fail_callback:
             config.typecheck_fail_callback(exc, memo)
         else:
