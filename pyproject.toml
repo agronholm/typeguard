@@ -11,9 +11,8 @@ description = "Run-time type checker for Python"
 readme = "README.rst"
 authors = [{name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"}]
 maintainers = [
-    {name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"},
-    {name = "Jason R. Coombs"},
-    {name = "André Théo LAURET"},
+    {name = "Jason R. Coombs", email = "jaraco@jaraco.com"},
+    {name = "André Théo LAURET", email = "andrelauret@eclipse-technology.eu"},
 ]
 license = "MIT"
 classifiers = [
