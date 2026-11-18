@@ -9,6 +9,11 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
+- Fixed ``TypedDict`` items whose ``Required``, ``NotRequired`` or ``ReadOnly``
+  qualifier is wrapped in ``Annotated`` (like ``Annotated[NotRequired[int], ...]``)
+  skipping type checking of their values, and being treated as required keys when
+  given as string annotations
+  (`#625 <https://github.com/agronholm/typeguard/issues/625>`_; PR by @cvas22)
 
 **4.6.0** (2026-07-26)
 

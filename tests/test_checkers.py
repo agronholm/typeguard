@@ -53,7 +53,7 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
-from typeguard._checkers import _sentinel_types, is_typeddict
+from typeguard._checkers import _sentinel_types, checker_lookup_functions, is_typeddict
 from typeguard._utils import qualified_name
 
 from . import (
@@ -620,6 +620,60 @@ class TestTypedDict:
         # Required-ness survives the unwrapping: a missing required key errors.
         with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
             check_type({"b": 2}, DummyDict)
+
+    def test_annotated_qualifiers(self, typing_provider):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+            Required = typing_provider.Required
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(
+                f"'ReadOnly'/'Required'/'NotRequired' not found in "
+                f"{typing_provider.__name__!r}"
+            )
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            a: Annotated[Required[int], "meta"]
+            b: Annotated[ReadOnly[Required[int]], "meta"]
+            c: Annotated[NotRequired[int], "meta"]
+            d: "Annotated[NotRequired[int], 'meta']"
+            e: Required[Annotated[ReadOnly[int], "meta"]]
+
+        check_type({"a": 1, "b": 2, "e": 5}, DummyDict)
+        check_type({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, DummyDict)
+        for key in "abcde":
+            value = {"a": 1, "b": 2, "e": 5, key: "foo"}
+            with pytest.raises(
+                TypeCheckError,
+                match=rf"value of key '{key}' of dict is not an instance of int",
+            ):
+                check_type(value, DummyDict)
+
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
+            check_type({"b": 2, "e": 5}, DummyDict)
+
+    def test_annotated_qualifiers_keep_metadata(self, typing_provider, monkeypatch):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        seen_extras = []
+
+        def lookup_func(origin_type, args, extras):
+            if origin_type is int and extras:
+                seen_extras.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup_func, *checker_lookup_functions],
+        )
+
+        class DummyDict(typing_provider.TypedDict):
+            x: Annotated[NotRequired[Annotated[int, "inner"]], "outer"]
+
+        check_type({"x": 1}, DummyDict)
+        assert seen_extras == [("inner", "outer")]
 
     def test_required_pass(self, typing_provider):
         try:

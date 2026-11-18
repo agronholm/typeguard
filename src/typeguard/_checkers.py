@@ -290,9 +290,15 @@ def check_typed_dict(
         # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
         # order) so the underlying type is actually checked. ReadOnly (PEP 705)
         # was previously left wrapped, which silently skipped type checking.
+        # The qualifiers may also be wrapped in Annotated, so its metadata is
+        # collected along the way and put back on the underlying type.
+        metadata: tuple[Any, ...] = ()
         while True:
             origin = get_origin(annotation)
-            if origin is NotRequired:
+            if origin is Annotated:
+                annotation, *extras = get_args(annotation)
+                metadata = (*extras, *metadata)
+            elif origin is NotRequired:
                 required_keys.discard(key)
                 annotation = get_args(annotation)[0]
             elif origin is Required:
@@ -302,6 +308,9 @@ def check_typed_dict(
                 annotation = get_args(annotation)[0]
             else:
                 break
+
+        if metadata:
+            annotation = Annotated[(annotation, *metadata)]
 
         type_hints[key] = annotation
 
