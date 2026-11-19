@@ -283,7 +283,7 @@ class TestLiteral:
         )
 
     def test_literal_nested(self):
-        annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]
+        annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]  # noqa: RUF041
         check_type("z", annotation)
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
             r"int is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
@@ -308,7 +308,7 @@ class TestLiteral:
 
 class TestMapping:
     class DummyMapping(collections.abc.Mapping):
-        _values = {"a": 1, "b": 10, "c": 100}
+        _values: ClassVar[dict[str, int]] = {"a": 1, "b": 10, "c": 100}
 
         def __getitem__(self, index: str):
             return self._values[index]
@@ -363,7 +363,7 @@ class TestMapping:
 
 class TestMutableMapping:
     class DummyMutableMapping(collections.abc.MutableMapping):
-        _values = {"a": 1, "b": 10, "c": 100}
+        _values: ClassVar[dict[str, int]] = {"a": 1, "b": 10, "c": 100}
 
         def __getitem__(self, index: str):
             return self._values[index]
@@ -1235,12 +1235,12 @@ class TestIO:
 
 
 class TestIntersectingProtocol:
-    SIT = TypeVar("SIT", covariant=True)
+    SIT_co = TypeVar("SIT_co", covariant=True)
 
     class SizedIterable(
         Sized,
-        Iterable[SIT],
-        Protocol[SIT],
+        Iterable[SIT_co],
+        Protocol[SIT_co],
     ): ...
 
     @pytest.mark.parametrize(
@@ -2109,7 +2109,7 @@ def test_forward_reference_policy(
     policy: ForwardRefPolicy, contextmanager: ContextManager
 ):
     with contextmanager:
-        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)  # noqa: F821
+        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)
 
 
 def test_any():

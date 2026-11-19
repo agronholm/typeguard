@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed documentation builds failing on references to removed typing APIs and older
+  typing object kinds by adding a legacy Python documentation inventory
+  (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
+
 - Fixed protocol ``ClassVar`` attributes being checked for presence without checking
   their value types
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left

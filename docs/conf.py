@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from importlib.metadata import version as get_version
 
 from packaging.version import parse
@@ -35,4 +34,8 @@ todo_include_todos = False
 html_theme = "sphinx_rtd_theme"
 htmlhelp_basename = "typeguarddoc"
 
-intersphinx_mapping = {"python": ("https://docs.python.org/3/", None)}
+intersphinx_mapping = {
+    # Keep references to removed APIs and pre-3.14 typing object kinds resolvable.
+    "legacy-python": ("https://docs.python.org/3.13/", None),
+    "python": ("https://docs.python.org/3/", None),
+}

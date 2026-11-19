@@ -80,6 +80,9 @@ src = ["src"]
 [tool.ruff.per-file-target-version]
 "tests/dummymodule_py312.py" = "py312"
 
+[tool.ruff.format]
+exclude = ["tests/mypy/negative.py"]
+
 [tool.ruff.lint]
 extend-select = [
     "B0",           # flake8-bugbear
