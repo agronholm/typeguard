@@ -5,6 +5,11 @@ from typing import Any
 from typeguard._config import TypeCheckConfiguration, global_config
 
 
+def _is_typeguard_internal(value: Any) -> bool:
+    module: str = getattr(value, "__module__", None) or ""
+    return module == "typeguard" or module.startswith("typeguard.")
+
+
 class TypeCheckMemo:
     """
     Contains information necessary for type checkers to do their work.
@@ -43,6 +48,15 @@ class TypeCheckMemo:
         config: TypeCheckConfiguration = global_config,
     ):
         self.globals = globals
-        self.locals = locals
+        # Instrumentation injects imports (such as TypeCheckMemo itself and the
+        # check functions) into instrumented functions, so those names end up
+        # in the locals snapshot. They must not shadow the function's own
+        # globals when forward references are resolved against these locals,
+        # so entries pointing at typeguard's own internals are dropped.
+        self.locals = {
+            key: value
+            for key, value in locals.items()
+            if not _is_typeguard_internal(value)
+        }
         self.self_type = self_type
         self.config = config

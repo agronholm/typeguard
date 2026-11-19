@@ -6,6 +6,16 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed injected instrumentation names (such as ``memo``, ``TypeCheckMemo`` and the
+  ``check_*`` functions, plus the ``globals``/``locals``/``tuple``/``dict``/``str``
+  builtins called by the generated code) colliding with user code: argument names,
+  ``except ... as`` aliases, ``match`` capture names, ``global``/``nonlocal``
+  declarations and names used only in nested scopes or string annotations are now
+  taken into account when picking names for the injected code, and typeguard's own
+  internals no longer shadow the function's globals when forward references are
+  resolved
+  (`#618 <https://github.com/agronholm/typeguard/issues/618>`_; PR by @tony1233200)
+
 - Fixed documentation builds failing on references to removed typing APIs and older
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)

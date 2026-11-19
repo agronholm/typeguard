@@ -19,7 +19,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, typechecked
+from typeguard import TypeCheckError, TypeHintWarning, typechecked
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -764,3 +764,152 @@ class TestAssignmentExpression:
             match=r"value assigned to x \(str\) is not an instance of int",
         ):
             foo()
+
+
+class TestInjectedNameCollisions:
+    """Regression tests for https://github.com/agronholm/typeguard/issues/618.
+
+    The instrumented functions live in throwaway modules because the name
+    collisions only manifest for module level functions.
+    """
+
+    @staticmethod
+    def import_module(tmp_path, monkeypatch, name: str, source: str):
+        (tmp_path / f"{name}.py").write_text(
+            "from typeguard import typechecked\n\n" + source
+        )
+        monkeypatch.syspath_prepend(str(tmp_path))
+        return __import__(name)
+
+    def test_unread_parameter_named_memo(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_unread_memo",
+            "@typechecked\ndef foo(memo: int) -> None:\n    pass\n",
+        )
+        module.foo(5)
+
+    def test_except_alias_named_memo(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_except_memo",
+            "@typechecked\n"
+            "def foo(x: int) -> int:\n"
+            "    try:\n"
+            "        raise ValueError\n"
+            "    except ValueError as memo:\n"
+            "        pass\n"
+            "    return x\n",
+        )
+        assert module.foo(1) == 1
+
+    def test_match_capture_named_memo(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_match_memo",
+            "@typechecked\n"
+            "def foo(x: int) -> int:\n"
+            "    match x:\n"
+            "        case memo:\n"
+            "            pass\n"
+            '    return "not an int"\n',
+        )
+        with pytest.raises(
+            TypeCheckError, match=r"the return value \(str\) is not an instance of int"
+        ):
+            module.foo(1)
+
+    def test_global_named_memo(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_global_memo",
+            "@typechecked\ndef foo(x: int) -> int:\n    global memo\n    return x\n",
+        )
+        assert module.foo(3) == 3
+
+    def test_parameter_named_locals(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_param_locals",
+            "@typechecked\ndef foo(x: int, locals=None) -> int:\n    return x\n",
+        )
+        assert module.foo(1) == 1
+
+    def test_parameter_named_tuple(self, tmp_path, monkeypatch):
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_param_tuple",
+            "@typechecked\ndef foo(*args: int, tuple=None) -> None:\n    pass\n",
+        )
+        module.foo(1, 2)
+
+    def test_nested_function_name_not_shadowed(self, tmp_path, monkeypatch):
+        # "memo" only exists via the wildcard import, so the instrumentation
+        # cannot see it being bound anywhere in this module.
+        (tmp_path / "star_provider.py").write_text(
+            "class _StarMemo:\n"
+            "    def __getitem__(self, item):\n"
+            '        return "star-memo-result"\n\n\n'
+            "memo = _StarMemo()\n"
+            '__all__ = ["memo"]\n'
+        )
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_nested_star",
+            "from star_provider import *\n\n\n"
+            "@typechecked\n"
+            "def foo(x: int) -> object:\n"
+            "    def inner() -> object:\n"
+            "        return memo[0]\n"
+            "    return inner()\n",
+        )
+        assert module.foo(1) == "star-memo-result"
+
+    def test_string_annotation_name_not_shadowed(self, tmp_path, monkeypatch):
+        (tmp_path / "star_provider2.py").write_text(
+            'class memo:\n    pass\n\n\n__all__ = ["memo"]\n'
+        )
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_string_anno",
+            "from star_provider2 import *\n\n\n"
+            '@typechecked\ndef foo(x: "memo") -> object:\n    return x\n',
+        )
+        assert isinstance(module.foo(module.memo()), module.memo)
+        with pytest.raises(TypeCheckError):
+            module.foo(5)
+
+    def test_forward_reference_not_shadowed_by_injected_import(
+        self, tmp_path, monkeypatch
+    ):
+        # The alias lives in another module where TypeCheckMemo means int;
+        # the name must not be resolved against the injected import.
+        (tmp_path / "alias_provider.py").write_text(
+            "from typing import List\n\n"
+            "TypeCheckMemo = int\n"
+            'Alias = List["TypeCheckMemo"]\n'
+        )
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "alias_consumer",
+            "from alias_provider import Alias\n\n\n"
+            "@typechecked\n"
+            "def foo(x: Alias) -> None:\n"
+            "    pass\n",
+        )
+        # The forward reference can no longer be resolved from this module,
+        # but it must not be resolved against typeguard's own TypeCheckMemo
+        # either (which would reject the perfectly valid [1, 2] argument).
+        with pytest.warns(
+            TypeHintWarning, match="Cannot resolve forward reference 'TypeCheckMemo'"
+        ):
+            module.foo([1, 2])
