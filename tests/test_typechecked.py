@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -764,3 +765,26 @@ class TestAssignmentExpression:
             match=r"value assigned to x \(str\) is not an instance of int",
         ):
             foo()
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="typing._overload_registry layout differs before 3.11",
+)
+def test_typechecked_target_overload_comes_first():
+    """The target-taking overload must come first (issue #553).
+
+    PyCharm 2026.1 resolves a bare @typechecked decorator against the first
+    overload; when that was the keyword-only config overload returning
+    Callable[[T], T], every argument of the decorated function was flagged as
+    an "unexpected argument". typing.get_overloads() cannot see these overloads
+    because typeguard/__init__.py rewrites typechecked.__module__, so read the
+    registry directly.
+    """
+    import typing
+
+    overloads = list(
+        typing._overload_registry["typeguard._decorators"]["typechecked"].values()
+    )
+    assert len(overloads) == 2
+    assert list(inspect.signature(overloads[0]).parameters) == ["target"]
