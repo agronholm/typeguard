@@ -177,7 +177,6 @@ class TestGenerator:
             yield 1
             yield 2
 
-        pass
         gen = genfunc()
         next(gen)
         with pytest.raises(TypeCheckError) as exc:
@@ -563,7 +562,7 @@ def test_debug_instrumentation(monkeypatch, capsys):
     def foo(a: str) -> int:
         return 6
 
-    out, err = capsys.readouterr()
+    err = capsys.readouterr().err
     assert err == dedent(
         """\
         Source code of test_debug_instrumentation.<locals>.foo() after instrumentation:
@@ -638,7 +637,7 @@ def test_typechecked_disabled_in_optimized_mode(
     script_path = tmp_path / "code.py"
     script_path.write_text(code)
     process = subprocess.run(
-        [sys.executable, *flags, str(script_path)], capture_output=True
+        [sys.executable, *flags, str(script_path)], capture_output=True, check=False
     )
     assert process.returncode == expected_return_code
     if process.returncode == 1:
@@ -696,13 +695,13 @@ def test_duplicate_method():
 
 def test_duplicate_function():
     @typechecked
-    def foo() -> list[int]:  # noqa: F811
+    def foo() -> list[int]:
         return [x for x in range(5)]
 
     foo1 = foo
 
     @typechecked
-    def foo() -> list[int]:  # noqa: F811
+    def foo() -> list[int]:
         return [x for x in range(5, 10)]
 
     assert foo1() == [0, 1, 2, 3, 4]
