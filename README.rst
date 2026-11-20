@@ -1,8 +1,8 @@
 .. image:: https://github.com/agronholm/typeguard/actions/workflows/test.yml/badge.svg
   :target: https://github.com/agronholm/typeguard/actions/workflows/test.yml
   :alt: Build Status
-.. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=master&service=github
-  :target: https://coveralls.io/github/agronholm/typeguard?branch=master
+.. image:: https://coveralls.io/repos/agronholm/typeguard/badge.svg?branch=main&service=github
+  :target: https://coveralls.io/github/agronholm/typeguard?branch=main
   :alt: Code Coverage
 .. image:: https://readthedocs.org/projects/typeguard/badge/?version=latest
   :target: https://typeguard.readthedocs.io/en/latest/?badge=latest
