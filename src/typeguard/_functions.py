@@ -169,6 +169,7 @@ def check_argument_types_internal(
             )
             if memo.config.typecheck_fail_callback:
                 memo.config.typecheck_fail_callback(exc, memo)
+                continue
             else:
                 raise exc
 
@@ -219,6 +220,7 @@ def check_return_type_internal(
         exc = TypeCheckError(f"{func_name}() was declared never to return but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
+            return retval
         else:
             raise exc
 
@@ -257,6 +259,7 @@ def check_send_type(
         )
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
+            return sendval
         else:
             raise exc
 
@@ -286,6 +289,7 @@ def check_yield_type(
         exc = TypeCheckError(f"{func_name}() was declared never to yield but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
+            return yieldval
         else:
             raise exc
 
