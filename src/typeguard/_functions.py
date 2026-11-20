@@ -115,7 +115,7 @@ def check_type(
         check_type_internal(value, expected_type, memo)
     except TypeCheckError as exc:
         qualname = qualified_name(value, add_class_prefix=True)
-        if argname is not None:
+        if argname:
             exc.append_path_element(f"{argname} ({qualname})")
         else:
             exc.append_path_element(qualname)

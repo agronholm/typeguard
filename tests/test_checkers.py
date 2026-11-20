@@ -1846,6 +1846,11 @@ def test_argname():
         check_type("30", int, argname="settings['timeout']")
 
 
+def test_argname_empty():
+    with pytest.raises(TypeCheckError, match=r"^str is not an instance of int$"):
+        check_type("30", int, argname="")
+
+
 def test_argname_nested():
     pattern = r"^item 0 of ports \(list\) is not an instance of int$"
     with pytest.raises(TypeCheckError, match=pattern):
