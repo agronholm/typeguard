@@ -1076,12 +1076,16 @@ origin_type_checkers: dict[
     typing_extensions.LiteralString: check_literal_string,
     typing_extensions.Self: check_self,
     typing_extensions.TypeGuard: check_typeguard,
+    typing_extensions.TypeIs: check_typeguard,
 }
 
 if sys.version_info >= (3, 11):
     origin_type_checkers.update(
         {typing.LiteralString: check_literal_string, typing.Self: check_self}
     )
+
+if sys.version_info >= (3, 13):
+    origin_type_checkers[typing.TypeIs] = check_typeguard
 
 if sys.version_info >= (3, 12):
     type_alias_types = (typing_extensions.TypeAliasType, typing.TypeAliasType)

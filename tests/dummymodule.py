@@ -21,6 +21,8 @@ from typing import (
     overload,
 )
 
+from typing_extensions import TypeIs
+
 from typeguard import (
     CollectionCheckStrategy,
     ForwardRefPolicy,
@@ -38,6 +40,11 @@ P = ParamSpec("P")
 @typechecked
 def type_checked_func(x: int, y: int) -> int:
     return x * y
+
+
+@typechecked
+def typeis_func(value: Any) -> TypeIs[int]:
+    return value
 
 
 @no_type_check

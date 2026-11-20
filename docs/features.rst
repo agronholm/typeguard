@@ -208,7 +208,8 @@ The following types from the standard library have specialized support:
    * - | :class:`type`
        | :class:`typing.Type`
      -
-   * - :class:`typing.TypeGuard`
+   * - | :class:`typing.TypeGuard`
+       | :class:`typing.TypeIs`
      - Checked as :class:`bool`
    * - :class:`typing.TypedDict`
      - Contents are typechecked; On Python 3.8 and earlier, ``total`` from superclasses
