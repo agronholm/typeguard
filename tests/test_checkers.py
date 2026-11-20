@@ -652,6 +652,24 @@ class TestTypedDict:
         with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
             check_type({"b": 2, "e": 5}, DummyDict)
 
+    def test_annotated_qualifiers_nested_forwardref_and_any(self, typing_provider):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            a: Annotated[NotRequired["int"], "meta"]
+            b: Annotated[NotRequired[Any], "meta"]
+
+        check_type({"a": 1, "b": "foo"}, DummyDict)
+        check_type({}, DummyDict)
+        with pytest.raises(
+            TypeCheckError,
+            match=r"value of key 'a' of dict is not an instance of int",
+        ):
+            check_type({"a": "foo"}, DummyDict)
+
     def test_annotated_qualifiers_keep_metadata(self, typing_provider, monkeypatch):
         try:
             NotRequired = typing_provider.NotRequired
