@@ -6,6 +6,12 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``TypedDict`` items whose ``Required``, ``NotRequired`` or ``ReadOnly``
+  qualifier is wrapped in ``Annotated`` (like ``Annotated[NotRequired[int], ...]``)
+  skipping type checking of their values, and being treated as required keys when
+  given as string annotations
+  (`#625 <https://github.com/agronholm/typeguard/issues/625>`_; PR by @cvas22)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
