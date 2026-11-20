@@ -27,6 +27,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    NamedTuple,
     ParamSpec,
     Protocol,
     Sequence,
@@ -189,6 +190,28 @@ class TestCallable:
         pytest.raises(
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(r"has mandatory keyword-only arguments in its declaration: z, bar")
+
+    def test_kwonly_default_with_custom_eq(self):
+        """A defaulted keyword-only arg is not mandatory, however its default compares."""
+
+        class WeirdEq:
+            def __eq__(self, other):
+                return [1, 2]
+
+        class RaisingEq:
+            def __eq__(self, other):
+                raise ValueError("ambiguous truth value")
+
+        def has_default(x: int, *, kw: int = WeirdEq()) -> int:
+            return kw
+
+        assert check_type(has_default, Callable[[int], int]) is has_default
+
+        def raises_on_eq(x: int, *, kw: int = RaisingEq()) -> int:
+            return kw
+
+        # the default's __eq__ must not be consulted, let alone escape check_type
+        assert check_type(raises_on_eq, Callable[[int], int]) is raises_on_eq
 
     def test_class(self):
         """
@@ -950,6 +973,21 @@ class TestTuple:
 
 
 class TestNamedTuple:
+    def test_empty_valid(self):
+        class Empty(NamedTuple):
+            pass
+
+        value = Empty()
+        assert check_type(value, Empty) is value
+
+    @pytest.mark.parametrize("value", [(), (1,), Employee("bob", 1)])
+    def test_empty_type_mismatch(self, value):
+        class Empty(NamedTuple):
+            pass
+
+        with pytest.raises(TypeCheckError, match="is not a named tuple of type"):
+            check_type(value, Empty)
+
     def test_valid(self):
         check_type(Employee("bob", 1), Employee)
 

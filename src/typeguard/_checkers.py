@@ -182,7 +182,7 @@ def check_callable(
                 param.name
                 for param in signature.parameters.values()
                 if param.kind == Parameter.KEYWORD_ONLY
-                and param.default == Parameter.empty
+                and param.default is Parameter.empty
             ]
             if unfulfilled_kwonlyargs:
                 raise TypeCheckError(
@@ -385,7 +385,7 @@ def check_tuple(
     memo: TypeCheckMemo,
 ) -> None:
     # Specialized check for NamedTuples
-    if field_types := getattr(origin_type, "__annotations__", None):
+    if (field_types := getattr(origin_type, "__annotations__", None)) is not None:
         if not isinstance(value, origin_type):
             raise TypeCheckError(
                 f"is not a named tuple of type {qualified_name(origin_type)}"
