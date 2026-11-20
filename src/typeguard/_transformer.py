@@ -20,16 +20,21 @@ from ast import (
     Constant,
     Dict,
     Div,
+    ExceptHandler,
     Expr,
     Expression,
     FloorDiv,
     FunctionDef,
+    Global,
     If,
     Import,
     ImportFrom,
     List,
     Load,
     LShift,
+    MatchAs,
+    MatchMapping,
+    MatchStar,
     MatMult,
     Mod,
     Module,
@@ -38,6 +43,7 @@ from ast import (
     NamedExpr,
     NodeTransformer,
     NodeVisitor,
+    Nonlocal,
     Pass,
     Pow,
     Return,
@@ -50,6 +56,7 @@ from ast import (
     Yield,
     YieldFrom,
     alias,
+    arg,
     copy_location,
     expr,
     fix_missing_locations,
@@ -282,6 +289,119 @@ class TransformMemo:
 
         overrides.update(self.configuration_overrides)
         return [keyword(key, value) for key, value in overrides.items()]
+
+
+def collect_all_names(node: FunctionDef | AsyncFunctionDef) -> set[str]:
+    """
+    Collect every name that user code in a function binds, declares or refers to.
+
+    This goes beyond the names recorded by ``visit_Name()`` during traversal:
+    argument names, ``except ... as`` aliases, ``match`` capture names,
+    ``global``/``nonlocal`` declarations and names that only occur inside nested
+    scopes or string annotations never show up as :class:`ast.Name` nodes in the
+    function's own scope (or at all), yet injected names must not collide with
+    any of them.
+
+    """
+    names: set[str] = set()
+    for child in walk(node):
+        if isinstance(child, Name):
+            names.add(child.id)
+        elif isinstance(child, arg):
+            names.add(child.arg)
+        elif isinstance(child, (FunctionDef, AsyncFunctionDef, ClassDef)):
+            names.add(child.name)
+        elif isinstance(child, ExceptHandler):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, (Global, Nonlocal)):
+            names.update(child.names)
+        elif isinstance(child, (MatchAs, MatchStar)):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, MatchMapping):
+            if child.rest:
+                names.add(child.rest)
+        elif isinstance(child, alias):
+            names.add(child.asname or child.name.split(".")[0])
+        elif (
+            isinstance(child, Constant)
+            and isinstance(child.value, str)
+            and len(child.value) <= 500
+        ):
+            # Names referenced from string annotations (forward references)
+            try:
+                parsed = ast.parse(child.value, mode="eval")
+            except (SyntaxError, ValueError):
+                continue
+
+            names.update(item.id for item in walk(parsed) if isinstance(item, Name))
+
+    return names
+
+
+def collect_module_names(node: Module) -> set[str]:
+    """
+    Collect every name bound, declared or referred to at module scope.
+
+    This is the module-level counterpart of ``collect_all_names()``: names
+    bound anywhere at module level (including inside module-level ``if``,
+    ``try``, ``for`` and ``with`` blocks) must be visible to
+    ``get_unused_name()`` before any function is visited, so that injected
+    names can't collide with them regardless of whether the binding appears
+    before or after the instrumented function in the source. This matters
+    both for imports injected at module level by module-level instrumentation
+    (import hook mode, where e.g. a module-level ``except ... as
+    TypeCheckMemo`` clears the injected name after the ``except`` block) and
+    for builtins referred to by injected code (where e.g. a module-level
+    ``tuple = 123`` would otherwise shadow the builtin).
+
+    Names inside nested function or class bodies are not collected here
+    (only the function/class name itself): those scopes have their own memos
+    and are covered by ``collect_all_names()`` and the ``memo.parent`` chain.
+
+    """
+    names: set[str] = set()
+    stack: list[AST] = [node]
+    while stack:
+        child = stack.pop()
+        if isinstance(child, (FunctionDef, AsyncFunctionDef, ClassDef)):
+            names.add(child.name)
+            continue
+
+        if isinstance(child, Name):
+            names.add(child.id)
+        elif isinstance(child, arg):
+            names.add(child.arg)
+        elif isinstance(child, ExceptHandler):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, (Global, Nonlocal)):
+            names.update(child.names)
+        elif isinstance(child, (MatchAs, MatchStar)):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, MatchMapping):
+            if child.rest:
+                names.add(child.rest)
+        elif isinstance(child, alias):
+            names.add(child.asname or child.name.split(".")[0])
+        elif (
+            isinstance(child, Constant)
+            and isinstance(child.value, str)
+            and len(child.value) <= 500
+        ):
+            # Names referenced from string annotations (forward references)
+            try:
+                parsed = ast.parse(child.value, mode="eval")
+            except (SyntaxError, ValueError):
+                continue
+
+            names.update(item.id for item in walk(parsed) if isinstance(item, Name))
+
+        stack.extend(ast.iter_child_nodes(child))
+
+    return names
 
 
 class NameCollector(NodeVisitor):
@@ -564,6 +684,26 @@ class TypeguardTransformer(NodeTransformer):
         memo = self._memo if self._target_path else self._module_memo
         return memo.get_import(module, name)
 
+    def _get_builtin_name(self, name: str) -> Name:
+        """
+        Return a name referring to the built-in of the given name.
+
+        Injected code refers to some builtins (``globals``, ``locals``,
+        ``tuple``, ``dict``, ``str``) by name. If the instrumented function
+        itself, an enclosing scope or the module binds a name shadowing such
+        a builtin, the injected code must go through an import alias that
+        can't be shadowed instead.
+
+        """
+        memo: TransformMemo | None = self._memo
+        while memo is not None:
+            if name in memo.local_names:
+                return self._memo.get_import("builtins", name)
+
+            memo = memo.parent
+
+        return Name(id=name, ctx=Load())
+
     @overload
     def _convert_annotation(self, annotation: None) -> None: ...
 
@@ -592,6 +732,10 @@ class TypeguardTransformer(NodeTransformer):
 
     def visit_Module(self, node: Module) -> Module:
         self._module_memo = self._memo = TransformMemo(node, None, ())
+        # Collect module level names up front so that injected names avoid
+        # bindings that only appear later in the module (see
+        # collect_module_names())
+        self._memo.local_names.update(collect_module_names(node))
         self.generic_visit(node)
         self._module_memo.insert_imports(node)
 
@@ -679,6 +823,13 @@ class TypeguardTransformer(NodeTransformer):
                     return node
 
         with self._use_memo(node):
+            # Record every name present in the function up front so that names
+            # injected later (the memo variable, imports and builtins referred
+            # to by injected code) can't collide with any of them, including
+            # names that traversal alone would never record (see
+            # collect_all_names())
+            self._memo.local_names.update(collect_all_names(node))
+
             arg_annotations: dict[str, Any] = {}
             if self._target_path is None or self._memo.path == self._target_path:
                 # Find line number we're supposed to match against
@@ -734,7 +885,7 @@ class TypeguardTransformer(NodeTransformer):
                 if node.args.vararg:
                     annotation_ = self._convert_annotation(node.args.vararg.annotation)
                     if annotation_:
-                        container = Name("tuple", ctx=Load())
+                        container = self._get_builtin_name("tuple")
                         subscript_slice = Tuple(
                             [
                                 annotation_,
@@ -749,10 +900,10 @@ class TypeguardTransformer(NodeTransformer):
                 if node.args.kwarg:
                     annotation_ = self._convert_annotation(node.args.kwarg.annotation)
                     if annotation_:
-                        container = Name("dict", ctx=Load())
+                        container = self._get_builtin_name("dict")
                         subscript_slice = Tuple(
                             [
-                                Name("str", ctx=Load()),
+                                self._get_builtin_name("str"),
                                 annotation_,
                             ],
                             ctx=Load(),
@@ -879,8 +1030,8 @@ class TypeguardTransformer(NodeTransformer):
 
                 self._memo.memo_var_name.id = self._memo.get_unused_name("memo")
                 memo_store_name = Name(id=self._memo.memo_var_name.id, ctx=Store())
-                globals_call = Call(Name(id="globals", ctx=Load()), [], [])
-                locals_call = Call(Name(id="locals", ctx=Load()), [], [])
+                globals_call = Call(self._get_builtin_name("globals"), [], [])
+                locals_call = Call(self._get_builtin_name("locals"), [], [])
                 memo_expr = Call(
                     self._get_import("typeguard", "TypeCheckMemo"),
                     [globals_call, locals_call],
