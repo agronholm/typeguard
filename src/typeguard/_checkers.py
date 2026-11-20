@@ -378,6 +378,38 @@ def check_set(
                 raise
 
 
+def _get_unpacked_tuple_args(param: Any) -> tuple[Any, ...] | None:
+    """
+    Return the type arguments of an unpacked tuple (``*tuple[str, ...]`` or
+    ``Unpack[tuple[str, ...]]``), or ``None`` if ``param`` is not one.
+
+    An unpacked ``TypeVarTuple`` is treated like ``*tuple[Any, ...]``.
+
+    """
+    if getattr(param, "__unpacked__", False):  # *tuple[...] on Python 3.11+
+        return get_args(param)
+
+    origin = get_origin(param)
+    if origin is not None and (
+        origin is typing_extensions.Unpack or origin is getattr(typing, "Unpack", None)
+    ):
+        inner = get_args(param)[0]
+        while type(inner) in type_alias_types or get_origin(inner) is Annotated:
+            if type(inner) in type_alias_types:
+                inner = inner.__value__
+            else:
+                inner = inner.__origin__
+
+        if inner is not Tuple and get_origin(inner) in (tuple, Tuple):
+            # On Python 3.10, get_args(tuple[()]) returns ((),) rather than ()
+            args = get_args(inner)
+            return () if args == ((),) else args
+
+        return Any, ...
+
+    return None
+
+
 def check_tuple(
     value: Any,
     origin_type: Any,
@@ -422,13 +454,50 @@ def check_tuple(
         if value != ():
             raise TypeCheckError("is not an empty tuple")
     else:
-        if len(value) != len(tuple_params):
-            raise TypeCheckError(
-                f"has wrong number of elements (expected {len(tuple_params)}, got "
-                f"{len(value)} instead)"
-            )
+        # Expand any unpacked tuple or TypeVarTuple (PEP 646), so that
+        # tuple[int, *tuple[str, ...], float] is split into the fixed leading and
+        # trailing element types and the variadic element type in between
+        head: list[Any] = []
+        tail: list[Any] = []
+        variadic_type: Any = _missing
+        for param in tuple_params:
+            unpacked_args = _get_unpacked_tuple_args(param)
+            if unpacked_args is None:
+                unpacked_args = (param,)
+            elif unpacked_args and unpacked_args[-1] is Ellipsis:
+                variadic_type = unpacked_args[0]
+                continue
 
-        for i, (element, element_type) in enumerate(zip(value, tuple_params)):
+            (head if variadic_type is _missing else tail).extend(unpacked_args)
+
+        element_types: list[tuple[int, Any]]
+        if variadic_type is _missing:
+            if len(value) != len(head):
+                raise TypeCheckError(
+                    f"has wrong number of elements (expected {len(head)}, got "
+                    f"{len(value)} instead)"
+                )
+
+            element_types = list(enumerate(head))
+        else:
+            if len(value) < len(head) + len(tail):
+                raise TypeCheckError(
+                    f"has too few elements (expected at least "
+                    f"{len(head) + len(tail)}, got {len(value)} instead)"
+                )
+
+            tail_start = len(value) - len(tail)
+            variadic_indexes = memo.config.collection_check_strategy.iterate_samples(
+                range(len(head), tail_start)
+            )
+            element_types = [
+                *enumerate(head),
+                *((i, variadic_type) for i in variadic_indexes),
+                *enumerate(tail, tail_start),
+            ]
+
+        for i, element_type in element_types:
+            element = value[i]
             try:
                 check_type_internal(element, element_type, memo)
             except TypeCheckError as exc:
