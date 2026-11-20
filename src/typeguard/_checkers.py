@@ -284,16 +284,18 @@ def check_typed_dict(
     # Detect NotRequired fields which are hidden by get_type_hints()
     type_hints: dict[str, type] = {}
     for key, annotation in origin_type.__annotations__.items():
-        if isinstance(annotation, ForwardRef):
-            annotation = evaluate_forwardref(annotation, memo)
-
         # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
         # order) so the underlying type is actually checked. ReadOnly (PEP 705)
         # was previously left wrapped, which silently skipped type checking.
         # The qualifiers may also be wrapped in Annotated, so its metadata is
-        # collected along the way and put back on the underlying type.
+        # collected along the way and put back on the underlying type. String
+        # annotations can show up at any level, so they're evaluated in the loop.
         metadata: tuple[Any, ...] = ()
         while True:
+            if isinstance(annotation, ForwardRef):
+                annotation = evaluate_forwardref(annotation, memo)
+                continue
+
             origin = get_origin(annotation)
             if origin is Annotated:
                 annotation, *extras = get_args(annotation)
@@ -309,7 +311,7 @@ def check_typed_dict(
             else:
                 break
 
-        if metadata:
+        if metadata and annotation is not Any and annotation is not SubclassableAny:
             annotation = Annotated[(annotation, *metadata)]
 
         type_hints[key] = annotation
