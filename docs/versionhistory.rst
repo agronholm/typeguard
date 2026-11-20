@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed protocol ``ClassVar`` attributes being checked for presence without checking
+  their value types
+  (`#606 <https://github.com/agronholm/typeguard/pull/606>`_; PR by @AryanRG)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
