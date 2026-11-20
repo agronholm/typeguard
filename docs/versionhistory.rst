@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
+  (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
+
 - Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
   inside a function without a return annotation; it now skips the check, matching
   how ``check_argument_types()`` treats unannotated parameters
