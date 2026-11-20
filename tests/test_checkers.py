@@ -1,4 +1,5 @@
 import collections.abc
+import re
 import sys
 import types
 from contextlib import nullcontext
@@ -26,8 +27,10 @@ from typing import (
     List,
     Literal,
     Mapping,
+    Match,
     MutableMapping,
     ParamSpec,
+    Pattern,
     Protocol,
     Sequence,
     Set,
@@ -446,6 +449,55 @@ class TestDict:
                     yield key, self[key]
 
         check_type(CustomDict(a=1), Dict[str, int])
+
+
+class TestPattern:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, "x", Pattern[str]).match(
+            "str is not a compiled pattern"
+        )
+
+    def test_valid_str(self):
+        check_type(re.compile("x"), Pattern[str])
+
+    def test_valid_bytes(self):
+        check_type(re.compile(b"x"), Pattern[bytes])
+
+    def test_unparametrized(self):
+        check_type(re.compile("x"), Pattern)
+
+    def test_bytes_pattern_against_str(self):
+        pytest.raises(TypeCheckError, check_type, re.compile(b"x"), Pattern[str]).match(
+            "re.Pattern is not a string pattern"
+        )
+
+    def test_str_pattern_against_bytes(self):
+        pytest.raises(
+            TypeCheckError, check_type, re.compile("x"), Pattern[bytes]
+        ).match("re.Pattern is not a bytes pattern")
+
+
+class TestMatch:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, "x", Match[str]).match(
+            "str is not a match object"
+        )
+
+    def test_pattern_is_not_a_match(self):
+        pytest.raises(TypeCheckError, check_type, re.compile("x"), Match[str]).match(
+            "re.Pattern is not a match object"
+        )
+
+    def test_valid_str(self):
+        check_type(re.match("x", "x"), Match[str])
+
+    def test_valid_bytes(self):
+        check_type(re.match(b"x", b"x"), Match[bytes])
+
+    def test_bytes_match_against_str(self):
+        pytest.raises(
+            TypeCheckError, check_type, re.match(b"x", b"x"), Match[str]
+        ).match("re.Match is not a string pattern")
 
 
 class TestTypedDict:
