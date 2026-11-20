@@ -190,6 +190,28 @@ class TestCallable:
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(r"has mandatory keyword-only arguments in its declaration: z, bar")
 
+    def test_kwonly_default_with_custom_eq(self):
+        """A defaulted keyword-only arg is not mandatory, however its default compares."""
+
+        class WeirdEq:
+            def __eq__(self, other):
+                return [1, 2]
+
+        class RaisingEq:
+            def __eq__(self, other):
+                raise ValueError("ambiguous truth value")
+
+        def has_default(x: int, *, kw: int = WeirdEq()) -> int:
+            return kw
+
+        assert check_type(has_default, Callable[[int], int]) is has_default
+
+        def raises_on_eq(x: int, *, kw: int = RaisingEq()) -> int:
+            return kw
+
+        # the default's __eq__ must not be consulted, let alone escape check_type
+        assert check_type(raises_on_eq, Callable[[int], int]) is raises_on_eq
+
     def test_class(self):
         """
         Test that passing a class as a callable does not count the "self" argument
