@@ -1,7 +1,9 @@
 import asyncio
 import subprocess
 import sys
+import warnings
 from contextlib import contextmanager
+from importlib import import_module
 from pathlib import Path
 from textwrap import dedent
 from typing import (
@@ -19,7 +21,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, TypeHintWarning, typechecked
+from typeguard import (
+    TypeCheckError,
+    TypeHintWarning,
+    install_import_hook,
+    typechecked,
+)
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -913,3 +920,148 @@ class TestInjectedNameCollisions:
             TypeHintWarning, match="Cannot resolve forward reference 'TypeCheckMemo'"
         ):
             module.foo([1, 2])
+
+    def test_module_level_tuple_shadowing(self, tmp_path, monkeypatch):
+        # A module level name shadowing a builtin called by the injected
+        # code must not break the check (previously: TypeError from
+        # `tuple[int, ...]` resolving to the module level `tuple = 123`).
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_module_tuple",
+            "tuple = 123\n\n\n"
+            "@typechecked\n"
+            "def mod_fn(*args: int) -> None:\n"
+            "    pass\n",
+        )
+        module.mod_fn(1, 2)
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            module.mod_fn("a")
+
+    def test_module_level_tuple_shadowing_after_function(self, tmp_path, monkeypatch):
+        # Same as above, but the shadowing assignment comes after the
+        # function definition, so it is only seen via module level collection.
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_module_tuple_after",
+            "@typechecked\n"
+            "def mod_fn(*args: int) -> None:\n"
+            "    pass\n\n\n"
+            "tuple = 123\n",
+        )
+        module.mod_fn(1, 2)
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            module.mod_fn("a")
+
+    def test_enclosing_scope_tuple_shadowing(self, tmp_path, monkeypatch):
+        # A builtin shadowed in an enclosing function must not break the
+        # injected code of a nested instrumented function (previously the
+        # raw `Name("tuple")` became a free variable and tripped
+        # `assert f.__closure__` in `_decorators.py`).
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_enclosing_tuple",
+            "def outer():\n"
+            "    tuple = 123\n\n"
+            "    @typechecked\n"
+            "    def inner(*args: int) -> None:\n"
+            "        pass\n\n"
+            "    return inner\n",
+        )
+        inner = module.outer()
+        inner(1, 2)
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            inner("a")
+
+    def test_module_level_globals_locals_shadowing(self, tmp_path, monkeypatch):
+        # The injected memo construction calls `globals()` and `locals()`,
+        # which must resolve to the real builtins even when the module
+        # shadows those names.
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_module_globals_locals",
+            "globals = 123\n"
+            "locals = 456\n\n\n"
+            "@typechecked\n"
+            "def foo(x: int) -> int:\n"
+            "    return x\n",
+        )
+        assert module.foo(1) == 1
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            module.foo("a")
+
+    def test_module_level_dict_str_shadowing(self, tmp_path, monkeypatch):
+        # The `**kwargs` annotation is built as `dict[str, ...]` by the
+        # injected code, so module level `dict`/`str` bindings must not
+        # leak into it.
+        module = self.import_module(
+            tmp_path,
+            monkeypatch,
+            "collision_module_dict_str",
+            "dict = 123\n"
+            "str = 456\n\n\n"
+            "@typechecked\n"
+            "def foo(**kwargs: int) -> None:\n"
+            "    pass\n",
+        )
+        module.foo(a=1)
+        with pytest.raises(TypeCheckError, match=r"is not an instance of int"):
+            module.foo(a="x")
+
+    @staticmethod
+    def import_module_via_hook(tmp_path, monkeypatch, name: str, source: str):
+        (tmp_path / f"{name}.py").write_text(source)
+        monkeypatch.syspath_prepend(str(tmp_path))
+        with install_import_hook([name]), warnings.catch_warnings():
+            warnings.filterwarnings("error", module="typeguard")
+            return import_module(name)
+
+    def test_import_hook_module_except_alias_named_typecheckmemo(
+        self, tmp_path, monkeypatch
+    ):
+        # Module level instrumentation injects the `TypeCheckMemo` import at
+        # module level; a module level `except ... as TypeCheckMemo` clears
+        # that name after the `except` block, so the import must be aliased
+        # (previously: NameError inside instrumented functions).
+        name = "collision_hook_except_memo"
+        try:
+            module = self.import_module_via_hook(
+                tmp_path,
+                monkeypatch,
+                name,
+                "try:\n"
+                "    raise ValueError\n"
+                "except ValueError as TypeCheckMemo:\n"
+                "    pass\n\n\n"
+                "def foo(x: int) -> int:\n"
+                "    return x\n",
+            )
+            assert module.foo(1) == 1
+        finally:
+            sys.modules.pop(name, None)
+
+    def test_import_hook_module_match_binding_named_typecheckmemo(
+        self, tmp_path, monkeypatch
+    ):
+        # Same as above, but the module level binding comes from a `match`
+        # capture, which would otherwise shadow the injected import with the
+        # matched value (previously: TypeError calling it).
+        name = "collision_hook_match_memo"
+        try:
+            module = self.import_module_via_hook(
+                tmp_path,
+                monkeypatch,
+                name,
+                "match 1:\n"
+                "    case TypeCheckMemo:\n"
+                "        pass\n\n\n"
+                "def foo(x: int) -> int:\n"
+                "    return x\n",
+            )
+            assert module.TypeCheckMemo == 1
+            assert module.foo(1) == 1
+        finally:
+            sys.modules.pop(name, None)

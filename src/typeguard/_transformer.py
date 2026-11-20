@@ -340,6 +340,70 @@ def collect_all_names(node: FunctionDef | AsyncFunctionDef) -> set[str]:
     return names
 
 
+def collect_module_names(node: Module) -> set[str]:
+    """
+    Collect every name bound, declared or referred to at module scope.
+
+    This is the module-level counterpart of ``collect_all_names()``: names
+    bound anywhere at module level (including inside module-level ``if``,
+    ``try``, ``for`` and ``with`` blocks) must be visible to
+    ``get_unused_name()`` before any function is visited, so that injected
+    names can't collide with them regardless of whether the binding appears
+    before or after the instrumented function in the source. This matters
+    both for imports injected at module level by module-level instrumentation
+    (import hook mode, where e.g. a module-level ``except ... as
+    TypeCheckMemo`` clears the injected name after the ``except`` block) and
+    for builtins referred to by injected code (where e.g. a module-level
+    ``tuple = 123`` would otherwise shadow the builtin).
+
+    Names inside nested function or class bodies are not collected here
+    (only the function/class name itself): those scopes have their own memos
+    and are covered by ``collect_all_names()`` and the ``memo.parent`` chain.
+
+    """
+    names: set[str] = set()
+    stack: list[AST] = [node]
+    while stack:
+        child = stack.pop()
+        if isinstance(child, (FunctionDef, AsyncFunctionDef, ClassDef)):
+            names.add(child.name)
+            continue
+
+        if isinstance(child, Name):
+            names.add(child.id)
+        elif isinstance(child, arg):
+            names.add(child.arg)
+        elif isinstance(child, ExceptHandler):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, (Global, Nonlocal)):
+            names.update(child.names)
+        elif isinstance(child, (MatchAs, MatchStar)):
+            if child.name:
+                names.add(child.name)
+        elif isinstance(child, MatchMapping):
+            if child.rest:
+                names.add(child.rest)
+        elif isinstance(child, alias):
+            names.add(child.asname or child.name.split(".")[0])
+        elif (
+            isinstance(child, Constant)
+            and isinstance(child.value, str)
+            and len(child.value) <= 500
+        ):
+            # Names referenced from string annotations (forward references)
+            try:
+                parsed = ast.parse(child.value, mode="eval")
+            except (SyntaxError, ValueError):
+                continue
+
+            names.update(item.id for item in walk(parsed) if isinstance(item, Name))
+
+        stack.extend(ast.iter_child_nodes(child))
+
+    return names
+
+
 class NameCollector(NodeVisitor):
     def __init__(self) -> None:
         self.names: set[str] = set()
@@ -626,12 +690,17 @@ class TypeguardTransformer(NodeTransformer):
 
         Injected code refers to some builtins (``globals``, ``locals``,
         ``tuple``, ``dict``, ``str``) by name. If the instrumented function
-        itself binds a name shadowing such a builtin, the injected code must
-        go through an import alias that can't be shadowed instead.
+        itself, an enclosing scope or the module binds a name shadowing such
+        a builtin, the injected code must go through an import alias that
+        can't be shadowed instead.
 
         """
-        if name in self._memo.local_names:
-            return self._memo.get_import("builtins", name)
+        memo: TransformMemo | None = self._memo
+        while memo is not None:
+            if name in memo.local_names:
+                return self._memo.get_import("builtins", name)
+
+            memo = memo.parent
 
         return Name(id=name, ctx=Load())
 
@@ -663,6 +732,10 @@ class TypeguardTransformer(NodeTransformer):
 
     def visit_Module(self, node: Module) -> Module:
         self._module_memo = self._memo = TransformMemo(node, None, ())
+        # Collect module level names up front so that injected names avoid
+        # bindings that only appear later in the module (see
+        # collect_module_names())
+        self._memo.local_names.update(collect_module_names(node))
         self.generic_visit(node)
         self._module_memo.insert_imports(node)
 
