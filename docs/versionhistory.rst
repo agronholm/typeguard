@@ -10,6 +10,10 @@ This library adheres to
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
 
+- Sped up ``@typechecked`` on methods: instrumenting one method no longer transforms
+  and compiles the other methods and nested classes of its class, which made importing
+  a module with many decorated methods slow
+  (`#468 <https://github.com/agronholm/typeguard/issues/468>`_)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
