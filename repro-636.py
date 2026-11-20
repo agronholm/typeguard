@@ -1,16 +1,23 @@
 """Repro for typeguard#636: ReadOnly extra_items in TypedDict aren't checked."""
+
 from typing import Annotated
+
 from typing_extensions import ReadOnly, TypedDict
-from typeguard import check_type, TypeCheckError
+
+from typeguard import TypeCheckError, check_type
+
 
 class Movie(TypedDict, extra_items=ReadOnly[int]):
     title: str
 
+
 class MovieAnn(TypedDict, extra_items=Annotated[ReadOnly[int], "meta"]):
     title: str
 
+
 class MoviePlain(TypedDict, extra_items=int):
     title: str
+
 
 # 1. issue repro: must raise now
 try:
