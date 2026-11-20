@@ -1,6 +1,7 @@
 import collections.abc
 import sys
 import types
+from collections import deque
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
@@ -18,6 +19,7 @@ from typing import (
     Collection,
     Concatenate,
     ContextManager,
+    Deque,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -759,6 +761,38 @@ class TestList:
             List[int],
             collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("list is not an instance of int")
+
+
+class TestDeque:
+    def test_bad_type(self):
+        pytest.raises(TypeCheckError, check_type, 5, Deque[int]).match(
+            "int is not a deque"
+        )
+
+    def test_list_is_not_a_deque(self):
+        pytest.raises(TypeCheckError, check_type, [1], Deque[int]).match(
+            "list is not a deque"
+        )
+
+    def test_first_check_success(self):
+        check_type(deque(["aa", "bb", 1]), Deque[str])
+
+    def test_first_check_empty(self):
+        check_type(deque(), Deque[str])
+
+    def test_first_check_fail(self):
+        pytest.raises(TypeCheckError, check_type, deque(["bb"]), Deque[int]).match(
+            "deque is not an instance of int"
+        )
+
+    def test_full_check_fail(self):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            deque([1, 2, "bb"]),
+            Deque[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("deque is not an instance of int")
 
 
 class TestSequence:
