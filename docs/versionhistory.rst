@@ -19,6 +19,16 @@ This library adheres to
   values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
   of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
 
+- Fixed ``TypedDict`` items whose ``Required``, ``NotRequired`` or ``ReadOnly``
+  qualifier is wrapped in ``Annotated`` (like ``Annotated[NotRequired[int], ...]``)
+  skipping type checking of their values, and being treated as required keys when
+  given as string annotations
+  (`#625 <https://github.com/agronholm/typeguard/issues/625>`_; PR by @cvas22)
+
+- Fixed the values of extra items in a ``TypedDict`` not being type checked when its
+  ``extra_items`` type is wrapped in ``ReadOnly`` (:pep:`728`)
+  (`#636 <https://github.com/agronholm/typeguard/issues/636>`_; PR by @cvas22)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older

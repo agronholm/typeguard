@@ -54,7 +54,7 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
-from typeguard._checkers import _sentinel_types, is_typeddict
+from typeguard._checkers import _sentinel_types, checker_lookup_functions, is_typeddict
 from typeguard._utils import qualified_name
 
 from . import (
@@ -644,6 +644,78 @@ class TestTypedDict:
         with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
             check_type({"b": 2}, DummyDict)
 
+    def test_annotated_qualifiers(self, typing_provider):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+            Required = typing_provider.Required
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(
+                f"'ReadOnly'/'Required'/'NotRequired' not found in "
+                f"{typing_provider.__name__!r}"
+            )
+
+        class DummyDict(typing_provider.TypedDict, total=False):
+            a: Annotated[Required[int], "meta"]
+            b: Annotated[ReadOnly[Required[int]], "meta"]
+            c: Annotated[NotRequired[int], "meta"]
+            d: "Annotated[NotRequired[int], 'meta']"
+            e: Required[Annotated[ReadOnly[int], "meta"]]
+
+        check_type({"a": 1, "b": 2, "e": 5}, DummyDict)
+        check_type({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, DummyDict)
+        for key in "abcde":
+            value = {"a": 1, "b": 2, "e": 5, key: "foo"}
+            with pytest.raises(
+                TypeCheckError,
+                match=rf"value of key '{key}' of dict is not an instance of int",
+            ):
+                check_type(value, DummyDict)
+
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
+            check_type({"b": 2, "e": 5}, DummyDict)
+
+    def test_annotated_qualifiers_nested_forwardref_and_any(self, typing_provider):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        class DummyDict(typing_provider.TypedDict):
+            a: Annotated[NotRequired["int"], "meta"]
+            b: Annotated[NotRequired[Any], "meta"]
+
+        check_type({"a": 1, "b": "foo"}, DummyDict)
+        check_type({}, DummyDict)
+        with pytest.raises(
+            TypeCheckError,
+            match=r"value of key 'a' of dict is not an instance of int",
+        ):
+            check_type({"a": "foo"}, DummyDict)
+
+    def test_annotated_qualifiers_keep_metadata(self, typing_provider, monkeypatch):
+        try:
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(f"'NotRequired' not found in {typing_provider.__name__!r}")
+
+        seen_extras = []
+
+        def lookup_func(origin_type, args, extras):
+            if origin_type is int and extras:
+                seen_extras.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup_func, *checker_lookup_functions],
+        )
+
+        class DummyDict(typing_provider.TypedDict):
+            x: Annotated[NotRequired[Annotated[int, "inner"]], "outer"]
+
+        check_type({"x": 1}, DummyDict)
+        assert seen_extras == [("inner", "outer")]
+
     def test_required_pass(self, typing_provider):
         try:
             Required = typing_provider.Required
@@ -755,6 +827,73 @@ class TestTypedDict:
             match=r"value of key 'z' of dict did not match any element in the union",
         ):
             check_type({"x": 6, "y": 7, "z": None}, DummyDict)
+
+    @pytest.mark.parametrize(
+        "make_extra_type",
+        [
+            pytest.param(lambda ro: ro[int], id="readonly"),
+            pytest.param(lambda ro: Annotated[ro[int], "meta"], id="annotated"),
+            pytest.param(lambda ro: ro[Annotated[int, "meta"]], id="annotated_inner"),
+            pytest.param(lambda ro: ro["int"], id="forwardref"),
+        ],
+    )
+    def test_extra_items_qualifiers(self, typing_provider, make_extra_type):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        extra_type = make_extra_type(ReadOnly)
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=extra_type):
+                x: int
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"x": 6, "y": 7}, DummyDict)
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
+        ):
+            check_type({"x": 6, "y": "foo"}, DummyDict)
+
+    def test_extra_items_qualifiers_keep_metadata(self, typing_provider, monkeypatch):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        seen_extras = []
+
+        def lookup_func(origin_type, args, extras):
+            if origin_type is int and extras:
+                seen_extras.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup_func, *checker_lookup_functions],
+        )
+
+        extra_type = Annotated[ReadOnly[Annotated[int, "inner"]], "outer"]
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=extra_type):
+                pass
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"y": 1}, DummyDict)
+        assert seen_extras == [("inner", "outer")]
 
 
 class TestList:
