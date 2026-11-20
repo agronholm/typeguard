@@ -274,8 +274,20 @@ def check_typed_dict(
 
         for key in extra_keys:
             argvalue = value[key]
+            # Strip the Annotated/NotRequired/Required/ReadOnly qualifiers (in any
+            # nesting order) so the underlying type is actually checked. A bare
+            # ReadOnly[...] has no checker, so without this the extra items would
+            # silently pass any value (see #636).
+            extra_argtype = argtype
+            while True:
+                origin = get_origin(extra_argtype)
+                if origin is Annotated or origin in (NotRequired, Required, ReadOnly):
+                    extra_argtype = get_args(extra_argtype)[0]
+                else:
+                    break
+
             try:
-                check_type_internal(argvalue, argtype, memo)
+                check_type_internal(argvalue, extra_argtype, memo)
             except TypeCheckError as exc:
                 exc.append_path_element(f"value of key {key!r}")
                 raise
