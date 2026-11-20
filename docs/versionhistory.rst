@@ -4,6 +4,13 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed a false ``TypeCheckError`` (or a leaked ``ValueError`` from a custom
+  ``__eq__``) when checking a callable whose keyword-only parameters have default
+  values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
+  of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
