@@ -10,6 +10,11 @@ This library adheres to
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
 
+- Fixed PEP 604 unions inside ``type[...]`` bypassing the union checker, causing
+  unions containing ``Any`` to reject valid classes and losing per-member errors
+  for other unions
+  (`#592 <https://github.com/agronholm/typeguard/pull/592>`_; PR by @vitalivo)
+
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
