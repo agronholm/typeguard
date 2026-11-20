@@ -32,7 +32,7 @@ class TypeCheckMemo:
          Contains the configuration for a particular set of type checking operations.
     """
 
-    __slots__ = "globals", "locals", "self_type", "config"
+    __slots__ = "config", "globals", "locals", "self_type"
 
     def __init__(
         self,

@@ -223,9 +223,8 @@ def check_mapping(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if origin_type is Dict or origin_type is dict:
-        if not isinstance(value, dict):
-            raise TypeCheckError("is not a dict")
+    if (origin_type is Dict or origin_type is dict) and not isinstance(value, dict):
+        raise TypeCheckError("is not a dict")
     if origin_type is MutableMapping or origin_type is collections.abc.MutableMapping:
         if not isinstance(value, collections.abc.MutableMapping):
             raise TypeCheckError("is not a mutable mapping")
@@ -528,13 +527,12 @@ def check_class(
                     return
                 except TypeCheckError as exc:
                     errors[get_type_name(arg)] = exc
-            else:
-                formatted_errors = indent(
-                    "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
-                )
-                raise TypeCheckError(
-                    f"did not match any element in the union:\n{formatted_errors}"
-                )
+            formatted_errors = indent(
+                "\n".join(f"{key}: {error}" for key, error in errors.items()), "  "
+            )
+            raise TypeCheckError(
+                f"did not match any element in the union:\n{formatted_errors}"
+            )
         finally:
             del errors  # avoid creating ref cycle
     else:
@@ -831,29 +829,31 @@ def check_signature_compatible(subject: type, protocol: type, attrname: str) -> 
         for param in subject_sig.parameters.values()
         if param.kind is Parameter.KEYWORD_ONLY
     }
-    if not subject_has_varkwargs:
-        # Check that the signature has at least the required keyword-only arguments, and
-        # no extra mandatory keyword-only arguments
-        if missing_kwonlyargs := [
+    # Check that the signature has at least the required keyword-only arguments, and
+    # no extra mandatory keyword-only arguments
+    if not subject_has_varkwargs and (
+        missing_kwonlyargs := [
             param.name
             for param in protocol_kwonlyargs.values()
             if param.name not in subject_kwonlyargs
-        ]:
-            raise TypeCheckError(
-                "is missing keyword-only arguments: " + ", ".join(missing_kwonlyargs)
-            )
+        ]
+    ):
+        raise TypeCheckError(
+            "is missing keyword-only arguments: " + ", ".join(missing_kwonlyargs)
+        )
 
-    if not protocol_has_varkwargs:
-        if extra_kwonlyargs := [
+    if not protocol_has_varkwargs and (
+        extra_kwonlyargs := [
             param.name
             for param in subject_kwonlyargs.values()
             if param.default is Parameter.empty
             and param.name not in protocol_kwonlyargs
-        ]:
-            raise TypeCheckError(
-                "has mandatory keyword-only arguments not present in the protocol: "
-                + ", ".join(extra_kwonlyargs)
-            )
+        ]
+    ):
+        raise TypeCheckError(
+            "has mandatory keyword-only arguments not present in the protocol: "
+            + ", ".join(extra_kwonlyargs)
+        )
 
 
 def check_protocol(
@@ -1024,7 +1024,7 @@ def check_type_internal(
     if isclass(origin_type):
         if not isinstance(value, origin_type):
             raise TypeCheckError(f"is not an instance of {qualified_name(origin_type)}")
-    elif type(origin_type) is str:  # noqa: E721
+    elif type(origin_type) is str:
         warnings.warn(
             f"Skipping type check against {origin_type!r}; this looks like a "
             f"string-form forward reference imported from another module",
@@ -1134,7 +1134,7 @@ def load_plugins() -> None:
     for ep in entry_points(group="typeguard.checker_lookup"):
         try:
             plugin = ep.load()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             warnings.warn(
                 f"Failed to load plugin {ep.name!r}: {qualified_name(exc)}: {exc}",
                 stacklevel=2,

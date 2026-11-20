@@ -4,7 +4,11 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
-**UNRELEASED**
+**4.6.1** (2026-11-19)
+
+- Fixed documentation builds failing on references to removed typing APIs and older
+  typing object kinds by adding a legacy Python documentation inventory
+  (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
 
 - Fixed classes, functions, assignments, ``type`` aliases, ``typing.TYPE_CHECKING``
   guards and dotted imports in module-level ``if TYPE_CHECKING:`` blocks not being
