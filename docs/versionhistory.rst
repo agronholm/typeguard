@@ -6,6 +6,11 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
+  inside a function without a return annotation; it now skips the check, matching
+  how ``check_argument_types()`` treats unannotated parameters
+  (`#609 <https://github.com/agronholm/typeguard/pull/609>`_; PR by @feiiiiii5)
+
 - Fixed a false ``TypeCheckError`` (or a leaked ``ValueError`` from a custom
   ``__eq__``) when checking a callable whose keyword-only parameters have default
   values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
