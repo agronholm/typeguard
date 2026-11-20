@@ -133,6 +133,10 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
 
 
 @overload
+def typechecked(target: T_CallableOrType) -> T_CallableOrType: ...
+
+
+@overload
 def typechecked(
     *,
     forward_ref_policy: ForwardRefPolicy | Unset = unset,
@@ -140,10 +144,6 @@ def typechecked(
     collection_check_strategy: CollectionCheckStrategy | Unset = unset,
     debug_instrumentation: bool | Unset = unset,
 ) -> Callable[[T_CallableOrType], T_CallableOrType]: ...
-
-
-@overload
-def typechecked(target: T_CallableOrType) -> T_CallableOrType: ...
 
 
 def typechecked(

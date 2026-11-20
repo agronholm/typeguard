@@ -6,6 +6,12 @@ This library adheres to
 
 **UNRELEASED**
 
+- Swapped the two ``@overload`` definitions of ``typechecked()`` so the
+  target-taking overload comes first; PyCharm 2026.1 resolved a bare
+  ``@typechecked`` decorator against the first overload and flagged every
+  argument of the decorated function as unexpected
+  (`#553 <https://github.com/agronholm/typeguard/issues/553>`_)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
