@@ -40,6 +40,16 @@ external sources::
 With this code, static type checkers will recognize the type of ``people`` to be
 ``List[Person]``.
 
+By default, the error message only mentions the type of the value that failed the
+check (like ``int is not an instance of str``). If you're checking several values in a
+row, you can pass ``argname`` to make it clear which one failed::
+
+    settings = {"host": "localhost", "timeout": "30"}
+    expected_types = {"host": str, "timeout": int}
+    for key, expected_type in expected_types.items():
+        # Raises TypeCheckError: settings['timeout'] (str) is not an instance of int
+        check_type(settings[key], expected_type, argname=f"settings[{key!r}]")
+
 Using the decorator
 -------------------
 

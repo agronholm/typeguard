@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added the ``argname`` parameter to ``check_type()`` to name the checked value in the
+  error message, like the first argument of ``check_type()`` did before v3.0
+  (`#438 <https://github.com/agronholm/typeguard/issues/438>`_; PR by @cvas22)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
