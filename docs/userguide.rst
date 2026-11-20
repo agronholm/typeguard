@@ -174,10 +174,11 @@ variables containing forward references, or type aliases likewise containing for
 references.
 
 To facilitate the use of types only available to static type checkers, Typeguard
-recognizes module-level imports guarded by ``if typing.TYPE_CHECKING:`` or
-``if TYPE_CHECKING:`` (add the appropriate :mod:`typing` imports). Imports made within
-such blocks on the module level will be replaced in calls to internal type checking
-functions with :data:`~typing.Any`.
+recognizes module-level ``if typing.TYPE_CHECKING:`` or ``if TYPE_CHECKING:`` blocks
+(with :data:`~typing.TYPE_CHECKING` imported from :mod:`typing` or
+``typing_extensions``). Names imported or defined within such blocks on the module
+level will be replaced in calls to internal type checking functions with
+:data:`~typing.Any`, unless also bound in the ``else`` branch.
 
 Using the pytest plugin
 -----------------------

@@ -31,6 +31,14 @@ from typeguard import (
 if TYPE_CHECKING:
     from nonexistent import Imaginary
 
+    class ImaginaryArgs(TypedDict):
+        x: int
+        y: int
+
+    RuntimeFallbackType = int
+else:
+    RuntimeFallbackType = dict
+
 T = TypeVar("T", bound="DummyClass")
 P = ParamSpec("P")
 
@@ -309,6 +317,14 @@ def typed_variable_args(
 def guarded_type_hint_plain(x: "Imaginary") -> "Imaginary":
     y: Imaginary = x
     return y
+
+
+@typechecked
+def guarded_type_hint_class_and_else(
+    x: "RuntimeFallbackType",
+) -> Dict[str, int]:
+    args: ImaginaryArgs = {"x": 1, "y": 2}
+    return args
 
 
 @typechecked

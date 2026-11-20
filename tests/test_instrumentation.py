@@ -367,6 +367,17 @@ class TestGuardedType:
     def test_subscript_nested(self, dummymodule):
         assert dummymodule.guarded_type_hint_subscript_nested(["foo"]) == ["foo"]
 
+    def test_class_and_else(self, dummymodule):
+        assert dummymodule.guarded_type_hint_class_and_else({"k": 1}) == {
+            "x": 1,
+            "y": 2,
+        }
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "x" \(int\) is not a dict',
+        ):
+            dummymodule.guarded_type_hint_class_and_else(1)
+
 
 def test_literal(dummymodule):
     assert dummymodule.literal("foo") == "foo"
@@ -431,6 +442,10 @@ class TestParametrized:
 class TestTypeAlias:
     def test_success(self, dummymodule_py312):
         assert dummymodule_py312.func_using_type_alias([1, 2]) == 1
+
+    def test_guarded_type_alias(self, dummymodule_py312):
+        sentinel = object()
+        assert dummymodule_py312.func_using_guarded_type_alias(sentinel) is sentinel
 
     def test_failure(self, dummymodule_py312):
         with pytest.raises(

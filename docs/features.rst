@@ -72,7 +72,7 @@ Special considerations for ``if TYPE_CHECKING:``
 ------------------------------------------------
 
 Both the import hook and :func:`@typechecked <typechecked>` avoid checking against
-anything imported in a module-level ``if TYPE_CHECKING:`` (or
+names defined or imported in a module-level ``if TYPE_CHECKING:`` (or
 ``if typing.TYPE_CHECKING:``) block, since those types will not be available at run
 time. Therefore, no errors or warnings are emitted for such annotations, even when they
 would normally not be found.
