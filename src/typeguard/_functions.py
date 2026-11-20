@@ -4,7 +4,16 @@ import sys
 import warnings
 from collections.abc import Sequence
 from inspect import Parameter, signature
-from typing import Any, Callable, NoReturn, TypeVar, Union, get_type_hints, overload
+from typing import (
+    Any,
+    Callable,
+    ForwardRef,
+    NoReturn,
+    TypeVar,
+    Union,
+    get_type_hints,
+    overload,
+)
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -142,12 +151,18 @@ def check_argument_types() -> Literal[True]:
         if param.annotation is Parameter.empty or param.annotation is Any:
             continue
 
+        annotation: Any = param.annotation
+        if isinstance(annotation, str):
+            # Undo the effect of ``from __future__ import annotations`` (PEP 563),
+            # which leaves annotations as plain strings. Wrapping them in
+            # ForwardRef allows resolving them against the caller's namespace
+            # below, like ``@typechecked`` and :func:`check_return_type` do.
+            annotation = ForwardRef(annotation)
+
         if param.kind is Parameter.VAR_POSITIONAL:
-            annotation: Any = tuple[param.annotation, ...]  # type: ignore[name-defined]
+            annotation = tuple[annotation, ...]
         elif param.kind is Parameter.VAR_KEYWORD:
-            annotation = dict[str, param.annotation]  # type: ignore[name-defined]
-        else:
-            annotation = param.annotation
+            annotation = dict[str, annotation]
 
         arguments[param.name] = (f_locals[param.name], annotation)
 
