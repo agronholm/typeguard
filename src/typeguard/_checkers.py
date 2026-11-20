@@ -252,6 +252,48 @@ def check_mapping(
                     raise
 
 
+def _strip_typeddict_qualifiers(
+    annotation: Any, memo: TypeCheckMemo
+) -> tuple[Any, bool | None]:
+    """
+    Strip the NotRequired/Required/ReadOnly qualifiers from a TypedDict item.
+
+    The qualifiers can come in any nesting order and may be wrapped in Annotated, so
+    its metadata is collected along the way and put back on the underlying type.
+    String annotations can show up at any level, so they're evaluated in the loop.
+
+    :return: the underlying type, and ``True``/``False`` if the item was explicitly
+        marked as required/not required (``None`` otherwise)
+
+    """
+    required: bool | None = None
+    metadata: tuple[Any, ...] = ()
+    while True:
+        if isinstance(annotation, ForwardRef):
+            annotation = evaluate_forwardref(annotation, memo)
+            continue
+
+        origin = get_origin(annotation)
+        if origin is Annotated:
+            annotation, *extras = get_args(annotation)
+            metadata = (*extras, *metadata)
+        elif origin is NotRequired:
+            required = False
+            annotation = get_args(annotation)[0]
+        elif origin is Required:
+            required = True
+            annotation = get_args(annotation)[0]
+        elif origin is ReadOnly:
+            annotation = get_args(annotation)[0]
+        else:
+            break
+
+    if metadata and annotation is not Any and annotation is not SubclassableAny:
+        annotation = Annotated[(annotation, *metadata)]
+
+    return annotation, required
+
+
 def check_typed_dict(
     value: Any,
     origin_type: Any,
@@ -273,6 +315,7 @@ def check_typed_dict(
             )
             raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
+        argtype, _ = _strip_typeddict_qualifiers(argtype, memo)
         for key in extra_keys:
             argvalue = value[key]
             try:
@@ -284,35 +327,11 @@ def check_typed_dict(
     # Detect NotRequired fields which are hidden by get_type_hints()
     type_hints: dict[str, type] = {}
     for key, annotation in origin_type.__annotations__.items():
-        # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
-        # order) so the underlying type is actually checked. ReadOnly (PEP 705)
-        # was previously left wrapped, which silently skipped type checking.
-        # The qualifiers may also be wrapped in Annotated, so its metadata is
-        # collected along the way and put back on the underlying type. String
-        # annotations can show up at any level, so they're evaluated in the loop.
-        metadata: tuple[Any, ...] = ()
-        while True:
-            if isinstance(annotation, ForwardRef):
-                annotation = evaluate_forwardref(annotation, memo)
-                continue
-
-            origin = get_origin(annotation)
-            if origin is Annotated:
-                annotation, *extras = get_args(annotation)
-                metadata = (*extras, *metadata)
-            elif origin is NotRequired:
-                required_keys.discard(key)
-                annotation = get_args(annotation)[0]
-            elif origin is Required:
-                required_keys.add(key)
-                annotation = get_args(annotation)[0]
-            elif origin is ReadOnly:
-                annotation = get_args(annotation)[0]
-            else:
-                break
-
-        if metadata and annotation is not Any and annotation is not SubclassableAny:
-            annotation = Annotated[(annotation, *metadata)]
+        annotation, required = _strip_typeddict_qualifiers(annotation, memo)
+        if required is True:
+            required_keys.add(key)
+        elif required is False:
+            required_keys.discard(key)
 
         type_hints[key] = annotation
 

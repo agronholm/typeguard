@@ -14,6 +14,9 @@ This library adheres to
   skipping type checking of their values, and being treated as required keys when
   given as string annotations
   (`#625 <https://github.com/agronholm/typeguard/issues/625>`_; PR by @cvas22)
+- Fixed the values of extra items in a ``TypedDict`` not being type checked when its
+  ``extra_items`` type is wrapped in ``ReadOnly`` (:pep:`728`)
+  (`#636 <https://github.com/agronholm/typeguard/issues/636>`_; PR by @cvas22)
 
 **4.6.0** (2026-07-26)
 
