@@ -1414,7 +1414,7 @@ k: xml.dom.Node, x: int) -> None:
         ) in transformed
 
         namespace: dict[str, object] = {}
-        exec(compile(node, "<test_dotted_import>", "exec"), namespace)
+        exec(compile(node, "<test_dotted_import>", "exec"), namespace)  # noqa: S102
         foo = namespace["foo"]
         assert callable(foo)
         foo([1, 2], "ignored", "ignored", "ignored")
