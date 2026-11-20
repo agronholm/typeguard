@@ -4,16 +4,19 @@ Version history
 This library adheres to
 `Semantic Versioning 2.0 <https://semver.org/#semantic-versioning-200>`_.
 
+**UNRELEASED**
+
+- Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
+  inside a function without a return annotation; it now skips the check, matching
+  how ``check_argument_types()`` treats unannotated parameters
+  (`#609 <https://github.com/agronholm/typeguard/pull/609>`_; PR by @feiiiiii5)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)
 
-- Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
-  inside a function without a return annotation; it now skips the check, matching
-  how ``check_argument_types()`` treats unannotated parameters
-  (`#609 <https://github.com/agronholm/typeguard/pull/609>`_; PR by @feiiiiii5)
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
