@@ -394,8 +394,16 @@ def _get_unpacked_tuple_args(param: Any) -> tuple[Any, ...] | None:
         origin is typing_extensions.Unpack or origin is getattr(typing, "Unpack", None)
     ):
         inner = get_args(param)[0]
+        while type(inner) in type_alias_types or get_origin(inner) is Annotated:
+            if type(inner) in type_alias_types:
+                inner = inner.__value__
+            else:
+                inner = inner.__origin__
+
         if inner is not Tuple and get_origin(inner) in (tuple, Tuple):
-            return get_args(inner)
+            # On Python 3.10, get_args(tuple[()]) returns ((),) rather than ()
+            args = get_args(inner)
+            return () if args == ((),) else args
 
         return Any, ...
 

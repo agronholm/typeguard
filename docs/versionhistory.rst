@@ -19,6 +19,11 @@ This library adheres to
   values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
   of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
 
+- Fixed tuple annotations containing an unpacked tuple or ``TypeVarTuple``
+  (:pep:`646`), like ``tuple[int, *tuple[str, ...]]``, being checked as if the unpacked
+  part was a single element
+  (`#623 <https://github.com/agronholm/typeguard/issues/623>`_; PR by @cvas22)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
@@ -28,10 +33,6 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
-- Fixed tuple annotations containing an unpacked tuple or ``TypeVarTuple``
-  (:pep:`646`), like ``tuple[int, *tuple[str, ...]]``, being checked as if the unpacked
-  part was a single element
-  (`#623 <https://github.com/agronholm/typeguard/issues/623>`_; PR by @cvas22)
 
 **4.6.0** (2026-07-26)
 
