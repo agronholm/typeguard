@@ -733,6 +733,45 @@ class TestTypedDict:
         ):
             check_type({"x": 6, "y": 7, "z": None}, DummyDict)
 
+    def test_extra_items_readonly(self, typing_provider):
+        # Regression test for #636: extra_items=ReadOnly[...] must be checked
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=ReadOnly[int]):
+                x: int
+
+            class AnnotatedDict(
+                typing_provider.TypedDict,
+                extra_items=Annotated[ReadOnly[int], "meta"],
+            ):
+                x: int
+
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"x": 6, "y": 7}, DummyDict)
+        check_type({"x": 6, "y": 7}, AnnotatedDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
+        ):
+            check_type({"x": 6, "y": "foo"}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
+        ):
+            check_type({"x": 6, "y": "foo"}, AnnotatedDict)
+
 
 class TestList:
     def test_bad_type(self):
