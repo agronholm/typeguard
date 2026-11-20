@@ -834,6 +834,7 @@ class TestTypedDict:
             pytest.param(lambda ro: ro[int], id="readonly"),
             pytest.param(lambda ro: Annotated[ro[int], "meta"], id="annotated"),
             pytest.param(lambda ro: ro[Annotated[int, "meta"]], id="annotated_inner"),
+            pytest.param(lambda ro: ro["int"], id="forwardref"),
         ],
     )
     def test_extra_items_qualifiers(self, typing_provider, make_extra_type):
@@ -860,6 +861,39 @@ class TestTypedDict:
             TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
         ):
             check_type({"x": 6, "y": "foo"}, DummyDict)
+
+    def test_extra_items_qualifiers_keep_metadata(self, typing_provider, monkeypatch):
+        try:
+            ReadOnly = typing_provider.ReadOnly
+        except AttributeError:
+            pytest.skip(f"'ReadOnly' not found in {typing_provider.__name__!r}")
+
+        seen_extras = []
+
+        def lookup_func(origin_type, args, extras):
+            if origin_type is int and extras:
+                seen_extras.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup_func, *checker_lookup_functions],
+        )
+
+        extra_type = Annotated[ReadOnly[Annotated[int, "inner"]], "outer"]
+        try:
+
+            class DummyDict(typing_provider.TypedDict, extra_items=extra_type):
+                pass
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"y": 1}, DummyDict)
+        assert seen_extras == [("inner", "outer")]
 
 
 class TestList:
