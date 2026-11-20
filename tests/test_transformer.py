@@ -1382,6 +1382,7 @@ k: xml.dom.Node, x: int) -> None:
 
     def test_dotted_import_does_not_shadow_sibling_runtime_submodule(self) -> None:
         from ast import fix_missing_locations
+
         from typeguard import TypeCheckError
 
         node = parse(
