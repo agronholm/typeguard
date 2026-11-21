@@ -947,20 +947,16 @@ def check_protocol(
                 continue
 
             # Require it to be present on the subject, which is the one thing that
-            # can be established without a declared type.
+            # can be established without a declared type. Use getattr_static so property
+            # getters do not run during the presence check, matching the behavior of
+            # runtime_checkable protocols (isinstance) on Python 3.12+.
             try:
-                getattr(value, attrname)
+                inspect.getattr_static(value, attrname)
             except AttributeError:
                 raise TypeCheckError(
                     f"is not compatible with the {origin_type.__qualname__} "
                     f"protocol because it has no attribute named {attrname!r}"
                 ) from None
-            except Exception as exc:
-                raise TypeCheckError(
-                    f"could not be checked against the {origin_type.__qualname__} "
-                    f"protocol because reading its {attrname!r} attribute raised "
-                    f"{type(exc).__name__}: {exc}"
-                ) from exc
 
 
 def check_byteslike(

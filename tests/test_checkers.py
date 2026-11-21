@@ -1576,9 +1576,11 @@ class TestProtocol:
 
         check_type(Present(), MyProtocol)
 
-    def test_property_raising_is_wrapped(self) -> None:
-        # A property whose getter raises is a member that exists but cannot be
-        # read. It must not escape as whatever the getter raised.
+    def test_property_raising_does_not_fail_presence_check(self) -> None:
+        # A property in a protocol body is checked for presence via getattr_static,
+        # so an object whose property getter raises (e.g. not initialized yet)
+        # passes the check without running the getter, matching runtime_checkable
+        # protocol (isinstance) behavior on Python 3.12+.
         class MyProtocol(Protocol):
             @property
             def prop(self) -> int: ...
@@ -1588,10 +1590,7 @@ class TestProtocol:
             def prop(self) -> int:
                 raise ValueError("boom")
 
-        with pytest.raises(TypeCheckError, match="reading its 'prop' attribute") as ei:
-            check_type(Hostile(), MyProtocol)
-
-        assert isinstance(ei.value.__cause__, ValueError)
+        check_type(Hostile(), MyProtocol)
 
     def test_base_exception_from_lookup_still_propagates(self) -> None:
         # Only Exception is wrapped. KeyboardInterrupt and friends must not be
