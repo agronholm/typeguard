@@ -1,6 +1,5 @@
 """Module docstring."""
 
-import sys
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
@@ -34,20 +33,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="DummyClass")
 P = ParamSpec("P")
-
-
-if sys.version_info <= (3, 13):
-    from typing import no_type_check_decorator
-
-    @no_type_check_decorator
-    def dummy_decorator(func):
-        return func
-
-    @dummy_decorator
-    def non_type_checked_decorated_func(x: int, y: str) -> 6:
-        # This is to ensure that we avoid using a local variable that's already in use
-        _call_memo = "foo"  # noqa: F841
-        return "foo"
 
 
 @typechecked

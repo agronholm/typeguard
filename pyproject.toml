@@ -10,6 +10,10 @@ name = "typeguard"
 description = "Run-time type checker for Python"
 readme = "README.rst"
 authors = [{name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"}]
+maintainers = [
+    {name = "Jason R. Coombs", email = "jaraco@jaraco.com"},
+    {name = "André Théo LAURET", email = "andre.lauret@eclipse-technology.eu"},
+]
 license = "MIT"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -79,6 +83,9 @@ src = ["src"]
 
 [tool.ruff.per-file-target-version]
 "tests/dummymodule_py312.py" = "py312"
+
+[tool.ruff.format]
+exclude = ["tests/mypy/negative.py"]
 
 [tool.ruff.lint]
 extend-select = [
