@@ -352,5 +352,30 @@ class ModuleLocalClass:
     """A class only available in this module's namespace, not the caller's."""
 
 
+# Regression test for #618 - in import-hook mode the injected imports live at
+# module level but are referenced from inside functions, so a name a function
+# binds locally must not collide with them.
+@typechecked
+def injected_name_shadowed_by_assignment(x: int) -> int:
+    TypeCheckMemo = 5  # noqa: F841
+    return x
+
+
+@typechecked
+def injected_name_shadowed_by_except(x: int) -> int:
+    try:
+        raise ValueError
+    except ValueError as TypeCheckMemo:  # noqa: F841
+        pass
+
+    return x
+
+
+@typechecked
+def injected_check_function_shadowed(x: int) -> int:
+    check_argument_types_internal = 5  # noqa: F841
+    return x
+
+
 class TypedDictWithForwardRef(TypedDict):
     x: "ModuleLocalClass"

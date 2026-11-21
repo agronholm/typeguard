@@ -41,6 +41,20 @@ def test_blanket_import():
         del sys.modules["dummymodule"]
 
 
+def test_injected_names_shadowed_in_function_bodies():
+    """
+    Regression test for #618: names bound inside function bodies must not
+    collide with the module-level imports injected by the import hook.
+    """
+    dummymodule = import_dummymodule()
+    try:
+        assert dummymodule.injected_name_shadowed_by_assignment(1) == 1
+        assert dummymodule.injected_name_shadowed_by_except(1) == 1
+        assert dummymodule.injected_check_function_shadowed(1) == 1
+    finally:
+        del sys.modules["dummymodule"]
+
+
 def test_package_name_matching():
     """
     The path finder only matches configured (sub)packages.
