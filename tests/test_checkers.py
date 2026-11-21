@@ -1642,7 +1642,7 @@ class TestProtocol:
             def compute(self) -> int:
                 return 0
 
-            _cache = {}
+            _cache = ()
 
         class Minimal:
             name = "x"
@@ -1657,7 +1657,7 @@ class TestProtocol:
         # member, with or without a default. That was already the case before this
         # change and must stay that way.
         class MyProtocol(Protocol):
-            registry: dict = {}
+            registry: tuple = ()
 
         class Minimal:
             pass
