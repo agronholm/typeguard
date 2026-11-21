@@ -10,6 +10,21 @@ This library adheres to
   annotation
   (`#580 <https://github.com/agronholm/typeguard/issues/580>`_)
 
+- Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
+  (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
+
+- Fixed ``check_return_type()`` raising a bare ``KeyError: 'return'`` when used
+  inside a function without a return annotation; it now skips the check, matching
+  how ``check_argument_types()`` treats unannotated parameters
+  (`#609 <https://github.com/agronholm/typeguard/pull/609>`_; PR by @feiiiiii5)
+
+- Fixed a false ``TypeCheckError`` (or a leaked ``ValueError`` from a custom
+  ``__eq__``) when checking a callable whose keyword-only parameters have default
+  values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
+  of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
+
+**4.6.1** (2026-11-19)
+
 - Fixed documentation builds failing on references to removed typing APIs and older
   typing object kinds by adding a legacy Python documentation inventory
   (`#612 <https://github.com/agronholm/typeguard/issues/612>`_; PR by @parijat1222q)

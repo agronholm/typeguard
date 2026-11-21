@@ -206,7 +206,7 @@ def typechecked(
                         wrapper = attr.__class__(retval)
                         setattr(target, key, wrapper)
             elif isinstance(attr, property):
-                kwargs: dict[str, Any] = dict(doc=attr.__doc__)
+                kwargs: dict[str, Any] = {"doc": attr.__doc__}
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
                     if is_method_of(property_func, target):
@@ -219,9 +219,8 @@ def typechecked(
         return target
 
     # Find either the first Python wrapper or the actual function
-    wrapper_class: (
-        type[classmethod[Any, Any, Any]] | type[staticmethod[Any, Any]] | None
-    ) = None
+    wrapper_class: type[classmethod[Any, Any, Any] | staticmethod[Any, Any]] | None
+    wrapper_class = None
     if isinstance(target, (classmethod, staticmethod)):
         wrapper_class = target.__class__
         target = target.__func__  # type: ignore[assignment]
