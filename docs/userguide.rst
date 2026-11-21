@@ -178,7 +178,8 @@ recognizes module-level ``if typing.TYPE_CHECKING:`` or ``if TYPE_CHECKING:`` bl
 (with :data:`~typing.TYPE_CHECKING` imported from :mod:`typing` or
 ``typing_extensions``). Names imported or defined within such blocks on the module
 level will be replaced in calls to internal type checking functions with
-:data:`~typing.Any`, unless also bound in the ``else`` branch.
+:data:`~typing.Any`, unless also bound unconditionally at module level (including in
+the ``else`` branch).
 
 Using the pytest plugin
 -----------------------

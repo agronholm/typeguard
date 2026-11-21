@@ -36,9 +36,17 @@ if TYPE_CHECKING:
         x: int
         y: int
 
+    class StubbedThenDefined:
+        pass
+
     RuntimeFallbackType = int
 else:
     RuntimeFallbackType = dict
+
+
+class StubbedThenDefined:
+    pass
+
 
 T = TypeVar("T", bound="DummyClass")
 P = ParamSpec("P")
@@ -340,6 +348,11 @@ def guarded_type_hint_class_and_else(
 ) -> Dict[str, int]:
     args: ImaginaryArgs = {"x": 1, "y": 2}
     return args
+
+
+@typechecked
+def takes_stubbed_then_defined(x: StubbedThenDefined) -> StubbedThenDefined:
+    return x
 
 
 @typechecked

@@ -383,6 +383,15 @@ class TestGuardedType:
         ):
             dummymodule.guarded_type_hint_class_and_else(1)
 
+    def test_stubbed_class_then_defined(self, dummymodule):
+        obj = dummymodule.StubbedThenDefined()
+        assert dummymodule.takes_stubbed_then_defined(obj) is obj
+        with pytest.raises(
+            TypeCheckError,
+            match=r'argument "x" \(int\) is not an instance of dummymodule.StubbedThenDefined',
+        ):
+            dummymodule.takes_stubbed_then_defined(1)
+
 
 def test_literal(dummymodule):
     assert dummymodule.literal("foo") == "foo"

@@ -9,6 +9,7 @@ from ast import (
     Add,
     AnnAssign,
     Assign,
+    AsyncFor,
     AsyncFunctionDef,
     Attribute,
     AugAssign,
@@ -24,6 +25,7 @@ from ast import (
     Expr,
     Expression,
     FloorDiv,
+    For,
     FunctionDef,
     If,
     Import,
@@ -31,6 +33,7 @@ from ast import (
     List,
     Load,
     LShift,
+    Match,
     MatMult,
     Mod,
     Module,
@@ -47,7 +50,9 @@ from ast import (
     Store,
     Sub,
     Subscript,
+    Try,
     Tuple,
+    While,
     Yield,
     YieldFrom,
     alias,
@@ -289,9 +294,24 @@ class TransformMemo:
 
 
 class NameCollector(NodeVisitor):
-    def __init__(self, *, ignore_unbound_annotations: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        ignore_unbound_annotations: bool = False,
+        memo: TransformMemo | None = None,
+        record_imports: bool = True,
+    ) -> None:
         self.names: set[str] = set()
         self._ignore_unbound_annotations = ignore_unbound_annotations
+        self._memo = memo
+        self._record_imports = record_imports
+
+    def _spawn_child(self) -> NameCollector:
+        return NameCollector(
+            ignore_unbound_annotations=self._ignore_unbound_annotations,
+            memo=self._memo,
+            record_imports=False,
+        )
 
     def _collect_target(self, target: expr) -> None:
         if isinstance(target, Name):
@@ -299,15 +319,37 @@ class NameCollector(NodeVisitor):
         elif isinstance(target, (Tuple, List)):
             for elt in target.elts:
                 self._collect_target(elt)
+        elif isinstance(target, Starred):
+            self._collect_target(target.value)
 
     def visit_Import(self, node: Import) -> None:
         for name in node.names:
             self.names.add(name.asname or name.name.split(".", 1)[0])
+            if self._memo is not None and self._record_imports:
+                self._memo.imported_names[name.asname or name.name] = name.name
 
     def visit_ImportFrom(self, node: ImportFrom) -> None:
         for name in node.names:
-            if name.name != "*":
-                self.names.add(name.asname or name.name)
+            if name.name == "*":
+                if self._ignore_unbound_annotations:
+                    if node.module == "typing":
+                        imported_names = typing_all
+                    elif node.module == "typing_extensions":
+                        imported_names = typing_extensions_all
+                    else:
+                        continue
+
+                    self.names.update(imported_names)
+                    if self._memo is not None and self._record_imports:
+                        for item in imported_names:
+                            self._memo.imported_names.setdefault(
+                                item, f"{node.module}.{item}"
+                            )
+            else:
+                alias_name = name.asname or name.name
+                self.names.add(alias_name)
+                if self._memo is not None and self._record_imports:
+                    self._memo.imported_names[alias_name] = f"{node.module}.{name.name}"
 
     def visit_Assign(self, node: Assign) -> None:
         for target in node.targets:
@@ -335,14 +377,72 @@ class NameCollector(NodeVisitor):
     def visit_If(self, node: If) -> None:
         if not self._ignore_unbound_annotations:
             self.generic_visit(node)
+        elif self._memo is not None and self._memo.name_matches(
+            node.test, *typechecking_names
+        ):
+            for stmt in node.orelse:
+                self.visit(stmt)
         elif node.orelse:
-            body_collector = NameCollector(ignore_unbound_annotations=True)
+            body_collector = self._spawn_child()
             for stmt in node.body:
                 body_collector.visit(stmt)
-            orelse_collector = NameCollector(ignore_unbound_annotations=True)
+            orelse_collector = self._spawn_child()
             for stmt in node.orelse:
                 orelse_collector.visit(stmt)
             self.names.update(body_collector.names & orelse_collector.names)
+
+    def _visit_try(self, node: Try) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
+            return
+
+        if not node.handlers:
+            for stmt in node.body:
+                self.visit(stmt)
+            for stmt in node.orelse:
+                self.visit(stmt)
+        else:
+            try_collector = self._spawn_child()
+            for stmt in node.body:
+                try_collector.visit(stmt)
+            for stmt in node.orelse:
+                try_collector.visit(stmt)
+
+            common_names = try_collector.names
+            for handler in node.handlers:
+                handler_collector = self._spawn_child()
+                for stmt in handler.body:
+                    handler_collector.visit(stmt)
+                common_names &= handler_collector.names
+
+            self.names.update(common_names)
+
+        for stmt in node.finalbody:
+            self.visit(stmt)
+
+    def visit_Try(self, node: Try) -> None:
+        self._visit_try(node)
+
+    if sys.version_info >= (3, 11):
+
+        def visit_TryStar(self, node: ast.TryStar) -> None:
+            self._visit_try(cast(Try, node))
+
+    def visit_For(self, node: For) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
+
+    def visit_AsyncFor(self, node: AsyncFor) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
+
+    def visit_While(self, node: While) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
+
+    def visit_Match(self, node: Match) -> None:
+        if not self._ignore_unbound_annotations:
+            self.generic_visit(node)
 
     if sys.version_info >= (3, 12):
 
@@ -525,6 +625,7 @@ class TypeguardTransformer(NodeTransformer):
         self.names_used_in_annotations: set[str] = set()
         self.target_node: FunctionDef | AsyncFunctionDef | None = None
         self.target_lineno = target_lineno
+        self._module_runtime_names: set[str] = set()
 
     def generic_visit(self, node: AST) -> AST:
         has_non_empty_body_initially = bool(getattr(node, "body", None))
@@ -628,8 +729,18 @@ class TypeguardTransformer(NodeTransformer):
         self._memo.local_names.add(node.id)
         return node
 
+    def _collect_module_runtime_names(self, node: Module) -> set[str]:
+        collector = NameCollector(
+            ignore_unbound_annotations=True,
+            memo=TransformMemo(node, None, ()),
+        )
+        for stmt in node.body:
+            collector.visit(stmt)
+        return collector.names
+
     def visit_Module(self, node: Module) -> Module:
         self._module_memo = self._memo = TransformMemo(node, None, ())
+        self._module_runtime_names = self._collect_module_runtime_names(node)
         self.generic_visit(node)
         self._module_memo.insert_imports(node)
 
@@ -1278,7 +1389,9 @@ class TypeguardTransformer(NodeTransformer):
             for stmt in node.orelse:
                 runtime_collector.visit(stmt)
 
-            self._memo.ignored_names.update(collector.names - runtime_collector.names)
+            self._memo.ignored_names.update(
+                collector.names - runtime_collector.names - self._module_runtime_names
+            )
 
         self.generic_visit(node)
         return node

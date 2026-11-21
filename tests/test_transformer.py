@@ -4,6 +4,7 @@ from textwrap import dedent
 
 import pytest
 
+from typeguard import TypeCheckError
 from typeguard._transformer import TypeguardTransformer
 
 
@@ -1378,6 +1379,178 @@ k: xml.dom.Node, x: int) -> None:
                     return z
                 """
             ).strip()
+        )
+
+    def test_stubbed_class_defined_at_module_level_no_else(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    class Foo:
+                        pass
+
+                class Foo:
+                    pass
+
+                def takes_foo(x: Foo) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                from typeguard import TypeCheckMemo
+                from typeguard._functions import check_argument_types_internal
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+
+                    class Foo:
+                        pass
+
+                class Foo:
+                    pass
+
+                def takes_foo(x: Foo) -> None:
+                    memo = TypeCheckMemo(globals(), locals())
+                    check_argument_types_internal('takes_foo', {'x': (x, Foo)}, memo)
+                """
+            ).strip()
+        )
+
+        namespace: dict[str, object] = {}
+        exec(compile(node, "<test_stubbed_class>", "exec"), namespace)  # noqa: S102
+        takes_foo = namespace["takes_foo"]
+        foo_cls = namespace["Foo"]
+        assert callable(takes_foo)
+        assert isinstance(foo_cls, type)
+        takes_foo(foo_cls())
+        with pytest.raises(TypeCheckError):
+            takes_foo(1)
+
+    def test_module_level_unconditional_bindings_subtracted(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from __future__ import annotations
+                import sys
+                from typing import TYPE_CHECKING, TypeAlias
+                if TYPE_CHECKING:
+                    class Foo:
+                        pass
+                    class BeforeClass:
+                        pass
+                    def stub_fn() -> None:
+                        pass
+                    async def async_stub_fn() -> None:
+                        pass
+                    Alias = int
+                    BoundAnn: TypeAlias = str
+                    UnboundAnn: TypeAlias
+                    import collections
+                    from math import sqrt
+                    class CondOnly:
+                        pass
+                    class TryOnly:
+                        pass
+                    class LoopOnly:
+                        pass
+                    class LocalOnly:
+                        pass
+
+                def uses_before_class(x: BeforeClass) -> None:
+                    pass
+
+                class Foo:
+                    pass
+
+                class BeforeClass:
+                    pass
+
+                def stub_fn() -> None:
+                    pass
+
+                async def async_stub_fn() -> None:
+                    pass
+
+                Alias = int
+                BoundAnn: TypeAlias = str
+                UnboundAnn: TypeAlias
+                import collections
+                from math import sqrt
+
+                if sys.platform == 'win32':
+                    class CondOnly:
+                        pass
+
+                try:
+                    from nonexistent_optional import TryOnly
+                except ImportError:
+                    pass
+
+                for _ in ():
+                    class LoopOnly:
+                        pass
+
+                def outer() -> None:
+                    class LocalOnly:
+                        pass
+
+                def check_all(
+                    a: Foo,
+                    b: stub_fn,
+                    c: async_stub_fn,
+                    d: Alias,
+                    e: BoundAnn,
+                    f: UnboundAnn,
+                    g: collections.abc.Mapping,
+                    h: sqrt,
+                    i: CondOnly,
+                    j: TryOnly,
+                    k: LoopOnly,
+                    m: LocalOnly,
+                ) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        transformed = unparse(node)
+        assert (
+            "check_argument_types_internal('uses_before_class', "
+            "{'x': (x, BeforeClass)}, memo)"
+        ) in transformed
+        assert (
+            "check_argument_types_internal('check_all', "
+            "{'a': (a, Foo), 'b': (b, stub_fn), 'c': (c, async_stub_fn), "
+            "'d': (d, Alias), 'e': (e, BoundAnn), 'g': (g, collections.abc.Mapping), "
+            "'h': (h, sqrt)}, memo)"
+        ) in transformed
+
+    @pytest.mark.skipif(sys.version_info < (3, 12), reason="Requires Python 3.12+")
+    def test_pep695_type_alias_rebound_at_module_level(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    type Alias = int
+
+                type Alias = str
+
+                def foo(x: Alias) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        transformed = unparse(node)
+        assert (
+            "check_argument_types_internal('foo', {'x': (x, Alias)}, memo)"
+            in transformed
         )
 
 
