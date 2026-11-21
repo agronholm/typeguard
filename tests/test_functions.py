@@ -65,6 +65,22 @@ class TestCheckReturnType:
 
         foo()
 
+    def test_no_return_annotation(self) -> None:
+        def foo():
+            return check_return_type(0)
+
+        assert foo() == 0
+
+    def test_none_return_annotation(self) -> None:
+        def foo() -> None:
+            return check_return_type(0)
+
+        with raises(
+            TypeCheckError,
+            match=r"the return value \(int\) is not an instance of NoneType",
+        ):
+            foo()
+
     def test_failure(self) -> None:
         def foo() -> int:
             return check_return_type("foo")

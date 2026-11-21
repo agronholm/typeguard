@@ -27,6 +27,7 @@ from typing import (
     Literal,
     Mapping,
     MutableMapping,
+    NamedTuple,
     ParamSpec,
     Protocol,
     Sequence,
@@ -190,6 +191,28 @@ class TestCallable:
             TypeCheckError, check_type, some_callable, Callable[[int, str], int]
         ).match(r"has mandatory keyword-only arguments in its declaration: z, bar")
 
+    def test_kwonly_default_with_custom_eq(self):
+        """A defaulted keyword-only arg is not mandatory, however its default compares."""
+
+        class WeirdEq:
+            def __eq__(self, other):
+                return [1, 2]
+
+        class RaisingEq:
+            def __eq__(self, other):
+                raise ValueError("ambiguous truth value")
+
+        def has_default(x: int, *, kw: int = WeirdEq()) -> int:
+            return kw
+
+        assert check_type(has_default, Callable[[int], int]) is has_default
+
+        def raises_on_eq(x: int, *, kw: int = RaisingEq()) -> int:
+            return kw
+
+        # the default's __eq__ must not be consulted, let alone escape check_type
+        assert check_type(raises_on_eq, Callable[[int], int]) is raises_on_eq
+
     def test_class(self):
         """
         Test that passing a class as a callable does not count the "self" argument
@@ -280,7 +303,7 @@ class TestLiteral:
         )
 
     def test_literal_nested(self):
-        annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]
+        annotation = Literal[1, Literal["x", "a", Literal["z"]], 6, 8]  # noqa: RUF041
         check_type("z", annotation)
         pytest.raises(TypeCheckError, check_type, 4, annotation).match(
             r"int is not any of \(1, 'x', 'a', 'z', 6, 8\)$"
@@ -305,7 +328,7 @@ class TestLiteral:
 
 class TestMapping:
     class DummyMapping(collections.abc.Mapping):
-        _values = {"a": 1, "b": 10, "c": 100}
+        _values: ClassVar[dict[str, int]] = {"a": 1, "b": 10, "c": 100}
 
         def __getitem__(self, index: str):
             return self._values[index]
@@ -360,7 +383,7 @@ class TestMapping:
 
 class TestMutableMapping:
     class DummyMutableMapping(collections.abc.MutableMapping):
-        _values = {"a": 1, "b": 10, "c": 100}
+        _values: ClassVar[dict[str, int]] = {"a": 1, "b": 10, "c": 100}
 
         def __getitem__(self, index: str):
             return self._values[index]
@@ -950,6 +973,21 @@ class TestTuple:
 
 
 class TestNamedTuple:
+    def test_empty_valid(self):
+        class Empty(NamedTuple):
+            pass
+
+        value = Empty()
+        assert check_type(value, Empty) is value
+
+    @pytest.mark.parametrize("value", [(), (1,), Employee("bob", 1)])
+    def test_empty_type_mismatch(self, value):
+        class Empty(NamedTuple):
+            pass
+
+        with pytest.raises(TypeCheckError, match="is not a named tuple of type"):
+            check_type(value, Empty)
+
     def test_valid(self):
         check_type(Employee("bob", 1), Employee)
 
@@ -1232,12 +1270,12 @@ class TestIO:
 
 
 class TestIntersectingProtocol:
-    SIT = TypeVar("SIT", covariant=True)
+    SIT_co = TypeVar("SIT_co", covariant=True)
 
     class SizedIterable(
         Sized,
-        Iterable[SIT],
-        Protocol[SIT],
+        Iterable[SIT_co],
+        Protocol[SIT_co],
     ): ...
 
     @pytest.mark.parametrize(
@@ -1759,7 +1797,7 @@ def test_forward_reference_policy(
     policy: ForwardRefPolicy, contextmanager: ContextManager
 ):
     with contextmanager:
-        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)  # noqa: F821
+        check_type(1, ForwardRef("Foo"), forward_ref_policy=policy)
 
 
 def test_any():
