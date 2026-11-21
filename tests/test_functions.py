@@ -111,6 +111,20 @@ class TestCheckArgumentTypes:
         with raises(TypeCheckError, match=pattern):
             deferredmanual.foo(*args, **kwargs)
 
+    @pytest.mark.parametrize(
+        "func_name",
+        ["never_called_noreturn", "never_called_never"],
+    )
+    def test_future_annotations_never(
+        self,
+        deferredmanual: ModuleType,
+        func_name: str,
+    ) -> None:
+        func = getattr(deferredmanual, func_name)
+        pattern = f"{func_name}\\(\\) was declared never to be called but it was"
+        with raises(TypeCheckError, match=pattern):
+            func(1)
+
 
 class TestCheckReturnType:
     def test_success(self) -> None:

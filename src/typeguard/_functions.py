@@ -24,7 +24,7 @@ from ._config import (
 )
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
-from ._utils import find_function, get_stacklevel, qualified_name
+from ._utils import evaluate_forwardref, find_function, get_stacklevel, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import Literal, Never, TypeAlias
@@ -169,6 +169,23 @@ def check_argument_types() -> Literal[True]:
     return check_argument_types_internal(func.__name__, arguments, memo)
 
 
+def _is_never(annotation: Any, memo: TypeCheckMemo) -> bool:
+    if annotation is NoReturn or annotation is Never:
+        return True
+
+    if isinstance(annotation, str):
+        annotation = ForwardRef(annotation)
+
+    if isinstance(annotation, ForwardRef):
+        try:
+            resolved = evaluate_forwardref(annotation, memo)
+            return resolved is NoReturn or resolved is Never
+        except NameError:
+            return annotation.__forward_arg__ in ("NoReturn", "Never")
+
+    return False
+
+
 def check_argument_types_internal(
     func_name: str,
     arguments: dict[str, tuple[Any, Any]],
@@ -178,7 +195,7 @@ def check_argument_types_internal(
         return True
 
     for argname, (value, annotation) in arguments.items():
-        if annotation is NoReturn or annotation is Never:
+        if _is_never(annotation, memo):
             exc = TypeCheckError(
                 f"{func_name}() was declared never to be called but it was"
             )
@@ -234,7 +251,7 @@ def check_return_type_internal(
     if _suppression.type_checks_suppressed:
         return retval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(f"{func_name}() was declared never to return but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
@@ -270,7 +287,7 @@ def check_send_type(
     if _suppression.type_checks_suppressed:
         return sendval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(
             f"{func_name}() was declared never to be sent a value to but it was"
         )
@@ -301,7 +318,7 @@ def check_yield_type(
     if _suppression.type_checks_suppressed:
         return yieldval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(f"{func_name}() was declared never to yield but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
