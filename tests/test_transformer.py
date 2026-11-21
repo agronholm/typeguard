@@ -32,6 +32,58 @@ def test_arguments_only() -> None:
     )
 
 
+def test_injected_import_aliased_when_function_binds_name() -> None:
+    # Regression test for #618: in import-hook mode the injected imports live
+    # at module level but are referenced from inside functions, so a name a
+    # function binds locally must be aliased instead of colliding with them.
+    node = parse(
+        dedent(
+            """
+            from typeguard import typechecked
+
+            @typechecked
+            def foo(x: int) -> int:
+                TypeCheckMemo = 5
+                return x
+
+            @typechecked
+            def bar(x: int) -> int:
+                try:
+                    raise ValueError
+                except ValueError as TypeCheckMemo:
+                    pass
+                return x
+            """
+        )
+    )
+    TypeguardTransformer().visit(node)
+    assert (
+        unparse(node)
+        == dedent(
+            """
+            from typeguard import TypeCheckMemo as TypeCheckMemo_
+            from typeguard._functions import check_argument_types_internal, check_return_type_internal
+            from typeguard import typechecked
+
+            def foo(x: int) -> int:
+                memo = TypeCheckMemo_(globals(), locals())
+                check_argument_types_internal('foo', {'x': (x, int)}, memo)
+                TypeCheckMemo = 5
+                return check_return_type_internal('foo', x, int, memo)
+
+            def bar(x: int) -> int:
+                memo = TypeCheckMemo_(globals(), locals())
+                check_argument_types_internal('bar', {'x': (x, int)}, memo)
+                try:
+                    raise ValueError
+                except ValueError as TypeCheckMemo:
+                    pass
+                return check_return_type_internal('bar', x, int, memo)
+        """
+        ).strip()
+    )
+
+
 def test_return_only() -> None:
     node = parse(
         dedent(

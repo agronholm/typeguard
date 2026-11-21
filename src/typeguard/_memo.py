@@ -10,6 +10,30 @@ def _is_typeguard_internal(value: Any) -> bool:
     return module == "typeguard" or module.startswith("typeguard.")
 
 
+# Names instrumentation injects whose values are typeguard's own internals.
+# Only entries under one of these names can ever need dropping from the
+# locals snapshot: the other injected imports come from other modules
+# (dataclasses.replace, typing.Any, operator helpers) and the value filter
+# would keep them anyway. Aliases gain one "_" per collision, so a few
+# suffix depths are checked; a deeper alias can only arise from just as many
+# colliding user bindings, in which case one of the checked names is present
+# and the full scan below still runs. The candidate keys are precomputed so
+# the check costs a few dict lookups and no string building per call.
+_INJECTED_INTERNAL_KEYS: frozenset[str] = frozenset(
+    f"{name}{'_' * suffix}"
+    for name in (
+        "TypeCheckMemo",
+        "check_argument_types_internal",
+        "check_return_type_internal",
+        "check_yield_type",
+        "check_send_type",
+        "check_variable_assignment",
+        "global_config",
+    )
+    for suffix in range(4)
+)
+
+
 class TypeCheckMemo:
     """
     Contains information necessary for type checkers to do their work.
@@ -53,10 +77,20 @@ class TypeCheckMemo:
         # in the locals snapshot. They must not shadow the function's own
         # globals when forward references are resolved against these locals,
         # so entries pointing at typeguard's own internals are dropped.
-        self.locals = {
-            key: value
-            for key, value in locals.items()
-            if not _is_typeguard_internal(value)
-        }
+        # Scanning every value costs a getattr per entry on every call, which
+        # dominates a module-level check_type() loop over hundreds of globals,
+        # so only do it when an injected name (or an aliased variant of one)
+        # is actually present: otherwise a plain copy preserves the snapshot
+        # semantics with no per-value work.
+        # (Iterate over the small candidate set, not the locals dict:
+        # isdisjoint() would walk all of locals instead.)
+        if not any(key in locals for key in _INJECTED_INTERNAL_KEYS):
+            self.locals = dict(locals)
+        else:
+            self.locals = {
+                key: value
+                for key, value in locals.items()
+                if not _is_typeguard_internal(value)
+            }
         self.self_type = self_type
         self.config = config

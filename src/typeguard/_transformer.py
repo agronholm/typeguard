@@ -134,6 +134,13 @@ class TransformMemo:
     send_annotation: expr | None = None
     is_async: bool = False
     local_names: set[str] = field(init=False, default_factory=set)
+    # Names bound inside nested function bodies anywhere in the module.
+    # Only populated on the module memo in import-hook mode (see
+    # visit_Module): the injected imports live at module level there but are
+    # referenced from inside functions, so a name a function binds locally
+    # must be treated as a collision even when the user already imported it
+    # at module level (see get_import()).
+    nested_names: set[str] = field(init=False, default_factory=set)
     imported_names: dict[str, str] = field(init=False, default_factory=dict)
     ignored_names: set[str] = field(init=False, default_factory=set)
     load_names: defaultdict[str, dict[str, Name]] = field(
@@ -223,7 +230,15 @@ class TransformMemo:
             return self.load_names[module][name]
 
         qualified_name = f"{module}.{name}"
-        if name in self.imported_names and self.imported_names[name] == qualified_name:
+        if (
+            name in self.imported_names
+            and self.imported_names[name] == qualified_name
+            and name not in self.nested_names
+        ):
+            # Reusing the plain name is only safe when no nested scope binds
+            # it: in import-hook mode the import lives at module level but is
+            # referenced from inside functions, where a local binding would
+            # shadow it (UnboundLocalError). Fall through to aliasing then.
             return Name(id=name, ctx=Load())
 
         alias = self.get_unused_name(name)
@@ -734,8 +749,26 @@ class TypeguardTransformer(NodeTransformer):
         self._module_memo = self._memo = TransformMemo(node, None, ())
         # Collect module level names up front so that injected names avoid
         # bindings that only appear later in the module (see
-        # collect_module_names())
-        self._memo.local_names.update(collect_module_names(node))
+        # collect_module_names()). In import-hook mode (target_path is None)
+        # the injected imports live at module level but are referenced from
+        # inside functions, so names bound in function bodies count too —
+        # otherwise a function binding e.g. ``TypeCheckMemo = 5`` or
+        # ``except ... as TypeCheckMemo`` would collide with the injected
+        # module-level import and raise UnboundLocalError when the injected
+        # code runs. In decorator mode the imports live inside the
+        # instrumented function itself, where collect_all_names() already
+        # covers those bindings.
+        module_names = collect_module_names(node)
+        if self._target_path is None:
+            nested_names: set[str] = set()
+            for child in walk(node):
+                if isinstance(child, (FunctionDef, AsyncFunctionDef)):
+                    nested_names.update(collect_all_names(child))
+
+            self._module_memo.nested_names = nested_names
+            self._memo.local_names.update(module_names | nested_names)
+        else:
+            self._memo.local_names.update(module_names)
         self.generic_visit(node)
         self._module_memo.insert_imports(node)
 
