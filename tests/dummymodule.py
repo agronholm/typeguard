@@ -12,6 +12,7 @@ from typing import (
     Literal,
     ParamSpec,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypedDict,
@@ -248,6 +249,27 @@ def unpacking_assign_generator() -> Tuple[int, str]:
     x: int
     x, y = genfunc()
     return x, y
+
+
+@typechecked
+def unpacking_assign_chained() -> Tuple[int, str, Tuple[int, str]]:
+    x: int
+    x, y = z = (1, "foo")
+    return x, y, z
+
+
+@typechecked
+def unpacking_assign_chained_dict() -> Tuple[str, str, Dict[str, int]]:
+    x: str
+    x, y = z = {"a": 1, "b": 2}
+    return x, y, z
+
+
+@typechecked
+def unpacking_assign_chained_set() -> Tuple[int, Set[int]]:
+    x: int
+    (x,) = z = {1}
+    return x, z
 
 
 @typechecked

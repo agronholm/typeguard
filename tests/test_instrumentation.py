@@ -275,6 +275,18 @@ def test_unpacking_assign_from_generator(dummymodule):
     assert dummymodule.unpacking_assign_generator() == (1, "foo")
 
 
+def test_unpacking_assign_chained(dummymodule):
+    assert dummymodule.unpacking_assign_chained() == (1, "foo", (1, "foo"))
+
+
+def test_unpacking_assign_chained_dict(dummymodule):
+    assert dummymodule.unpacking_assign_chained_dict() == ("a", "b", {"a": 1, "b": 2})
+
+
+def test_unpacking_assign_chained_set(dummymodule):
+    assert dummymodule.unpacking_assign_chained_set() == (1, {1})
+
+
 def test_unpacking_assign_star_with_annotation(dummymodule):
     assert dummymodule.unpacking_assign_star_with_annotation() == (
         1,

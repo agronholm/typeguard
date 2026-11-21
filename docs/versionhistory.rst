@@ -19,6 +19,10 @@ This library adheres to
   values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
   of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
 
+- Fixed chained assignments with an unpacking target (``x, y = z = (1, "foo")``)
+  turning the value bound to the other targets into a list
+  (`#620 <https://github.com/agronholm/typeguard/pull/620>`_; PR by @abhishekcpp007)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
