@@ -144,8 +144,9 @@ def check_argument_types() -> Literal[True]:
     frame = sys._getframe(1)
     func = find_function(frame)
     f_locals = frame.f_locals
-    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
     sig = signature(func, globals=frame.f_globals, locals=frame.f_locals)
+    memo_locals = {k: v for k, v in f_locals.items() if k not in sig.parameters}
+    memo = TypeCheckMemo(frame.f_globals, memo_locals)
     arguments = {}
     for param in sig.parameters.values():
         if param.annotation is Parameter.empty or param.annotation is Any:

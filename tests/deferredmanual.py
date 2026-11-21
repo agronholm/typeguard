@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import date
 from typing import NoReturn
 
 if sys.version_info >= (3, 11):
@@ -20,4 +21,8 @@ def never_called_noreturn(x: NoReturn) -> None:
 
 
 def never_called_never(x: Never) -> None:
+    check_argument_types()
+
+
+def date_fn(date: date) -> None:
     check_argument_types()

@@ -125,6 +125,17 @@ class TestCheckArgumentTypes:
         with raises(TypeCheckError, match=pattern):
             func(1)
 
+    def test_future_annotations_param_shadows_type_name(
+        self,
+        deferredmanual: ModuleType,
+    ) -> None:
+        from datetime import date
+
+        deferredmanual.date_fn(date(2026, 1, 1))
+        pattern = r'argument "date" \(str\) is not an instance of datetime\.date'
+        with raises(TypeCheckError, match=pattern):
+            deferredmanual.date_fn("bad")
+
 
 class TestCheckReturnType:
     def test_success(self) -> None:
