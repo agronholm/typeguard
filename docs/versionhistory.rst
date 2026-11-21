@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``set`` and ``typing.Set`` annotations accepting ``frozenset`` and other
+  abstract set implementations that are not instances of ``set``
+  (`#594 <https://github.com/agronholm/typeguard/pull/594>`_; PR by @jakezwang)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
