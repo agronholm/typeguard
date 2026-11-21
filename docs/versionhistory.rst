@@ -19,6 +19,10 @@ This library adheres to
   values, caused by comparing the default to ``Parameter.empty`` with ``==`` instead
   of ``is`` (`#608 <https://github.com/agronholm/typeguard/pull/608>`_; PR by @feiiiiii5)
 
+- Fixed chained assignments with an unpacking target (``x, y = z = (1, "foo")``)
+  turning the value bound to the other targets into a list
+  (`#620 <https://github.com/agronholm/typeguard/pull/620>`_; PR by @abhishekcpp007)
+
 **4.6.1** (2026-11-19)
 
 - Fixed documentation builds failing on references to removed typing APIs and older
@@ -28,9 +32,6 @@ This library adheres to
 - Fixed ``ReadOnly`` (:pep:`705`) qualifiers on ``TypedDict`` items being left
   unwrapped, which caused the item's value type to skip type checking entirely
   (`#571 <https://github.com/agronholm/typeguard/pull/571>`_; PR by @jaideeppyne)
-- Fixed chained assignments with an unpacking target (``x, y = z = (1, "foo")``)
-  turning the value bound to the other targets into a list
-  (`#620 <https://github.com/agronholm/typeguard/pull/620>`_; PR by @abhishekcpp007)
 
 **4.6.0** (2026-07-26)
 

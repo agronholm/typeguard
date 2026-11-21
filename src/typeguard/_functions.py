@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import sys
 import warnings
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from inspect import Parameter, signature
 from typing import Any, Callable, NoReturn, TypeVar, Union, get_type_hints, overload
 
@@ -321,7 +322,7 @@ def check_variable_assignment(
             values_to_check = []
 
             # Get all the available values from a generator or arbitrary iterator
-            if not isinstance(value_to_return, Sequence):
+            if not isinstance(value_to_return, (Sequence, Mapping, AbstractSet)):
                 value_to_return = list(value)
 
             iterator = iter(value_to_return)
