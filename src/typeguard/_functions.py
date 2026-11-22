@@ -4,7 +4,16 @@ import sys
 import warnings
 from collections.abc import Sequence
 from inspect import Parameter, signature
-from typing import Any, Callable, NoReturn, TypeVar, Union, get_type_hints, overload
+from typing import (
+    Any,
+    Callable,
+    ForwardRef,
+    NoReturn,
+    TypeVar,
+    Union,
+    get_type_hints,
+    overload,
+)
 
 from . import _suppression
 from ._checkers import BINARY_MAGIC_METHODS, check_type_internal
@@ -15,7 +24,7 @@ from ._config import (
 )
 from ._exceptions import TypeCheckError, TypeCheckWarning
 from ._memo import TypeCheckMemo
-from ._utils import find_function, get_stacklevel, qualified_name
+from ._utils import evaluate_forwardref, find_function, get_stacklevel, qualified_name
 
 if sys.version_info >= (3, 11):
     from typing import Literal, Never, TypeAlias
@@ -135,23 +144,47 @@ def check_argument_types() -> Literal[True]:
     frame = sys._getframe(1)
     func = find_function(frame)
     f_locals = frame.f_locals
-    memo = TypeCheckMemo(frame.f_globals, frame.f_locals)
     sig = signature(func, globals=frame.f_globals, locals=frame.f_locals)
+    memo_locals = {k: v for k, v in f_locals.items() if k not in sig.parameters}
+    memo = TypeCheckMemo(frame.f_globals, memo_locals)
     arguments = {}
     for param in sig.parameters.values():
         if param.annotation is Parameter.empty or param.annotation is Any:
             continue
 
+        annotation: Any = param.annotation
+        if isinstance(annotation, str):
+            # Undo the effect of ``from __future__ import annotations`` (PEP 563),
+            # which leaves annotations as plain strings. Wrapping them in
+            # ForwardRef allows resolving them against the caller's namespace
+            # below, like ``@typechecked`` and :func:`check_return_type` do.
+            annotation = ForwardRef(annotation)
+
         if param.kind is Parameter.VAR_POSITIONAL:
-            annotation: Any = tuple[param.annotation, ...]  # type: ignore[name-defined]
+            annotation = tuple[annotation, ...]
         elif param.kind is Parameter.VAR_KEYWORD:
-            annotation = dict[str, param.annotation]  # type: ignore[name-defined]
-        else:
-            annotation = param.annotation
+            annotation = dict[str, annotation]
 
         arguments[param.name] = (f_locals[param.name], annotation)
 
     return check_argument_types_internal(func.__name__, arguments, memo)
+
+
+def _is_never(annotation: Any, memo: TypeCheckMemo) -> bool:
+    if annotation is NoReturn or annotation is Never:
+        return True
+
+    if isinstance(annotation, str):
+        annotation = ForwardRef(annotation)
+
+    if isinstance(annotation, ForwardRef):
+        try:
+            resolved = evaluate_forwardref(annotation, memo)
+            return resolved is NoReturn or resolved is Never
+        except NameError:
+            return annotation.__forward_arg__ in ("NoReturn", "Never")
+
+    return False
 
 
 def check_argument_types_internal(
@@ -163,7 +196,7 @@ def check_argument_types_internal(
         return True
 
     for argname, (value, annotation) in arguments.items():
-        if annotation is NoReturn or annotation is Never:
+        if _is_never(annotation, memo):
             exc = TypeCheckError(
                 f"{func_name}() was declared never to be called but it was"
             )
@@ -219,7 +252,7 @@ def check_return_type_internal(
     if _suppression.type_checks_suppressed:
         return retval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(f"{func_name}() was declared never to return but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)
@@ -255,7 +288,7 @@ def check_send_type(
     if _suppression.type_checks_suppressed:
         return sendval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(
             f"{func_name}() was declared never to be sent a value to but it was"
         )
@@ -286,7 +319,7 @@ def check_yield_type(
     if _suppression.type_checks_suppressed:
         return yieldval
 
-    if annotation is NoReturn or annotation is Never:
+    if _is_never(annotation, memo):
         exc = TypeCheckError(f"{func_name}() was declared never to yield but it did")
         if memo.config.typecheck_fail_callback:
             memo.config.typecheck_fail_callback(exc, memo)

@@ -6,6 +6,12 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``check_argument_types()`` not checking any argument in a module that uses
+  ``from __future__ import annotations``: the string annotations from
+  ``inspect.signature()`` were passed to the checker unresolved, which warned and skipped
+  the check
+  (`#605 <https://github.com/agronholm/typeguard/pull/605>`_; PR by @feiiiiii5)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
