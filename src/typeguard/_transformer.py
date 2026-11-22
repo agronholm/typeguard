@@ -197,17 +197,27 @@ class TransformMemo:
             expression.value if isinstance(expression, Expr) else expression
         )
 
+        path: list[str] = []
         while isinstance(top_expression, Attribute):
+            path.append(top_expression.attr)
             top_expression = top_expression.value
 
-        if isinstance(top_expression, Name):
-            name = top_expression.id
-        else:
+        if not isinstance(top_expression, Name):
             return False
+
+        path.append(top_expression.id)
+        path.reverse()
+
+        prefixes: list[str] = []
+        current = path[0]
+        prefixes.append(current)
+        for part in path[1:]:
+            current = f"{current}.{part}"
+            prefixes.append(current)
 
         memo: TransformMemo | None = self
         while memo is not None:
-            if name in memo.ignored_names:
+            if any(prefix in memo.ignored_names for prefix in prefixes):
                 return True
 
             memo = memo.parent
@@ -324,7 +334,7 @@ class NameCollector(NodeVisitor):
 
     def visit_Import(self, node: Import) -> None:
         for name in node.names:
-            self.names.add(name.asname or name.name.split(".", 1)[0])
+            self.names.add(name.asname or name.name)
             if self._memo is not None and self._record_imports:
                 self._memo.imported_names[name.asname or name.name] = name.name
 
@@ -917,7 +927,7 @@ class TypeguardTransformer(NodeTransformer):
 
             if arg_annotations:
                 annotations_dict = Dict(
-                    keys=[Constant(key) for key in arg_annotations.keys()],
+                    keys=[Constant(key) for key in arg_annotations],
                     values=[
                         Tuple([Name(key, ctx=Load()), annotation], ctx=Load())
                         for key, annotation in arg_annotations.items()

@@ -1381,6 +1381,72 @@ k: xml.dom.Node, x: int) -> None:
             ).strip()
         )
 
+    def test_dotted_import_does_not_shadow_sibling_runtime_submodule(self) -> None:
+        from ast import fix_missing_locations
+
+        from typeguard import TypeCheckError
+
+        node = parse(
+            dedent(
+                """
+                from __future__ import annotations
+                import collections.abc
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    import collections.defaultdict
+                    import collections.abc as cabc
+
+                def foo(
+                    a: collections.abc.Sequence[int],
+                    b: collections.defaultdict[str, int],
+                    c: collections.defaultdict.SubType,
+                    d: cabc.Sequence[int],
+                ) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        fix_missing_locations(node)
+        transformed = unparse(node)
+        assert (
+            "check_argument_types_internal('foo', "
+            "{'a': (a, collections.abc.Sequence[int])}, memo)"
+        ) in transformed
+
+        namespace: dict[str, object] = {}
+        exec(compile(node, "<test_dotted_import>", "exec"), namespace)  # noqa: S102
+        foo = namespace["foo"]
+        assert callable(foo)
+        foo([1, 2], "ignored", "ignored", "ignored")
+        with pytest.raises(TypeCheckError):
+            foo("NOT_A_SEQ_OF_INT", "ignored", "ignored", "ignored")
+
+    def test_dotted_import_else_branch_sibling_not_shadowed(self) -> None:
+        node = parse(
+            dedent(
+                """
+                from typing import TYPE_CHECKING
+                if TYPE_CHECKING:
+                    import xml.dom
+                else:
+                    import xml.etree
+
+                def foo(
+                    a: xml.dom.Node,
+                    b: xml.etree.ElementTree.Element,
+                ) -> None:
+                    pass
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        transformed = unparse(node)
+        assert (
+            "check_argument_types_internal('foo', "
+            "{'b': (b, xml.etree.ElementTree.Element)}, memo)"
+        ) in transformed
+
     def test_stubbed_class_defined_at_module_level_no_else(self) -> None:
         node = parse(
             dedent(

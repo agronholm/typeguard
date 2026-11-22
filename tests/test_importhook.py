@@ -23,11 +23,10 @@ def import_dummymodule():
 
     sys.path.insert(0, str(this_dir))
     try:
-        with install_import_hook(["dummymodule"]):
-            with warnings.catch_warnings():
-                warnings.filterwarnings("error", module="typeguard")
-                module = import_module("dummymodule")
-                return module
+        with install_import_hook(["dummymodule"]), warnings.catch_warnings():
+            warnings.filterwarnings("error", module="typeguard")
+            module = import_module("dummymodule")
+            return module
     finally:
         sys.path.remove(str(this_dir))
 
@@ -94,7 +93,7 @@ def test_ignore_packages_with_blanket_import():
 def test_debug_instrumentation(monkeypatch, capsys):
     monkeypatch.setattr("typeguard.config.debug_instrumentation", True)
     import_dummymodule()
-    out, err = capsys.readouterr()
+    err = capsys.readouterr().err
     path_str = str(dummy_module_path)
     assert f"Source code of {path_str!r} after instrumentation:" in err
     assert "class DummyClass" in err
