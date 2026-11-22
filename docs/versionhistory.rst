@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``Never`` and ``NoReturn`` being ignored when nested inside another type
+  annotation
+  (`#580 <https://github.com/agronholm/typeguard/issues/580>`_)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 

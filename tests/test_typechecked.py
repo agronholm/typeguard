@@ -14,17 +14,18 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    NoReturn,
 )
 from unittest.mock import Mock
 
 import pytest
 
-from typeguard import TypeCheckError, typechecked
+from typeguard import TypeCheckError, config, typechecked
 
 if sys.version_info >= (3, 11):
-    from typing import Self
+    from typing import Never, Self
 else:
-    from typing_extensions import Self
+    from typing_extensions import Never, Self
 
 
 class TestCoroutineFunction:
@@ -764,3 +765,40 @@ class TestAssignmentExpression:
             match=r"value assigned to x \(str\) is not an instance of int",
         ):
             foo()
+
+
+class TestNestedNever:
+    def test_nested_never_typechecked_functions(self):
+        @typechecked
+        def take_list(x: list[Never]) -> None:
+            pass
+
+        @typechecked
+        def take_union(x: Never | int) -> int:  # noqa: RUF020
+            return x  # type: ignore[return-value]
+
+        take_list([])
+        assert take_union(5) == 5
+
+        with pytest.raises(TypeCheckError, match=r"is not compatible with"):
+            take_list([1])  # type: ignore[list-item]
+
+        with pytest.raises(
+            TypeCheckError, match=r"did not match any element in the union"
+        ):
+            take_union("bad")  # type: ignore[arg-type]
+
+    def test_bare_never_fail_callback_invoked_once(self, monkeypatch):
+        recorded: list[TypeCheckError] = []
+
+        @typechecked
+        def bad(x: NoReturn) -> Never:
+            return x
+
+        monkeypatch.setattr(
+            config, "typecheck_fail_callback", lambda exc, memo: recorded.append(exc)
+        )
+        assert bad(42) == 42  # type: ignore[arg-type]
+        assert len(recorded) == 2
+        assert "never to be called" in str(recorded[0])
+        assert "never to return" in str(recorded[1])

@@ -28,6 +28,8 @@ from typing import (
     Mapping,
     MutableMapping,
     NamedTuple,
+    NoReturn,
+    Optional,
     ParamSpec,
     Protocol,
     Sequence,
@@ -42,7 +44,7 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, Never
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -1753,6 +1755,38 @@ class TestTypeGuard:
         pytest.raises(TypeCheckError, check_type, 1, TypeGuard).match(
             "int is not an instance of bool"
         )
+
+
+_never_targets: list[Any] = [NoReturn, Never]
+if sys.version_info >= (3, 11):
+    from typing import Never as StdlibNever
+
+    if StdlibNever not in _never_targets:
+        _never_targets.append(StdlibNever)
+
+
+class TestNever:
+    @pytest.mark.parametrize("target", _never_targets)
+    def test_bare_and_nested_failures(self, target: Any):
+        pytest.raises(TypeCheckError, check_type, 1, target)
+        pytest.raises(TypeCheckError, check_type, [1], list[target])
+        pytest.raises(TypeCheckError, check_type, {"a": 1}, dict[str, target])
+        pytest.raises(TypeCheckError, check_type, (1,), tuple[target, ...])
+        pytest.raises(TypeCheckError, check_type, [1], Sequence[target])
+        pytest.raises(TypeCheckError, check_type, "x", Union[int, target])
+        pytest.raises(TypeCheckError, check_type, "x", target | int)
+        pytest.raises(TypeCheckError, check_type, 1, Optional[target])  # noqa: UP045
+        pytest.raises(TypeCheckError, check_type, 1, target | None)
+        pytest.raises(TypeCheckError, check_type, int, type[target])
+
+    @pytest.mark.parametrize("target", _never_targets)
+    def test_valid_empty_and_union_other(self, target: Any):
+        assert check_type([], list[target]) == []
+        assert check_type({}, dict[str, target]) == {}
+        assert check_type((), tuple[target, ...]) == ()
+        assert check_type(1, Union[int, target]) == 1
+        assert check_type(1, target | int) == 1
+        assert check_type(None, Optional[target]) is None  # noqa: UP045
 
 
 @pytest.mark.parametrize(
