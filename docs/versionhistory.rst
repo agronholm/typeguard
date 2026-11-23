@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of ``Pattern`` and ``Match`` annotations; the ``str``/``bytes``
+  argument was previously ignored, so ``Pattern[str]`` accepted a pattern compiled from
+  bytes, and neither was checked against the wrong kind of object
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 

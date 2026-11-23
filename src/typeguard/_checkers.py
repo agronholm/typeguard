@@ -3,6 +3,7 @@ from __future__ import annotations
 import builtins
 import collections.abc
 import inspect
+import re
 import sys
 import types
 import typing
@@ -24,7 +25,9 @@ from typing import (
     Dict,
     ForwardRef,
     List,
+    Match,
     NewType,
+    Pattern,
     Set,
     TextIO,
     Tuple,
@@ -215,6 +218,31 @@ def check_callable(
                     f"{len(argument_types)} but {num_positional_args} argument(s) "
                     f"declared"
                 )
+
+
+def check_pattern_or_match(
+    value: Any,
+    origin_type: Any,
+    args: tuple[Any, ...],
+    memo: TypeCheckMemo,
+) -> None:
+    if origin_type in (Pattern, re.Pattern):
+        if not isinstance(value, re.Pattern):
+            raise TypeCheckError("is not a compiled pattern")
+
+        pattern = value.pattern
+    else:
+        if not isinstance(value, re.Match):
+            raise TypeCheckError("is not a match object")
+
+        pattern = value.re.pattern
+
+    if args and args != (Any,):
+        # The argument is the string flavour the pattern was compiled from
+        if args[0] is str and not isinstance(pattern, str):
+            raise TypeCheckError("is not a string pattern")
+        if args[0] is bytes and not isinstance(pattern, bytes):
+            raise TypeCheckError("is not a bytes pattern")
 
 
 def check_mapping(
@@ -1053,7 +1081,11 @@ origin_type_checkers: dict[
     typing.Literal: check_literal,
     Mapping: check_mapping,
     MutableMapping: check_mapping,
+    re.Match: check_pattern_or_match,
+    Match: check_pattern_or_match,
     None: check_none,
+    re.Pattern: check_pattern_or_match,
+    Pattern: check_pattern_or_match,
     collections.abc.Mapping: check_mapping,
     collections.abc.MutableMapping: check_mapping,
     Sequence: check_sequence,
