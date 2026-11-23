@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of dictionary view annotations
+  (``KeysView``, ``ValuesView`` and ``ItemsView``); the item types were previously
+  ignored
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
