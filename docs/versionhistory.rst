@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of ``Counter`` annotations; the key type was
+  previously ignored, and a plain ``dict`` was accepted as a ``Counter``
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
