@@ -30,9 +30,8 @@ def test_contextmanager_exception():
     context manager block.
 
     """
-    with pytest.raises(RuntimeError):
-        with suppress_type_checks():
-            raise RuntimeError
+    with pytest.raises(RuntimeError), suppress_type_checks():
+        raise RuntimeError
 
     pytest.raises(TypeCheckError, check_type, 1, str)
 
