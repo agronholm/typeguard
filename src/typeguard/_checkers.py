@@ -236,12 +236,11 @@ def check_mapping(
     args: tuple[Any, ...],
     memo: TypeCheckMemo,
 ) -> None:
-    if origin_type is Dict or origin_type is dict:
-        if not isinstance(value, dict):
-            raise TypeCheckError("is not a dict")
-    elif concrete_type := _concrete_mapping_types.get(origin_type):
-        if not isinstance(value, concrete_type):
-            raise TypeCheckError(f"is not a {concrete_type.__name__}")
+    if (origin_type is Dict or origin_type is dict) and not isinstance(value, dict):
+        raise TypeCheckError("is not a dict")
+    concrete_type = _concrete_mapping_types.get(origin_type)
+    if concrete_type and not isinstance(value, concrete_type):
+        raise TypeCheckError(f"is not a {concrete_type.__name__}")
     if origin_type is MutableMapping or origin_type is collections.abc.MutableMapping:
         if not isinstance(value, collections.abc.MutableMapping):
             raise TypeCheckError("is not a mutable mapping")
