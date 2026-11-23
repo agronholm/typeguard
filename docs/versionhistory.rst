@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of ``ChainMap``, ``defaultdict`` and
+  ``OrderedDict`` annotations; the key and value types were previously ignored, and a
+  plain ``dict`` was accepted for any of them
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
