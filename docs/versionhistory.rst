@@ -6,6 +6,9 @@ This library adheres to
 
 **UNRELEASED**
 
+- Added type checking of the contents of ``deque`` annotations
+  (``Deque[int]``/``collections.deque[int]``); the item type was previously ignored
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 

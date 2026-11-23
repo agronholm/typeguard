@@ -34,6 +34,7 @@ class CollectionCheckStrategy(Enum):
     This has an effect on the following built-in checkers:
 
     * ``AbstractSet``
+    * ``Deque``
     * ``Dict``
     * ``List``
     * ``Mapping``

@@ -1,6 +1,7 @@
 import collections.abc
 import sys
 import types
+from collections import deque
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
@@ -18,6 +19,7 @@ from typing import (
     Collection,
     Concatenate,
     ContextManager,
+    Deque,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -782,6 +784,57 @@ class TestList:
             List[int],
             collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
         ).match("list is not an instance of int")
+
+
+@pytest.mark.parametrize(
+    "deque_type",
+    [
+        pytest.param(Deque, id="typing.Deque"),
+        pytest.param(deque, id="collections.deque"),
+    ],
+)
+class TestDeque:
+    def test_bad_type(self, deque_type):
+        pytest.raises(TypeCheckError, check_type, 5, deque_type[int]).match(
+            "int is not a deque"
+        )
+
+    def test_list_is_not_a_deque(self, deque_type):
+        pytest.raises(TypeCheckError, check_type, [1], deque_type[int]).match(
+            "list is not a deque"
+        )
+
+    def test_first_check_success(self, deque_type):
+        check_type(deque(["aa", "bb", 1]), deque_type[str])
+
+    def test_first_check_empty(self, deque_type):
+        check_type(deque(), deque_type[str])
+
+    def test_first_check_only_the_first_item(self, deque_type):
+        check_type(deque([1, "bb"]), deque_type[int])
+
+    def test_first_check_fail(self, deque_type):
+        pytest.raises(TypeCheckError, check_type, deque(["bb"]), deque_type[int]).match(
+            "item 0 of collections.deque is not an instance of int"
+        )
+
+    def test_full_check_fail(self, deque_type):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            deque([1, 2, "bb"]),
+            deque_type[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("item 2 of collections.deque is not an instance of int")
+
+    def test_full_check_fail_after_a_valid_first_item(self, deque_type):
+        pytest.raises(
+            TypeCheckError,
+            check_type,
+            deque([1, "bb"]),
+            deque_type[int],
+            collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+        ).match("item 1 of collections.deque is not an instance of int")
 
 
 class TestSequence:
