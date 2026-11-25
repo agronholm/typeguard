@@ -6,6 +6,12 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``@typechecked`` on a pytest test function discarding pytest's assertion
+  rewriting, which reduced a failing ``assert`` to a bare ``AssertionError`` with no
+  values shown. Module level test functions are now wrapped instead of recompiled, so
+  that assertion introspection survives
+  (`#477 <https://github.com/agronholm/typeguard/issues/477>`_)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 

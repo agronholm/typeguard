@@ -112,3 +112,57 @@ def test_commandline_options_with_ignore(pytester: Pytester) -> None:
         pytestconfig.getoption("typeguard_packages_ignore")
         == "ham.ignoreme,spam.eggs.ignoretoo"
     )
+
+
+def test_typechecked_preserves_assertion_rewriting(pytester: Pytester) -> None:
+    """Regression test for #477: assertion introspection must survive @typechecked."""
+    pytester.makepyfile(
+        """
+        from typeguard import typechecked
+
+        @typechecked
+        def test_example() -> None:
+            result = 1
+            assert result == 2
+        """
+    )
+    result = pytester.runpytest("-q")
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines(["*assert 1 == 2*"])
+
+
+def test_typechecked_still_checks_in_rewritten_module(pytester: Pytester) -> None:
+    pytester.makepyfile(
+        """
+        from typeguard import TypeCheckError, typechecked
+
+        @typechecked
+        def add(a: int, b: int) -> int:
+            return a + b
+
+        @typechecked
+        def bad_return() -> int:
+            return "nope"
+
+        def test_ok() -> None:
+            assert add(1, 2) == 3
+
+        def test_bad_argument() -> None:
+            try:
+                add("x", 2)
+            except TypeCheckError as exc:
+                assert 'argument "a"' in str(exc)
+            else:
+                raise AssertionError("no TypeCheckError raised")
+
+        def test_bad_return() -> None:
+            try:
+                bad_return()
+            except TypeCheckError:
+                pass
+            else:
+                raise AssertionError("no TypeCheckError raised")
+        """
+    )
+    result = pytester.runpytest("-q")
+    result.assert_outcomes(passed=3)
