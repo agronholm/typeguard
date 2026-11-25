@@ -272,6 +272,33 @@ def check_typed_dict(
             )
             raise TypeCheckError(f"has unexpected extra key(s): {keys_formatted}")
 
+        # Look through Annotated for ReadOnly, preserving metadata for checkers.
+        metadata: tuple[Any, ...] = ()
+        while True:
+            if isinstance(argtype, ForwardRef):
+                try:
+                    argtype = evaluate_forwardref(argtype, memo)
+                except NameError:
+                    # Let check_type_internal apply the configured policy.
+                    break
+
+            origin = get_origin(argtype)
+            if origin is Annotated:
+                argtype, *extras = get_args(argtype)
+                metadata = (*extras, *metadata)
+            elif origin is ReadOnly:
+                argtype = get_args(argtype)[0]
+            else:
+                break
+
+        if (
+            metadata
+            and argtype is not Any
+            and argtype is not SubclassableAny
+            and not isinstance(argtype, ForwardRef)
+        ):
+            argtype = Annotated[(argtype, *metadata)]
+
         for key in extra_keys:
             argvalue = value[key]
             try:
