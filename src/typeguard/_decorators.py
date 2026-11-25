@@ -4,15 +4,37 @@ import ast
 import inspect
 import sys
 from collections.abc import Sequence
-from functools import partial
-from inspect import isclass, isfunction
+from functools import partial, wraps
+from inspect import (
+    Parameter,
+    isasyncgenfunction,
+    isclass,
+    iscoroutinefunction,
+    isfunction,
+    isgeneratorfunction,
+    signature,
+)
 from types import CellType, CodeType, FrameType, FunctionType
-from typing import TYPE_CHECKING, Any, Callable, ForwardRef, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ForwardRef,
+    TypeVar,
+    cast,
+    get_type_hints,
+    overload,
+)
 from warnings import warn
 
 from ._config import CollectionCheckStrategy, ForwardRefPolicy, global_config
 from ._exceptions import InstrumentationWarning
-from ._functions import TypeCheckFailCallback
+from ._functions import (
+    TypeCheckFailCallback,
+    check_argument_types_internal,
+    check_return_type_internal,
+)
+from ._memo import TypeCheckMemo
 from ._transformer import TypeguardTransformer
 from ._utils import Unset, function_name, get_stacklevel, is_method_of, unset
 
@@ -50,6 +72,145 @@ def find_target_function(
                 return target_code
 
     return None
+
+
+def is_assertion_rewritten(f: FunctionType) -> bool:
+    """
+    Return ``True`` if the module that defines *f* was rewritten by pytest's assertion
+    rewriter.
+
+    pytest's rewriter injects ``@pytest_ar`` and ``@py_builtins`` into the global
+    namespace of every module it processes. When that marker is present, ``f.__code__``
+    is not what :func:`compile` would produce from the source file, so recompiling the
+    function from source (which is what :func:`instrument` does) would silently drop the
+    assertion rewriting -- exactly the problem reported in
+    `#477 <https://github.com/agronholm/typeguard/issues/477>`__.
+    """
+    module = sys.modules.get(f.__module__) if f.__module__ else None
+    return module is not None and "@pytest_ar" in vars(module)
+
+
+def wrap_with_type_checks(f: FunctionType) -> FunctionType:
+    """
+    Wrap *f* so that its arguments and return value are type checked, without replacing
+    its code object.
+
+    This is used for functions defined in modules that pytest has rewritten: the wrapper
+    leaves the (rewritten) function body untouched, so assertion introspection keeps
+    working, at the cost of one additional stack frame and of not checking assignments to
+    annotated local variables (those checks need the AST rewriting that
+    :func:`instrument` performs).
+    """
+    sig = signature(f, eval_str=True, globals=f.__globals__)
+    type_hints = get_type_hints(f, f.__globals__)
+    checkable_arguments: dict[str, Any] = {}
+    for param in sig.parameters.values():
+        annotation = type_hints.get(param.name, param.annotation)
+        if annotation is Parameter.empty or annotation is Any:
+            continue
+        elif param.kind is Parameter.VAR_POSITIONAL:
+            annotation = tuple[annotation, ...]  # type: ignore[valid-type]
+        elif param.kind is Parameter.VAR_KEYWORD:
+            annotation = dict[str, annotation]  # type: ignore[valid-type]
+
+        checkable_arguments[param.name] = annotation
+
+    return_annotation = type_hints.get("return", Parameter.empty)
+    self_name = next(iter(sig.parameters), None)
+
+    def check_arguments(args: tuple[Any, ...], kwargs: dict[str, Any]) -> TypeCheckMemo:
+        memo = TypeCheckMemo(f.__globals__, {})
+        if checkable_arguments:
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+            if self_name in bound.arguments:
+                self_value = bound.arguments[self_name]
+                memo.self_type = self_value if isclass(self_value) else type(self_value)
+
+            arguments = {
+                name: (bound.arguments[name], annotation)
+                for name, annotation in checkable_arguments.items()
+                if name in bound.arguments
+            }
+            check_argument_types_internal(f.__name__, arguments, memo)
+
+        return memo
+
+    def check_return(retval: Any, memo: TypeCheckMemo) -> Any:
+        if return_annotation is Parameter.empty:
+            return retval
+
+        return check_return_type_internal(f.__name__, retval, return_annotation, memo)
+
+    if iscoroutinefunction(f):
+
+        @wraps(f)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            memo = check_arguments(args, kwargs)
+            return check_return(await f(*args, **kwargs), memo)
+
+    else:
+
+        @wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            memo = check_arguments(args, kwargs)
+            return check_return(f(*args, **kwargs), memo)
+
+    return wrapper  # type: ignore[return-value]
+
+
+def has_annotated_locals(f: FunctionType) -> bool:
+    """Return ``True`` if *f* assigns annotated local variables somewhere in its body."""
+    module = sys.modules.get(f.__module__) if f.__module__ else None
+    if module is None:
+        return True
+
+    target_path = [item for item in f.__qualname__.split(".") if item != "<locals>"]
+    try:
+        module_ast = ast.parse(inspect.getsource(module))
+        instrumentor = TypeguardTransformer(target_path, f.__code__.co_firstlineno)
+        instrumentor.visit(module_ast)
+        target_node = instrumentor.target_node
+    except (OSError, SyntaxError, TypeError):
+        return True
+
+    if target_node is None:
+        return True
+
+    return any(
+        isinstance(node, ast.AnnAssign) and node.value is not None
+        for node in ast.walk(target_node)
+    )
+
+
+def instrument_or_wrap(f: FunctionType) -> FunctionType | str:
+    """
+    Instrument *f*, unless instrumenting it would discard the assertion rewriting applied
+    to its module by pytest while adding nothing that a wrapper cannot provide.
+
+    Recompiling the function from source (what :func:`instrument` does) throws away the
+    assertion introspection that pytest's rewriter added, so for functions that contain
+    rewritten assertions but no assignments to annotated local variables, a wrapper is a
+    strictly better trade: the assertions stay introspectable and the arguments and
+    return value are still checked. Functions that do assign annotated locals keep being
+    instrumented, since only AST rewriting can check those.
+    """
+    if (
+        not isgeneratorfunction(f)
+        and not isasyncgenfunction(f)
+        and f.__qualname__ == f.__name__
+        and f.__name__.startswith("test")
+        and is_assertion_rewritten(f)
+        and not has_annotated_locals(f)
+    ):
+        try:
+            return wrap_with_type_checks(f)
+        except (NameError, TypeError):
+            # The annotations could not be resolved outside of the instrumented code, so
+            # fall back to the previous behavior
+            pass
+
+    return instrument(f)
 
 
 def instrument(f: T_CallableOrType) -> FunctionType | str:
@@ -161,6 +322,13 @@ def typechecked(
     arguments, return values, yield values (excluding ``yield from``) and assignments to
     annotated local variables.
 
+    .. note:: In modules that pytest's assertion rewriter processes (i.e. test modules),
+        module level ``test*`` functions are wrapped rather than recompiled. Recompiling
+        them from source would drop the assertion rewriting, turning a failing ``assert``
+        into a bare ``AssertionError``; wrapping keeps the introspection, at the cost of
+        one extra stack frame and of not checking assignments to annotated local variables
+        in those functions.
+
     This can also be used as a class decorator. This will instrument all type annotated
     methods, including :func:`@classmethod <classmethod>`,
     :func:`@staticmethod <staticmethod>`,  and :class:`@property <property>` decorated
@@ -196,12 +364,12 @@ def typechecked(
     if isclass(target):
         for key, attr in target.__dict__.items():
             if is_method_of(attr, target):
-                retval = instrument(attr)
+                retval = instrument_or_wrap(cast(FunctionType, attr))
                 if isfunction(retval):
                     setattr(target, key, retval)
             elif isinstance(attr, (classmethod, staticmethod)):
                 if is_method_of(attr.__func__, target):
-                    retval = instrument(attr.__func__)
+                    retval = instrument_or_wrap(cast(FunctionType, attr.__func__))
                     if isfunction(retval):
                         wrapper = attr.__class__(retval)
                         setattr(target, key, wrapper)
@@ -210,7 +378,7 @@ def typechecked(
                 for name in ("fset", "fget", "fdel"):
                     property_func = kwargs[name] = getattr(attr, name)
                     if is_method_of(property_func, target):
-                        retval = instrument(property_func)
+                        retval = instrument_or_wrap(cast(FunctionType, property_func))
                         if isfunction(retval):
                             kwargs[name] = retval
 
@@ -225,7 +393,7 @@ def typechecked(
         wrapper_class = target.__class__
         target = target.__func__  # type: ignore[assignment]
 
-    retval = instrument(target)
+    retval = instrument_or_wrap(cast(FunctionType, target))
     if isinstance(retval, str):
         warn(
             f"{retval} -- not typechecking {function_name(target)}",
