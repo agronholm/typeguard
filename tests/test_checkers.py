@@ -41,7 +41,7 @@ from typing import (
 )
 
 import pytest
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, ReadOnly
 
 from typeguard import (
     CollectionCheckStrategy,
@@ -53,7 +53,7 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
-from typeguard._checkers import _sentinel_types, is_typeddict
+from typeguard._checkers import _sentinel_types, checker_lookup_functions, is_typeddict
 from typeguard._utils import qualified_name
 
 from . import (
@@ -714,10 +714,21 @@ class TestTypedDict:
 
         check_type({"x": 6, "y": 7, "z": "foo"}, DummyDict)
 
-    def test_readonly_extra_items(self):
-        from typing_extensions import ReadOnly, TypedDict
+    @pytest.mark.parametrize(
+        "extra_type",
+        [
+            pytest.param(ReadOnly[int], id="plain"),
+            pytest.param(Annotated[ReadOnly[int], "outer"], id="annotated"),
+            pytest.param(
+                Annotated[ReadOnly[Annotated["int", "inner"]], "outer"],
+                id="nested-annotations-and-forward-ref",
+            ),
+        ],
+    )
+    def test_readonly_extra_items(self, extra_type):
+        from typing_extensions import TypedDict
 
-        class DummyDict(TypedDict, extra_items=ReadOnly[int]):
+        class DummyDict(TypedDict, extra_items=extra_type):
             x: int
 
         check_type({"x": 6, "y": 7}, DummyDict)
@@ -726,6 +737,41 @@ class TestTypedDict:
             match=r"value of key 'y' of dict is not an instance of int",
         ):
             check_type({"x": 6, "y": "wrong"}, DummyDict)
+
+    def test_readonly_extra_items_preserve_metadata(self, monkeypatch):
+        from typing_extensions import TypedDict
+
+        class DummyDict(
+            TypedDict,
+            extra_items=Annotated[ReadOnly[Annotated["int", "inner"]], "outer"],
+        ):
+            pass
+
+        seen_extras = []
+
+        def lookup(origin_type, args, extras):
+            if origin_type is int:
+                seen_extras.append(extras)
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup, *checker_lookup_functions],
+        )
+        check_type({"y": 7}, DummyDict)
+        assert seen_extras == [("inner", "outer")]
+
+    def test_readonly_extra_items_forward_ref_policy(self):
+        from typing_extensions import TypedDict
+
+        class DummyDict(
+            TypedDict,
+            extra_items=Annotated[ReadOnly[ForwardRef("MissingExtraType")], "meta"],
+        ):
+            pass
+
+        check_type({"y": 7}, DummyDict, forward_ref_policy=ForwardRefPolicy.IGNORE)
+        with pytest.raises(NameError, match="MissingExtraType"):
+            check_type({"y": 7}, DummyDict, forward_ref_policy=ForwardRefPolicy.ERROR)
 
     def test_extra_items_bad_type(self, typing_provider):
         try:
