@@ -274,17 +274,29 @@ def check_typed_dict(
 
         for key in extra_keys:
             argvalue = value[key]
-            # Strip the Annotated/NotRequired/Required/ReadOnly qualifiers (in any
-            # nesting order) so the underlying type is actually checked. A bare
+            # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
+            # order) so the underlying type is actually checked. A bare
             # ReadOnly[...] has no checker, so without this the extra items would
-            # silently pass any value (see #636).
+            # silently pass any value (see #636). Annotated metadata is collected
+            # while unwrapping and put back afterwards, so checker lookups that
+            # read the metadata still run (see #638).
             extra_argtype = argtype
+            metadata: list[Any] = []
             while True:
                 origin = get_origin(extra_argtype)
-                if origin is Annotated or origin in (NotRequired, Required, ReadOnly):
+                if origin is Annotated:
+                    metadata = list(get_args(extra_argtype)[1:]) + metadata
+                    extra_argtype = get_args(extra_argtype)[0]
+                elif origin in (NotRequired, Required, ReadOnly):
                     extra_argtype = get_args(extra_argtype)[0]
                 else:
                     break
+
+            if metadata:
+                # Rebuild Annotated with the collected metadata (the explicit
+                # tuple keeps this valid on Python 3.10, where a starred
+                # expression directly in a subscript is a syntax error)
+                extra_argtype = Annotated[(extra_argtype, *metadata)]
 
             try:
                 check_type_internal(argvalue, extra_argtype, memo)

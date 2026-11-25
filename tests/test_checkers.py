@@ -53,7 +53,7 @@ from typeguard import (
     check_type_internal,
     suppress_type_checks,
 )
-from typeguard._checkers import _sentinel_types, is_typeddict
+from typeguard._checkers import _sentinel_types, checker_lookup_functions, is_typeddict
 from typeguard._utils import qualified_name
 
 from . import (
@@ -771,6 +771,55 @@ class TestTypedDict:
             TypeCheckError, match=r"value of key 'y' of dict is not an instance of int"
         ):
             check_type({"x": 6, "y": "foo"}, AnnotatedDict)
+
+    def test_extra_items_annotated_metadata(self, typing_provider, monkeypatch):
+        # Regression test for #638 (review feedback on #636): unwrapping
+        # extra_items must preserve Annotated metadata, so a checker lookup
+        # that reads the metadata still runs
+        class Positive:
+            pass
+
+        def lookup_func(origin_type, args, extras):
+            if origin_type is int and any(
+                isinstance(extra, Positive) for extra in extras
+            ):
+
+                def check_positive(value, origin_type, args, memo):
+                    check_type_internal(value, int, memo)
+                    if value < 0:
+                        raise TypeCheckError("is not positive")
+
+                return check_positive
+
+            return None
+
+        monkeypatch.setattr(
+            "typeguard._checkers.checker_lookup_functions",
+            [lookup_func, *checker_lookup_functions],
+        )
+
+        try:
+
+            class DummyDict(
+                typing_provider.TypedDict,
+                extra_items=Annotated[int, Positive()],
+            ):
+                x: int
+
+        except TypeError as exc:
+            if "unexpected keyword argument 'extra_items'" in str(exc):
+                pytest.skip(
+                    f"typing provider {typing_provider!r} does not support extra_items in TypedDict"
+                )
+            else:
+                raise
+
+        check_type({"x": 6, "y": 7}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'y' of dict is not positive"
+        ):
+            check_type({"x": 6, "y": -5}, DummyDict)
 
 
 class TestList:
