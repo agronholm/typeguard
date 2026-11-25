@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``@suppress_type_checks`` not suppressing checks inside coroutine and
+  generator bodies, where the suppression window ended before the body ran
+  (PR by @feiiiiii5)
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
