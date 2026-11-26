@@ -99,7 +99,7 @@ def check_type(
         collection_check_strategy=collection_check_strategy,
     )
 
-    if _suppression.type_checks_suppressed or expected_type is Any:
+    if _suppression.is_suppressed() or expected_type is Any:
         return value
 
     frame = sys._getframe(1)
@@ -159,7 +159,7 @@ def check_argument_types_internal(
     arguments: dict[str, tuple[Any, Any]],
     memo: TypeCheckMemo,
 ) -> Literal[True]:
-    if _suppression.type_checks_suppressed:
+    if _suppression.is_suppressed():
         return True
 
     for argname, (value, annotation) in arguments.items():
@@ -216,7 +216,7 @@ def check_return_type_internal(
     annotation: Any,
     memo: TypeCheckMemo,
 ) -> T:
-    if _suppression.type_checks_suppressed:
+    if _suppression.is_suppressed():
         return retval
 
     if annotation is NoReturn or annotation is Never:
@@ -252,7 +252,7 @@ def check_send_type(
     annotation: Any,
     memo: TypeCheckMemo,
 ) -> T:
-    if _suppression.type_checks_suppressed:
+    if _suppression.is_suppressed():
         return sendval
 
     if annotation is NoReturn or annotation is Never:
@@ -283,7 +283,7 @@ def check_yield_type(
     annotation: Any,
     memo: TypeCheckMemo,
 ) -> T:
-    if _suppression.type_checks_suppressed:
+    if _suppression.is_suppressed():
         return yieldval
 
     if annotation is NoReturn or annotation is Never:
@@ -311,7 +311,7 @@ def check_variable_assignment(
     groups: Sequence[list[tuple[str, Any]] | tuple[str, Any]],
     memo: TypeCheckMemo,
 ) -> Any:
-    if _suppression.type_checks_suppressed:
+    if _suppression.is_suppressed():
         return value
 
     value_to_return = value
