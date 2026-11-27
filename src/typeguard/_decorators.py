@@ -104,7 +104,7 @@ def instrument(f: T_CallableOrType) -> FunctionType | str:
         for key in new_code.co_freevars:
             if key in instrumentor.names_used_in_annotations:
                 # Find the value and make a new cell from it
-                value = frame_locals.get(key) or ForwardRef(key)
+                value = frame_locals[key] if key in frame_locals else ForwardRef(key)
                 cells.append(make_cell(value))
             else:
                 # Reuse the cell from the existing closure

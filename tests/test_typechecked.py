@@ -601,6 +601,27 @@ def test_return_type_annotation_refers_to_nonlocal():
     assert isinstance(foo(), Internal)
 
 
+def test_falsy_nonlocal_annotation():
+    # A nonlocal referenced only in an annotation must be captured by value even
+    # when it is falsy; otherwise it is replaced by an unresolved ForwardRef and
+    # the generated checks are silently skipped.
+    class FalsyMeta(type):
+        def __bool__(cls) -> bool:
+            return False
+
+    class Internal(metaclass=FalsyMeta):
+        pass
+
+    @typechecked
+    def foo(x: Internal) -> Internal:
+        return x
+
+    with pytest.raises(TypeCheckError, match='argument "x"'):
+        foo(123)
+
+    assert isinstance(foo(Internal()), Internal)
+
+
 def test_existing_method_decorator():
     @typechecked
     class Foo:

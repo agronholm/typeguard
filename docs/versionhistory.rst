@@ -6,6 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed ``@typechecked`` silently skipping argument and return checks when an annotation
+  refers to a nonlocal bound to a falsy value (such as a class whose metaclass defines
+  ``__bool__``); the captured value was replaced with an unresolved forward reference
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
