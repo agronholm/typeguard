@@ -287,11 +287,14 @@ def check_typed_dict(
             annotation = evaluate_forwardref(annotation, memo)
 
         # Strip the NotRequired/Required/ReadOnly qualifiers (in any nesting
-        # order) so the underlying type is actually checked. ReadOnly (PEP 705)
-        # was previously left wrapped, which silently skipped type checking.
+        # order, including when wrapped in Annotated) so the underlying type
+        # is actually checked. ReadOnly (PEP 705) was previously left wrapped,
+        # which silently skipped type checking.
         while True:
             origin = get_origin(annotation)
-            if origin is NotRequired:
+            if origin is Annotated:
+                annotation = get_args(annotation)[0]
+            elif origin is NotRequired:
                 required_keys.discard(key)
                 annotation = get_args(annotation)[0]
             elif origin is Required:

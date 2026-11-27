@@ -644,6 +644,62 @@ class TestTypedDict:
         with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
             check_type({"b": 2}, DummyDict)
 
+    def test_annotated_qualifiers(self, typing_provider):
+        # Annotated wrapped around (or inside) Required/NotRequired/ReadOnly
+        # must still be stripped so the underlying type is checked and the
+        # required-ness is preserved (#625).
+        try:
+            Annotated = typing_provider.Annotated
+            ReadOnly = typing_provider.ReadOnly
+            Required = typing_provider.Required
+            NotRequired = typing_provider.NotRequired
+        except AttributeError:
+            pytest.skip(
+                f"'Annotated'/'ReadOnly'/'Required'/'NotRequired' not found in "
+                f"{typing_provider.__name__!r}"
+            )
+
+        class DummyDict(typing_provider.TypedDict):
+            a: Annotated[ReadOnly[int], 1]
+            b: Annotated[Required[int], 1]
+            c: Annotated[NotRequired[int], 1]
+            d: "Annotated[NotRequired[int], 1]"
+            e: Required[Annotated[int, 1]]
+            f: NotRequired[Annotated[int, 1]]
+
+        # a, b and e are required; c, d and f are optional.
+        check_type({"a": 1, "b": 2, "e": 5}, DummyDict)
+        check_type({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6}, DummyDict)
+
+        # The underlying type is still checked through the Annotated wrapping.
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'a' of dict is not an instance of int"
+        ):
+            check_type({"a": "foo", "b": 2, "e": 5}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'c' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": 2, "c": "foo", "e": 5}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'd' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": 2, "d": "foo", "e": 5}, DummyDict)
+
+        with pytest.raises(
+            TypeCheckError, match=r"value of key 'e' of dict is not an instance of int"
+        ):
+            check_type({"a": 1, "b": 2, "e": "foo"}, DummyDict)
+
+        # Required-ness survives the unwrapping: missing required keys error,
+        # while omitting optional keys is fine.
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "a"'):
+            check_type({"b": 2, "e": 5}, DummyDict)
+
+        with pytest.raises(TypeCheckError, match=r'is missing required key\(s\): "e"'):
+            check_type({"a": 1, "b": 2}, DummyDict)
+
     def test_required_pass(self, typing_provider):
         try:
             Required = typing_provider.Required
