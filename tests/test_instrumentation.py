@@ -271,6 +271,28 @@ def test_unpacking_assign_single_item_tuple(dummymodule):
     assert dummymodule.unpacking_assign_single_item_tuple() == "foo"
 
 
+def test_unpacking_assign_nested_target(dummymodule):
+    assert dummymodule.unpacking_assign_nested_target() == (1, 2, 3)
+
+
+def test_unpacking_assign_nested_target_mismatch(dummymodule):
+    with pytest.raises(
+        TypeCheckError, match=r"value assigned to x \(str\) is not an instance of int"
+    ):
+        dummymodule.unpacking_assign_nested_target_mismatch()
+
+
+def test_unpacking_assign_list_target(dummymodule):
+    assert dummymodule.unpacking_assign_list_target() == (1, "foo")
+
+
+def test_unpacking_assign_list_target_mismatch(dummymodule):
+    with pytest.raises(
+        TypeCheckError, match=r"value assigned to x \(str\) is not an instance of int"
+    ):
+        dummymodule.unpacking_assign_list_target_mismatch()
+
+
 def test_unpacking_assign_from_generator(dummymodule):
     assert dummymodule.unpacking_assign_generator() == (1, "foo")
 

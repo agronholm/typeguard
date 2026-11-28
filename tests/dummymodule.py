@@ -240,6 +240,36 @@ def unpacking_assign_single_item_tuple() -> str:
 
 
 @typechecked
+def unpacking_assign_nested_target() -> Tuple[int, int, int]:
+    x: int
+    ((a, b), x) = ((1, 2), 3)
+    return a, b, x
+
+
+@typechecked
+def unpacking_assign_nested_target_mismatch() -> Tuple[int, int, str]:
+    x: int
+    ((a, b), x) = ((1, 2), "foo")
+    return a, b, x
+
+
+@typechecked
+def unpacking_assign_list_target() -> Tuple[int, str]:
+    x: int
+    y: str
+    [x, y] = [1, "foo"]
+    return x, y
+
+
+@typechecked
+def unpacking_assign_list_target_mismatch() -> Tuple[str, int]:
+    x: int
+    y: str
+    [x, y] = ["foo", 1]
+    return x, y
+
+
+@typechecked
 def unpacking_assign_generator() -> Tuple[int, str]:
     def genfunc():
         yield 1

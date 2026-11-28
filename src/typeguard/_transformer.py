@@ -54,6 +54,7 @@ from ast import (
     expr,
     fix_missing_locations,
     keyword,
+    unparse,
     walk,
 )
 from collections import defaultdict
@@ -1059,7 +1060,7 @@ class TypeguardTransformer(NodeTransformer):
                 if isinstance(node_target, Name):
                     elts = [node_target]
                     single_target = True
-                elif isinstance(node_target, Tuple):
+                elif isinstance(node_target, (Tuple, List)):
                     elts = node_target.elts
                     single_target = False
                 else:
@@ -1090,6 +1091,12 @@ class TypeguardTransformer(NodeTransformer):
                             check_required = True
                         else:
                             annotations_.append((Constant(name), None))
+                    else:
+                        # A nested unpacking target (e.g. "a, (b, c) = ...") cannot be
+                        # checked, but it still consumes a value, so a placeholder is
+                        # needed to keep the rest of the targets matched up with the
+                        # values they actually receive
+                        annotations_.append((Constant(prefix + unparse(exp)), None))
 
                 preliminary_targets.append(
                     annotations_[0] if single_target else annotations_
