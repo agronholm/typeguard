@@ -116,3 +116,22 @@ def test_typechecking_attribute_guard(tmp_path, monkeypatch):
         assert module.f(1) is None
     finally:
         sys.modules.pop(module_name, None)
+
+
+def test_typing_extensions_typechecking_attribute_guard(tmp_path, monkeypatch):
+    module_name = "typing_extensions_guard_module"
+    (tmp_path / f"{module_name}.py").write_text(
+        "import typing_extensions\n"
+        "if typing_extensions.TYPE_CHECKING:\n"
+        "    from decimal import Decimal\n"
+        "\n"
+        "def f(x: 'Decimal') -> None:\n"
+        "    return None\n"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    try:
+        with install_import_hook([module_name]):
+            module = import_module(module_name)
+        assert module.f(1) is None
+    finally:
+        sys.modules.pop(module_name, None)

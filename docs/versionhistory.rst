@@ -6,9 +6,10 @@ This library adheres to
 
 **UNRELEASED**
 
-- Fixed ``typing.TYPE_CHECKING`` guards written as attribute references being ignored
-  by the instrumenter, so annotations imported only in those blocks leaked into
-  runtime checks and raised ``NameError``
+- Fixed ``typing.TYPE_CHECKING`` and ``typing_extensions.TYPE_CHECKING`` guards
+  written as attribute references being ignored by the instrumenter, so
+  annotations imported only in those blocks leaked into runtime checks and
+  raised ``NameError``
 
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)

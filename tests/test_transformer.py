@@ -1028,6 +1028,24 @@ class TestTypecheckingImport:
             ).strip()
         )
 
+    def test_typing_extensions_typechecking_guard(self) -> None:
+        for source in (
+            (
+                "import typing_extensions\n"
+                "if typing_extensions.TYPE_CHECKING:\n"
+                "    from nonexistent import FooBar\n"
+            ),
+            (
+                "from typing_extensions import TYPE_CHECKING\n"
+                "if TYPE_CHECKING:\n"
+                "    from nonexistent import FooBar\n"
+            ),
+        ):
+            node = parse(source + "\ndef foo(x: 'FooBar') -> 'FooBar':\n    return x\n")
+            TypeguardTransformer().visit(node)
+            assert "check_type_internal" not in unparse(node)
+            assert "FooBar" in unparse(node)
+
     def test_variable_annotations(self) -> None:
         node = parse(
             dedent(
