@@ -1000,6 +1000,34 @@ class TestTypecheckingImport:
             ).strip()
         )
 
+    def test_attribute_typechecking_guard(self) -> None:
+        node = parse(
+            dedent(
+                """
+                import typing
+                if typing.TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: "FooBar") -> "FooBar":
+                    return x
+                """
+            )
+        )
+        TypeguardTransformer().visit(node)
+        assert (
+            unparse(node)
+            == dedent(
+                """
+                import typing
+                if typing.TYPE_CHECKING:
+                    from nonexistent import FooBar
+
+                def foo(x: 'FooBar') -> 'FooBar':
+                    return x
+                """
+            ).strip()
+        )
+
     def test_variable_annotations(self) -> None:
         node = parse(
             dedent(
