@@ -6,6 +6,14 @@ This library adheres to
 
 **UNRELEASED**
 
+- Fixed instrumented unpacking assignments pairing the remaining targets with the
+  wrong values when the assignment has a nested unpacking target (e.g.
+  ``((a, b), c) = ...``), which made a valid assignment raise a false
+  ``TypeCheckError`` (or report a failure for the wrong variable)
+- Fixed unpacking assignments with a list target (e.g. ``[x, y] = ...``) not being
+  instrumented at all, unlike the equivalent tuple target, causing the assigned
+  values to skip type checking entirely
+
 - Fixed empty ``NamedTuple`` annotations accepting unrelated tuple instances
   (`#614 <https://github.com/agronholm/typeguard/issues/614>`_; PR by @parijat1222q)
 
